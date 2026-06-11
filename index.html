@@ -107,8 +107,9 @@
                 padding: 16px 12px;
             }
 
-            /* Prevent horizontal overflow everywhere */
-            body, html, .section, .card {
+            /* Prevent page-level horizontal overflow — but NOT on .card:
+               cards scroll their own content instead of clipping it. */
+            body, html, .section {
                 overflow-x: hidden;
             }
 
@@ -376,6 +377,8 @@
             } else {
                 localStorage.removeItem('ruggyAdminLoggedIn');
             }
+            // The Wall's Remove buttons depend on admin state — refresh it
+            if (typeof renderBannedTable === 'function') renderBannedTable();
         }
 
         // Main function called when clicking the Admin button
@@ -387,12 +390,6 @@
             }
         }
         window.openAdminWithLogin = openAdminWithLogin;
-
-        // Also expose other critical functions globally to prevent "is not defined" errors
-        window.toggleMobileMenu = typeof toggleMobileMenu !== 'undefined' ? toggleMobileMenu : function() {
-            const menu = document.getElementById('mobile-menu');
-            if (menu) menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex';
-        };
 
         // Attach event listeners for critical buttons (more reliable than inline onclick)
         function attachCriticalEventListeners() {
@@ -845,11 +842,6 @@ document.addEventListener('DOMContentLoaded', () => {
         function refreshWalletUI() {
             if (typeof updateConnectWalletButton === 'function') updateConnectWalletButton();
             if (typeof updateHomeWalletDisplays === 'function') updateHomeWalletDisplays();
-            // If the wallet dropdown is open, re-render it with the new state
-            const dropdown = document.getElementById('wallet-dropdown');
-            if (dropdown && !dropdown.classList.contains('hidden') && typeof populateWalletDropdown === 'function') {
-                populateWalletDropdown();
-            }
         }
 
         // Attach connect/disconnect/accountChanged listeners once per provider.
@@ -891,10 +883,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 if (walletLibsLoading) {
+                    // Poll for completion, but give up after 15s instead of
+                    // spinning an interval forever if the first load failed.
+                    let waited = 0;
                     const checkInterval = setInterval(() => {
+                        waited += 100;
                         if (walletLibsLoaded) {
                             clearInterval(checkInterval);
                             resolve();
+                        } else if (!walletLibsLoading || waited >= 15000) {
+                            clearInterval(checkInterval);
+                            reject(new Error('Wallet libraries failed to load'));
                         }
                     }, 100);
                     return;
@@ -1052,17 +1051,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (publicKey) {
                     setWalletState(provider, publicKey, lastWallet, w.name);
                     attachProviderEvents(provider);
-                    console.log(`[Wallet] Auto-reconnected to ${w.name}`);
                 }
             } catch (err) {
                 // Silent fail is expected if user hasn't approved the site before
-                console.log(`[Wallet] Auto-reconnect to ${lastWallet} skipped (user action required)`);
             }
         }
 
         async function connectWallet(preferredWallet = null, forcePrompt = true) {
             const btn = document.getElementById('connect-btn');
             const originalText = btn ? btn.innerHTML : '';
+            const resetBtn = () => {
+                resetBtn();
+            };
 
             // Show loading state
             if (btn) {
@@ -1078,10 +1078,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await ensureWalletLibrariesLoaded();
             } catch (e) {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = originalText || 'CONNECT WALLET';
-                }
+                resetBtn();
                 showToast("Failed to load wallet libraries. Please refresh the page.", "error");
                 return;
             }
@@ -1096,10 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     provider = w.get();
                     name = w.name;
                 } else {
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = originalText || 'CONNECT WALLET';
-                    }
+                    resetBtn();
                     if (w.hint) {
                         showToast(w.hint, "error");
                     } else {
@@ -1124,20 +1118,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     name = "Solana Wallet";
                     walletKey = 'solana';
                 } else {
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = originalText || 'CONNECT WALLET';
-                    }
+                    resetBtn();
                     showToast("No Solana wallet detected. Please install Phantom, Solflare, or Backpack.", "error");
                     return;
                 }
             }
 
             if (!provider || typeof provider.connect !== 'function') {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = originalText || 'CONNECT WALLET';
-                }
+                resetBtn();
                 showToast(`${name} does not support direct connection in this browser.`, "error");
                 return;
             }
@@ -1172,10 +1160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return resp.publicKey;
 
             } catch (err) {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = originalText || 'CONNECT WALLET';
-                }
+                resetBtn();
 
                 if (err.message && err.message.includes('User rejected')) {
                     showToast("Connection rejected by user.", "error");
@@ -1490,7 +1475,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const modal = document.getElementById('wallet-modal');
                 if (modal) {
                     modal.style.setProperty('display', 'flex', 'important');
-                    console.log('[Wallet] Modal opened successfully');
                 } else {
                     console.error('[Wallet] Wallet modal element (#wallet-modal) not found in DOM');
                 }
@@ -1548,101 +1532,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         initWalletModalListeners();
-
-        // ==================== CLEAN WALLET DROPDOWN ====================
-        function toggleWalletDropdown(e) {
-            if (e) e.stopImmediatePropagation();
-            const dropdown = document.getElementById('wallet-dropdown');
-            if (!dropdown) return;
-
-            const isHidden = dropdown.classList.contains('hidden');
-
-            // Close any open dropdown first
-            document.querySelectorAll('#wallet-dropdown').forEach(d => d.classList.add('hidden'));
-
-            if (isHidden) {
-                populateWalletDropdown();
-                dropdown.classList.remove('hidden');
-
-                // Robust outside click closer
-                setTimeout(() => {
-                    const handler = function(ev) {
-                        if (!dropdown.contains(ev.target)) {
-                            dropdown.classList.add('hidden');
-                            document.removeEventListener('click', handler, true);
-                        }
-                    };
-                    document.addEventListener('click', handler, true);
-                }, 10);
-            }
-        }
-
-        // ===== WALLET DROPDOWN HELPERS =====
-        function closeWalletDropdown() {
-            const dropdown = document.getElementById('wallet-dropdown');
-            if (dropdown) dropdown.classList.add('hidden');
-        }
-
-        function populateWalletDropdown() {
-            const content = document.getElementById('wallet-dropdown-content');
-            if (!content) return;
-
-            const isConnected = window.ruggyWallet && window.ruggyWallet.connected;
-
-            if (isConnected) {
-                const addrStr = window.ruggyWallet.publicKey.toString();
-                const short = addrStr.slice(0, 6) + '...' + addrStr.slice(-4);
-                content.innerHTML = `
-                    <div style="padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to right, #16a34a, #22c55e); color: white; border-radius: 12px 12px 0 0;">
-                        <div style="font-size: 14px; font-weight: 700;">Wallet Connected</div>
-                        <div id="wallet-dropdown-close" style="cursor: pointer; font-size: 22px; line-height: 1; padding: 0 6px; font-weight: bold;">×</div>
-                    </div>
-                    <div style="padding: 14px 16px; font-family: monospace; font-size: 15px; color: #22c55e; word-break: break-all; background: #1a0033;">
-                        ${short}
-                    </div>
-                    <div id="disconnect-wallet-btn" 
-                         style="padding: 14px 16px; cursor: pointer; color: #f87171; font-size: 15px; font-weight: 700; background: #1a0033; border-radius: 0 0 12px 12px; transition: background 0.2s;"
-                         onmouseover="this.style.background='#3f1f1f'" 
-                         onmouseout="this.style.background='#1a0033'">
-                        Disconnect Wallet
-                    </div>
-                `;
-            } else {
-                content.innerHTML = `
-                    <div style="padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to right, #ff00ff, #a855f7); color: white; border-radius: 12px 12px 0 0;">
-                        <div style="font-size: 14px; font-weight: 700;">Connect Wallet</div>
-                        <div id="wallet-dropdown-close" style="cursor: pointer; font-size: 22px; line-height: 1; padding: 0 6px; font-weight: bold;">×</div>
-                    </div>
-
-                    <div id="connect-phantom-btn" 
-                         style="padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 16px; background: #1a0033; color: white; transition: background 0.2s;"
-                         onmouseover="this.style.background='#4c1d95'" onmouseout="this.style.background='#1a0033'">
-                        <span style="font-size: 24px;">👻</span> 
-                        <span style="font-weight: 700;">Phantom</span>
-                    </div>
-
-                    <div id="connect-solflare-btn" 
-                         style="padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 16px; background: #1a0033; color: white; transition: background 0.2s;"
-                         onmouseover="this.style.background='#4c1d95'" onmouseout="this.style.background='#1a0033'">
-                        <span style="font-size: 24px;">🔥</span> 
-                        <span style="font-weight: 700;">Solflare</span>
-                    </div>
-
-                    <div id="connect-backpack-btn" 
-                         style="padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 16px; background: #1a0033; color: white; transition: background 0.2s; border-radius: 0 0 12px 12px;"
-                         onmouseover="this.style.background='#4c1d95'" onmouseout="this.style.background='#1a0033'">
-                        <span style="font-size: 24px;">🎒</span> 
-                        <span style="font-weight: 700;">Backpack</span>
-                    </div>
-                `;
-            }
-        }
-
-        function connectFromDropdown(walletType) {
-            const dropdown = document.getElementById('wallet-dropdown');
-            if (dropdown) dropdown.classList.add('hidden');
-            connectWallet(walletType);
-        }
 
         // Update button when wallet connects/disconnects
         function updateConnectWalletButton() {
@@ -1702,13 +1591,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.onclick = () => showWalletModal();
             }
         }
-
-        // Make sure existing functions call the new button updater
-        const originalUpdateAllConnectButtons = window.updateAllConnectButtons;
-        window.updateAllConnectButtons = function(address) {
-            if (originalUpdateAllConnectButtons) originalUpdateAllConnectButtons(address);
-            updateConnectWalletButton();
-        };
 
         function selectAndConnectWallet(walletType) {
             closeWalletModal();
@@ -1813,25 +1695,28 @@ document.addEventListener('DOMContentLoaded', () => {
             overflow: visible;
         }
 
-        /* When text still overflows on small screens → indent the word */
-        @media (max-width: 768px) {
-            .card h3,
-            .explore-card h3 {
-                text-indent: -8px;
-                padding-left: 8px;
-            }
-            
-            .card p,
-            .explore-card p {
-                text-indent: -6px;
-                padding-left: 6px;
-            }
+        /* Slim scrollbars for scrollable cards */
+        .card::-webkit-scrollbar,
+        .explore-card::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .card::-webkit-scrollbar-thumb,
+        .explore-card::-webkit-scrollbar-thumb {
+            background: #6b21a8;
+            border-radius: 3px;
+        }
+        .card,
+        .explore-card {
+            scrollbar-width: thin;
+            scrollbar-color: #6b21a8 transparent;
         }
 
         /* Extra safety for all card content */
         .card,
         .explore-card {
-            overflow: visible;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         /* Active state: brighten the link's own color (respects inline color) */
@@ -1877,6 +1762,9 @@ document.addEventListener('DOMContentLoaded', () => {
             min-height: 280px;
             display: flex;
             flex-direction: column;
+            /* Content wider/taller than the card scrolls instead of clipping */
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
             box-shadow: 
                 0 0 8px rgba(107, 33, 168, 0.6),
                 0 0 16px rgba(107, 33, 168, 0.4);
@@ -2310,8 +2198,10 @@ document.addEventListener('DOMContentLoaded', () => {
             overflow-wrap: break-word;
             word-break: break-word;
             overflow: visible;
-            text-indent: -8px;
-            padding-left: 8px;
+            /* Negative text-indent removed: it shifted the first line of
+               CENTERED headings left, clipping leading emojis on mobile. */
+            text-indent: 0;
+            padding-left: 0;
             line-height: 1.3;
         }
 
@@ -2461,16 +2351,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         h1.neon-text {
             font-size: clamp(38px, 11vw, 68px) !important;
-        }
-
-        /* Gentle indent when text still overflows on small screens */
-        @media (max-width: 768px) {
-            h2.neon-text,
-            .section h2,
-            h3 {
-                text-indent: -6px;
-                padding-left: 6px;
-            }
         }
 
         @media (max-width: 768px) {
@@ -3455,8 +3335,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 Automatic airdrops continue until <strong>500 holders</strong>. After that, rewards are still sent to the vault every 30 minutes and accumulate for manual claiming.
             </p>
             
-            <div id="rewards-ca-display" style="margin-bottom:15px; padding:10px; background:#1f2937; border-radius:8px; font-family:monospace; font-size:13px; color:#ddd;">
-                Token CA: <span id="rewards-token-ca">Not set in Dev Panel</span>
+            <div id="rewards-ca-display" onclick="copyTokenCA()" title="Click to copy"
+                 style="margin-bottom:15px; padding:10px; background:#1f2937; border-radius:8px; font-family:monospace; font-size:13px; color:#ddd; cursor:pointer;">
+                Token CA: <span id="rewards-token-ca">Not set in Dev Panel</span> 📋
             </div>
             
             <button onclick="checkRewardsEligibility()" class="buy-button" style="margin-bottom: 20px; background: linear-gradient(to right, #3b82f6, #2563eb);">
@@ -4515,7 +4396,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         🚀 Trigger Reward Distribution
                     </button>
                     
-                    <button id="pause-rewards-btn" class="buy-button" style="background: #ef4444; margin-top: 4px;">
+                    <button id="pause-rewards-btn" onclick="toggleRewardsPause()" class="buy-button" style="background: #ef4444; margin-top: 4px;">
                         ⏸ Pause Rewards
                     </button>
                 </div>
@@ -4891,7 +4772,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 CONFIG.nextDistributionTime = new Date(freshTarget).toISOString();
             }
 
-            console.log('[Timer] Forced fresh 30:00 timer started');
 
             window.rewardTimerInterval = setInterval(() => {
                 if (typeof rewardsPaused !== 'undefined' && rewardsPaused) {
@@ -4937,7 +4817,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     setTimeout(() => {
                         if (typeof startSimpleTimer === 'function') {
-                            console.log('[Timer] Auto-restarting distribution timer');
                             startSimpleTimer();
                         }
                     }, 2500); // 2.5 second pause before next round
@@ -5440,7 +5319,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td>${date}</td>
                     <td>
-                        ${ (window.safeSessionStorage && window.safeSessionStorage.getItem('adminLoggedIn') === 'true') 
+                        ${ (typeof isAdminLoggedIn === 'function' && isAdminLoggedIn()) 
                             ? `<button class="remove-from-wall-btn" data-index="${index}" style="background:#ef4444; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer;">
                                    Remove
                                </button>` 
@@ -5451,6 +5330,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 tbody.appendChild(row);
             });
         }
+
+        // Remove buttons are re-rendered with the table, so use one delegated
+        // listener on the tbody instead of per-button handlers (they had none).
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.remove-from-wall-btn');
+            if (btn) removeFromWall(parseInt(btn.dataset.index, 10));
+        });
 
         function addToWall(wallet, reason, type) {
             const exists = bannedWallets.find(w => w.wallet === wallet);
@@ -5472,8 +5358,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function removeFromWall(index) {
             // Security check: Only allow removal if user is logged in as Admin
-            if ((window.safeSessionStorage || safeSessionStorage).getItem('adminLoggedIn') !== 'true') {
-                alert("Admin access required to remove wallets from the Wall.");
+            if (!isAdminLoggedIn()) {
+                showToast("Admin access required to remove wallets from the Wall.", "error");
                 return;
             }
 
@@ -5536,15 +5422,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // (Developer modal function is now defined early in the document for maximum reliability)
-
-        function loginDeveloper() {
-            // Legacy function - main admin access is now through the top navigation "🔐 Admin" button
-            // which uses a single secure flow. This function is kept for compatibility only.
-            alert("Please use the '🔐 Admin' button in the top navigation bar to access the Admin Panel.");
-            // Optionally close any old dev modal if it exists
-            const oldModal = document.getElementById('dev-login-modal');
-            if (oldModal) oldModal.style.display = 'none';
-        }
 
         // ==================== ADMIN HELPER FUNCTIONS ====================
         function getAdminInputValue(id, defaultValue = '') {
@@ -5609,10 +5486,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => initTokenomicsChart(), 800);
                 }
             }, 400);
-        }
-
-        function logoutDeveloper() {
-            document.getElementById('developer-modal').style.display = 'none';
         }
 
         // ==================== TOKENOMICS CHART ====================
@@ -5694,6 +5567,14 @@ function initTokenomicsChart(attempt = 0) {
                 maintainAspectRatio: true,
                 aspectRatio: 1.08,
                 animation: { duration: 850, easing: 'easeOutQuart' },
+                onHover: (evt, elements) => {
+                    evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+                },
+                onClick: (evt, elements) => {
+                    if (elements && elements.length && typeof showPieExplanation === 'function') {
+                        showPieExplanation(elements[0].index);
+                    }
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
@@ -5711,7 +5592,6 @@ function initTokenomicsChart(attempt = 0) {
         const loading = container.querySelector('.chart-loading');
         if (loading) loading.style.display = 'none';
 
-        console.log('%c[Chart] ✅ Pie chart initialized successfully', 'color:#22c55e');
 
         // Setup resize observer (once) - with debounce + requestAnimationFrame to prevent loop warnings on mobile
         if (!window.chartResizeObserver) {
@@ -5739,13 +5619,6 @@ function initTokenomicsChart(attempt = 0) {
 
 // Expose globally
 window.initTokenomicsChart = initTokenomicsChart;
-
-// Trigger when navigating to Tokenomics (called from navigateTo)
-function triggerTokenomicsChart() {
-    setTimeout(() => {
-        initTokenomicsChart();
-    }, 380);
-}
 
 // One clean MutationObserver
 function setupTokenomicsChartObserver() {
@@ -5813,8 +5686,6 @@ window.addEventListener('load', () => {
             explanationBox.style.display = 'block';
             explanationBox.style.borderLeftColor = exp.color;
         }
-
-        function updateBagworkersFromDev() {}
 
         loadBannedWall();
 
@@ -5918,11 +5789,12 @@ window.addEventListener('load', () => {
                     el.style.whiteSpace = 'nowrap';
                     el.style.overflow = 'visible';
                 } else {
-                    // Multi-word: allow wrapping + gentle indent on overflow
                     el.style.whiteSpace = 'normal';
                     el.style.overflowWrap = 'break-word';
-                    el.style.textIndent = '-4px';
-                    el.style.paddingLeft = '4px';
+                    // No negative indent — it clipped leading emojis in
+                    // centered headings on mobile.
+                    el.style.textIndent = '0';
+                    el.style.paddingLeft = '';
                 }
             });
         }
@@ -6156,10 +6028,12 @@ window.addEventListener('load', () => {
 
         // ==================== COPY CA FUNCTION ====================
         function copyTokenCA() {
-            const ca = (window.CONFIG && window.CONFIG.tokenMint) ? window.CONFIG.tokenMint : '';
-            
+            // CONFIG is a top-level `let`, so it is NOT on window — the old
+            // window.CONFIG lookup was always undefined and this always failed.
+            const ca = (typeof CONFIG !== 'undefined' && CONFIG.tokenMint) ? CONFIG.tokenMint : '';
+
             if (!ca) {
-                alert("No Token CA set yet. Please set it in the Developer panel.");
+                showToast("No Token CA set yet. Please set it in the Developer panel.", "error");
                 return;
             }
 
@@ -6227,35 +6101,7 @@ window.addEventListener('load', () => {
             });
         };
 
-        // =====================================================
-        // GLOBAL FUNCTION EXPOSURE (Systematic Cleanup)
-        // Makes inline onclick attributes work reliably
-        // =====================================================
-        const functionsToExpose = [
-            'navigateTo', 'toggleMobileMenu', 'openAdminWithLogin', 
-            'showWalletModal', 'closeWalletModal', 'closeAdminLoginModal',
-            'attemptAdminLogin', 'adminLogout', 'closeDeveloperModal',
-            'logoutDeveloper', 'saveDeveloperSettings', 'resetDistributionTimer',
-            'triggerDistribution', 'toggleRewardsPause', 'connectDevWalletForHome',
-            'startLiveTracking', 'removeFromWall', 'closeImageModal',
-            'selectAndConnectWallet', 'connectFromDropdown', 'disconnectWallet',
-            'copyTokenCA', 'scrollToTop'
-        ];
-
-        functionsToExpose.forEach(fnName => {
-            if (typeof window[fnName] === 'undefined' && typeof eval(fnName) === 'function') {
-                try {
-                    window[fnName] = eval(fnName);
-                } catch (e) {}
-            }
-        });
-
-        // Also expose common ones directly if they exist in scope
-        if (typeof navigateTo === 'function') window.navigateTo = navigateTo;
-        if (typeof toggleMobileMenu === 'function') window.toggleMobileMenu = toggleMobileMenu;
-        if (typeof showWalletModal === 'function') window.showWalletModal = showWalletModal;
-        if (typeof openAdminWithLogin === 'function') window.openAdminWithLogin = openAdminWithLogin;
-        if (typeof closeImageModal === 'function') window.closeImageModal = closeImageModal;
+        // (Top-level function declarations are already global — no manual exposure needed.)
     </script>
 
     <!-- ==================== 404 ERROR PAGE ==================== -->
