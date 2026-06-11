@@ -1705,11 +1705,13 @@ document.addEventListener('DOMContentLoaded', () => {
            and spacing relative to its text.
            ============================================ */
         .title-emoji {
-            display: inline-block;
+            /* Emoji sits centered on its own line above the title text —
+               fully outside the text's line boxes, so nothing can clip it. */
+            display: block;
+            text-align: center;
             line-height: 1;
-            font-size: 1.05em;
-            vertical-align: -0.12em;
-            margin-right: 0.3em;
+            font-size: 1.35em;
+            margin: 0 auto 8px;
             text-indent: 0;
         }
 
