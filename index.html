@@ -758,6 +758,40 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
+        // ==================== PUBLIC KEY NORMALIZATION ====================
+        // Wallets disagree on what connect() resolves with:
+        //   Phantom/Exodus/Trust:  { publicKey: PublicKey }
+        //   Solflare:              true, with the key on provider.publicKey
+        //   Some wallets:          a base58 string, or nothing until a tick later
+        // This resolves them all to one PublicKey-like object (or null).
+        function normalizePublicKey(pk) {
+            if (!pk) return null;
+            if (typeof pk === 'string') {
+                try {
+                    return new solanaWeb3.PublicKey(pk);
+                } catch (_) {
+                    return { toString: () => pk, toBase58: () => pk };
+                }
+            }
+            return pk;
+        }
+
+        async function resolveWalletPublicKey(resp, provider) {
+            let pk = (resp && typeof resp === 'object' && resp.publicKey)
+                || (typeof resp === 'string' ? resp : null)
+                || (provider && provider.publicKey)
+                || null;
+
+            // A few wallets resolve connect() slightly before exposing the key —
+            // poll the provider briefly before giving up.
+            for (let i = 0; !pk && i < 10; i++) {
+                await new Promise(r => setTimeout(r, 100));
+                pk = provider && provider.publicKey;
+            }
+
+            return normalizePublicKey(pk);
+        }
+
         // ==================== CENTRALIZED WALLET STATE ====================
         // Every connect/disconnect/switch flows through these two functions so the
         // global state, localStorage, and every piece of UI always agree.
@@ -814,8 +848,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             provider.on('accountChanged', (newPublicKey) => {
                 if (!window.ruggyWallet || window.ruggyWallet.provider !== provider) return;
-                if (newPublicKey) {
-                    window.ruggyWallet.publicKey = newPublicKey;
+                const pk = normalizePublicKey(newPublicKey);
+                if (pk) {
+                    window.ruggyWallet.publicKey = pk;
                     refreshWalletUI();
                 } else {
                     clearWalletState();
@@ -992,8 +1027,9 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // Silent reconnect - only connects if user previously approved
                 const resp = await provider.connect({ onlyIfTrusted: true });
-                if (resp && resp.publicKey) {
-                    setWalletState(provider, resp.publicKey, lastWallet, w.name);
+                const publicKey = await resolveWalletPublicKey(resp, provider);
+                if (publicKey) {
+                    setWalletState(provider, publicKey, lastWallet, w.name);
                     attachProviderEvents(provider);
                     console.log(`[Wallet] Auto-reconnected to ${w.name}`);
                 }
@@ -1089,11 +1125,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Use onlyIfTrusted only for auto-reconnect. When user explicitly connects, force prompt.
                 const resp = await provider.connect({ onlyIfTrusted: !forcePrompt });
 
+                // Different wallets resolve connect() with different shapes —
+                // normalize them all to a single PublicKey
+                const publicKey = await resolveWalletPublicKey(resp, provider);
+                if (!publicKey) {
+                    throw new Error(`${name} connected but did not provide a public key`);
+                }
+
                 // Remember the previous wallet (if any) so we can cleanly switch
                 const prevProvider = window.ruggyWallet ? window.ruggyWallet.provider : null;
 
                 // Single source of truth: updates state, localStorage, and all UI
-                setWalletState(provider, resp.publicKey, walletKey, name);
+                setWalletState(provider, publicKey, walletKey, name);
                 attachProviderEvents(provider);
 
                 // If switching wallets, disconnect the old one AFTER the new state is
@@ -1524,7 +1567,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const isConnected = window.ruggyWallet && window.ruggyWallet.connected;
 
             if (isConnected) {
-                const short = window.ruggyWallet.publicKey.toString().slice(0, 6) + '...' + window.ruggyWallet.publicKey.toString().slice(-4);
+                const addrStr = window.ruggyWallet.publicKey.toString();
+                const short = addrStr.slice(0, 6) + '...' + addrStr.slice(-4);
                 content.innerHTML = `
                     <div style="padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to right, #16a34a, #22c55e); color: white; border-radius: 12px 12px 0 0;">
                         <div style="font-size: 14px; font-weight: 700;">Wallet Connected</div>
