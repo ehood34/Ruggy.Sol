@@ -758,6 +758,71 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
+        // ==================== CENTRALIZED WALLET STATE ====================
+        // Every connect/disconnect/switch flows through these two functions so the
+        // global state, localStorage, and every piece of UI always agree.
+        function setWalletState(provider, publicKey, walletKey, name) {
+            window.ruggyWallet = {
+                publicKey: publicKey,
+                connected: true,
+                provider: provider,
+                name: name,
+                currentWallet: name,
+                walletKey: walletKey || null
+            };
+            if (walletKey) localStorage.setItem('ruggyLastConnectedWallet', walletKey);
+            refreshWalletUI();
+        }
+
+        function clearWalletState() {
+            localStorage.removeItem('ruggyLastConnectedWallet');
+            window.ruggyWallet = {
+                publicKey: null,
+                connected: false,
+                provider: null,
+                name: null,
+                currentWallet: null,
+                walletKey: null
+            };
+            refreshWalletUI();
+        }
+
+        function refreshWalletUI() {
+            if (typeof updateConnectWalletButton === 'function') updateConnectWalletButton();
+            if (typeof updateHomeWalletDisplays === 'function') updateHomeWalletDisplays();
+            // If the wallet dropdown is open, re-render it with the new state
+            const dropdown = document.getElementById('wallet-dropdown');
+            if (dropdown && !dropdown.classList.contains('hidden') && typeof populateWalletDropdown === 'function') {
+                populateWalletDropdown();
+            }
+        }
+
+        // Attach connect/disconnect/accountChanged listeners once per provider.
+        const __listenedProviders = new WeakSet();
+        function attachProviderEvents(provider) {
+            if (!provider || typeof provider.on !== 'function' || __listenedProviders.has(provider)) return;
+            __listenedProviders.add(provider);
+
+            provider.on('disconnect', () => {
+                // Only clear state if the wallet that disconnected is the ACTIVE one.
+                // Without this guard, disconnecting the old wallet during a switch
+                // wipes the freshly-connected new wallet's state.
+                if (window.ruggyWallet && window.ruggyWallet.provider === provider) {
+                    clearWalletState();
+                }
+            });
+
+            provider.on('accountChanged', (newPublicKey) => {
+                if (!window.ruggyWallet || window.ruggyWallet.provider !== provider) return;
+                if (newPublicKey) {
+                    window.ruggyWallet.publicKey = newPublicKey;
+                    refreshWalletUI();
+                } else {
+                    clearWalletState();
+                }
+            });
+        }
+
         // ==================== LAZY LOADED WALLET LIBRARIES ====================
         let walletLibsLoaded = false;
         let walletLibsLoading = false;
@@ -883,79 +948,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            // Try to detect already connected wallet (silent)
-            setTimeout(async () => {
-                try {
-                    if (window.solana && window.solana.isPhantom) {
-                        const resp = await window.solana.connect({ onlyIfTrusted: true });
-                        if (resp && resp.publicKey) {
-                            window.ruggyWallet = {
-                                publicKey: resp.publicKey,
-                                connected: true,
-                                provider: window.solana,
-                                name: "Phantom"
-                            };
-                            updateConnectWalletButton();
-                        }
-                    } else if (window.backpack) {
-                        const resp = await window.backpack.connect({ onlyIfTrusted: true });
-                        if (resp && resp.publicKey) {
-                            window.ruggyWallet = {
-                                publicKey: resp.publicKey,
-                                connected: true,
-                                provider: window.backpack,
-                                name: "Backpack"
-                            };
-                            updateConnectWalletButton();
-                        }
-                    }
-                } catch (e) {
-                    // Not connected or user rejected silent connect - this is normal
-                }
-            }, 800);
-
-            // Listen for wallet events (real-time updates)
-            setTimeout(() => {
-                // Phantom
-                if (window.solana && window.solana.on) {
-                    window.solana.on('connect', () => {
-                        if (window.solana.publicKey) {
-                            window.ruggyWallet.publicKey = window.solana.publicKey;
-                            window.ruggyWallet.connected = true;
-                            window.ruggyWallet.provider = window.solana;
-                            window.ruggyWallet.name = "Phantom";
-                            updateConnectWalletButton();
-                        }
-                    });
-
-                    window.solana.on('disconnect', () => {
-                        window.ruggyWallet.publicKey = null;
-                        window.ruggyWallet.connected = false;
-                        window.ruggyWallet.provider = null;
-                        updateConnectWalletButton();
-                    });
-                }
-
-                // Backpack
-                if (window.backpack && window.backpack.on) {
-                    window.backpack.on('connect', () => {
-                        if (window.backpack.publicKey) {
-                            window.ruggyWallet.publicKey = window.backpack.publicKey;
-                            window.ruggyWallet.connected = true;
-                            window.ruggyWallet.provider = window.backpack;
-                            window.ruggyWallet.name = "Backpack";
-                            updateConnectWalletButton();
-                        }
-                    });
-
-                    window.backpack.on('disconnect', () => {
-                        window.ruggyWallet.publicKey = null;
-                        window.ruggyWallet.connected = false;
-                        window.ruggyWallet.provider = null;
-                        updateConnectWalletButton();
-                    });
-                }
-            }, 1200);
+            // Reconnection is handled exclusively by tryAutoReconnect(), which respects
+            // the LAST wallet the user chose. (The old code here always silently
+            // reconnected Phantom/Backpack first, hijacking the session after the
+            // user had switched to a different wallet, and its unguarded event
+            // listeners wiped the new wallet's state during switches.)
         }
 
         // Run wallet initialization on page load
@@ -978,7 +975,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Try to silently reconnect to the last used wallet on page load
         async function tryAutoReconnect() {
             const lastWallet = localStorage.getItem('ruggyLastConnectedWallet');
-            if (!lastWallet) return;
+            if (!lastWallet || !WALLET_PROVIDERS[lastWallet]) return;
+
+            const w = WALLET_PROVIDERS[lastWallet];
+            if (!w.detect()) return;
 
             try {
                 await ensureWalletLibrariesLoaded();
@@ -986,43 +986,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            let provider = null;
-            let name = lastWallet;
-
-            if (lastWallet === 'phantom' && window.solana && window.solana.isPhantom) {
-                provider = window.solana;
-            } else if (lastWallet === 'backpack' && window.backpack) {
-                provider = window.backpack;
-            } else if (lastWallet === 'solflare' && (window.solflare || window.solana)) {
-                provider = window.solflare || window.solana;
-            } else {
-                return; // Wallet not available
-            }
+            const provider = w.get();
+            if (!provider || typeof provider.connect !== 'function') return;
 
             try {
                 // Silent reconnect - only connects if user previously approved
                 const resp = await provider.connect({ onlyIfTrusted: true });
-
                 if (resp && resp.publicKey) {
-                    window.ruggyWallet = {
-                        publicKey: resp.publicKey,
-                        connected: true,
-                        provider: provider,
-                        currentWallet: name.charAt(0).toUpperCase() + name.slice(1)
-                    };
-
-                    if (typeof updateConnectWalletButton === "function") {
-                        updateConnectWalletButton();
-                    }
-                    if (typeof updateHomeWalletDisplays === "function") {
-                        updateHomeWalletDisplays();
-                    }
-
-                    console.log(`[Wallet] Auto-reconnected to ${name}`);
+                    setWalletState(provider, resp.publicKey, lastWallet, w.name);
+                    attachProviderEvents(provider);
+                    console.log(`[Wallet] Auto-reconnected to ${w.name}`);
                 }
             } catch (err) {
                 // Silent fail is expected if user hasn't approved the site before
-                console.log(`[Wallet] Auto-reconnect to ${lastWallet} failed (user action required)`);
+                console.log(`[Wallet] Auto-reconnect to ${lastWallet} skipped (user action required)`);
             }
         }
 
@@ -1112,33 +1089,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Use onlyIfTrusted only for auto-reconnect. When user explicitly connects, force prompt.
                 const resp = await provider.connect({ onlyIfTrusted: !forcePrompt });
 
-                window.ruggyWallet = {
-                    publicKey: resp.publicKey,
-                    connected: true,
-                    provider: provider,
-                    name: name
-                };
+                // Remember the previous wallet (if any) so we can cleanly switch
+                const prevProvider = window.ruggyWallet ? window.ruggyWallet.provider : null;
 
-                // Remember this wallet for future auto-reconnect
-                if (walletKey) {
-                    localStorage.setItem('ruggyLastConnectedWallet', walletKey);
+                // Single source of truth: updates state, localStorage, and all UI
+                setWalletState(provider, resp.publicKey, walletKey, name);
+                attachProviderEvents(provider);
 
-// Store friendly wallet name for UI
-if (window.ruggyWallet) {
-    window.ruggyWallet.currentWallet = walletKey.charAt(0).toUpperCase() + walletKey.slice(1);
-}
+                // If switching wallets, disconnect the old one AFTER the new state is
+                // set — its guarded 'disconnect' event won't wipe the new wallet.
+                if (prevProvider && prevProvider !== provider && typeof prevProvider.disconnect === 'function') {
+                    try { await prevProvider.disconnect(); } catch (_) {}
                 }
 
                 closeWalletConnectBar();
-
-                if (typeof updateConnectWalletButton === "function") {
-                    updateConnectWalletButton();
-                }
-
-                if (typeof updateHomeWalletDisplays === "function") {
-                    updateHomeWalletDisplays();
-                }
-
                 showToast(`Connected to ${name}`, "success");
 
                 return resp.publicKey;
@@ -1200,27 +1164,9 @@ if (window.ruggyWallet) {
                 console.warn("Wallet disconnect warning:", e);
             }
 
-            // Clear stored wallet info
-            localStorage.removeItem('ruggyLastConnectedWallet');
+            // Single source of truth: clears state + storage and refreshes all UI
+            clearWalletState();
 
-            // Fully reset wallet state
-            if (window.ruggyWallet) {
-                window.ruggyWallet.publicKey = null;
-                window.ruggyWallet.connected = false;
-                window.ruggyWallet.provider = null;
-                window.ruggyWallet.currentWallet = null;
-            }
-
-            // Update UI reliably
-            if (typeof updateConnectWalletButton === "function") {
-                updateConnectWalletButton();
-            }
-
-            if (typeof updateHomeWalletDisplays === 'function') {
-                updateHomeWalletDisplays();
-            }
-
-            // Optional: show toast
             if (typeof showToast === 'function') {
                 showToast("Wallet disconnected", "info");
             }
@@ -1635,6 +1581,10 @@ if (window.ruggyWallet) {
         function updateConnectWalletButton() {
             const btn = document.getElementById('connect-btn');
             if (!btn) return;
+
+            // connectWallet disables the button while connecting; always re-enable
+            // here or the button stays dead after the first connection.
+            btn.disabled = false;
 
             if (window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey) {
                 const addr = window.ruggyWallet.publicKey.toString();
