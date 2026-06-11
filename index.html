@@ -673,23 +673,90 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
         // ==================== REAL WALLET CONNECTION ====================
+        // Each wallet extension injects its own provider object into the page.
+        // detect() checks for that injection; get() returns the provider whose
+        // .connect() triggers the wallet's own approval popup (its "API login").
         const WALLET_PROVIDERS = {
             phantom: {
                 name: "Phantom",
-                detect: () => window.solana && window.solana.isPhantom,
-                get: () => window.solana
+                detect: () => !!(window.phantom?.solana?.isPhantom || window.solana?.isPhantom),
+                get: () => window.phantom?.solana || window.solana
+            },
+            fomo: {
+                name: "FOMO Wallet",
+                detect: () => !!(window.fomo?.solana || window.fomo),
+                get: () => window.fomo?.solana || window.fomo
             },
             solflare: {
                 name: "Solflare",
-                detect: () => window.solflare || window.solana,
-                get: () => window.solflare || window.solana
+                detect: () => !!window.solflare,
+                get: () => window.solflare
             },
             backpack: {
                 name: "Backpack",
-                detect: () => !!window.backpack,
-                get: () => window.backpack
+                detect: () => !!(window.backpack?.solana || window.backpack),
+                get: () => window.backpack?.solana || window.backpack
+            },
+            glow: {
+                name: "Glow",
+                detect: () => !!(window.glowSolana || window.glow?.solana || window.solana?.isGlow),
+                get: () => window.glowSolana || window.glow?.solana || window.solana
+            },
+            slope: {
+                name: "Slope",
+                detect: () => typeof window.Slope === 'function',
+                get: () => createSlopeAdapter()
+            },
+            sollet: {
+                name: "Sollet",
+                detect: () => !!window.sollet,
+                get: () => window.sollet,
+                hint: "Sollet has been deprecated by its developers \u2014 consider Phantom or Solflare instead."
+            },
+            trust: {
+                name: "Trust Wallet",
+                detect: () => !!(window.trustwallet?.solana || window.solana?.isTrust || window.solana?.isTrustWallet),
+                get: () => window.trustwallet?.solana || window.solana
+            },
+            coinbase: {
+                name: "Coinbase Wallet",
+                detect: () => !!(window.coinbaseSolana || window.coinbaseWalletExtension?.solana),
+                get: () => window.coinbaseSolana || window.coinbaseWalletExtension?.solana
+            },
+            exodus: {
+                name: "Exodus",
+                detect: () => !!(window.exodus?.solana || window.solana?.isExodus),
+                get: () => window.exodus?.solana || window.solana
+            },
+            ledger: {
+                name: "Ledger",
+                detect: () => false,
+                get: () => null,
+                hint: "Ledger is a hardware wallet \u2014 connect it through Phantom, Solflare, or Backpack and pair your device there."
             }
         };
+
+        // Slope's injected API differs from the standard provider interface,
+        // so wrap it in an adapter that exposes the same connect()/disconnect() shape.
+        function createSlopeAdapter() {
+            const slope = new window.Slope();
+            return {
+                isSlope: true,
+                publicKey: null,
+                async connect() {
+                    const { msg, data } = await slope.connect();
+                    if (msg !== 'ok' || !data?.publicKey) {
+                        throw new Error(msg || 'Slope connection failed');
+                    }
+                    this.publicKey = new solanaWeb3.PublicKey(data.publicKey);
+                    return { publicKey: this.publicKey };
+                },
+                async disconnect() {
+                    try { await slope.disconnect(); } catch (_) {}
+                    this.publicKey = null;
+                }
+            };
+        }
 
         // ==================== LAZY LOADED WALLET LIBRARIES ====================
         let walletLibsLoaded = false;
@@ -766,6 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const modal = document.getElementById('developer-modal');
             if (!modal) return;
 
+            window.__adminPanelOpenedAt = Date.now();
             modal.style.display = 'flex';
             modal.removeAttribute('hidden');
 
@@ -998,10 +1066,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         btn.disabled = false;
                         btn.innerHTML = originalText || 'CONNECT WALLET';
                     }
-                    const url = getWalletInstallUrl(preferredWallet);
-                    showToast(`${w.name} not found.`, "error");
-                    if (confirm(`${w.name} not found. Would you like to install it?`)) {
-                        window.open(url, '_blank');
+                    if (w.hint) {
+                        showToast(w.hint, "error");
+                    } else {
+                        showToast(`${w.name} not found.`, "error");
+                        if (confirm(`${w.name} not found. Would you like to install it?`)) {
+                            window.open(getWalletInstallUrl(preferredWallet), '_blank');
+                        }
                     }
                     return;
                 }
@@ -1026,6 +1097,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast("No Solana wallet detected. Please install Phantom, Solflare, or Backpack.", "error");
                     return;
                 }
+            }
+
+            if (!provider || typeof provider.connect !== 'function') {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText || 'CONNECT WALLET';
+                }
+                showToast(`${name} does not support direct connection in this browser.`, "error");
+                return;
             }
 
             try {
@@ -1082,10 +1162,23 @@ if (window.ruggyWallet) {
                 phantom: "https://phantom.app/",
                 fomo: "https://fomowallet.com/",
                 solflare: "https://solflare.com/",
-                backpack: "https://backpack.app/"
+                backpack: "https://backpack.app/",
+                glow: "https://glow.app/",
+                trust: "https://trustwallet.com/",
+                coinbase: "https://www.coinbase.com/wallet",
+                exodus: "https://www.exodus.com/",
+                ledger: "https://www.ledger.com/"
             };
             return urls[walletType] || "https://solana.com/ecosystem/wallets";
         }
+
+        // Hides the quick-connect bar (was being called but never defined,
+        // which threw a ReferenceError right after a successful connection)
+        function closeWalletConnectBar() {
+            const bar = document.getElementById('wallet-connect-bar');
+            if (bar) bar.style.display = 'none';
+        }
+        window.closeWalletConnectBar = closeWalletConnectBar;
 
         window.connectWallet = connectWallet;
 
@@ -1351,9 +1444,30 @@ if (window.ruggyWallet) {
 
         document.addEventListener('keydown', function(e) {
             if (e.key === "Escape") {
-                const modal = document.getElementById('image-modal');
-                if (modal && modal.style.display === 'flex') {
-                    modal.style.display = 'none';
+                closeImageModal();
+                closeWalletModal();
+                closeDeveloperModal();
+                if (typeof closeAdminLoginModal === 'function') closeAdminLoginModal();
+            }
+        });
+
+        // ==================== CLICK OUTSIDE TO CLOSE MODALS ====================
+        document.addEventListener('click', function(e) {
+            // Wallet & image modals are full-screen overlays: a click that lands on
+            // the dark backdrop itself (not the content inside) means "outside".
+            if (e.target.id === 'wallet-modal') closeWalletModal();
+            if (e.target.id === 'image-modal') closeImageModal();
+            if (e.target.id === 'admin-login-modal' && typeof closeAdminLoginModal === 'function') {
+                closeAdminLoginModal();
+            }
+
+            // The developer panel slides in from the left (no backdrop),
+            // so "outside" is any click that isn't inside the panel.
+            const dev = document.getElementById('developer-modal');
+            if (dev && dev.style.display !== 'none' && !dev.hasAttribute('hidden') && !dev.contains(e.target)) {
+                // Ignore the click that just opened the panel (it bubbles here too)
+                if (!window.__adminPanelOpenedAt || Date.now() - window.__adminPanelOpenedAt > 300) {
+                    closeDeveloperModal();
                 }
             }
         });
@@ -4245,7 +4359,7 @@ if (window.ruggyWallet) {
                 animation: slideInFromLeft 0.3s ease-out forwards;">
         
         <!-- Close Button -->
-        <button id="close-developer-modal-btn" 
+        <button id="close-developer-modal-btn" onclick="closeDeveloperModal()"
                 style="position: sticky; top: 12px; right: 16px; float: right; 
                        background: #1f2937; border: 2px solid #f59e0b; color: #fbbf24; 
                        font-size: 24px; cursor: pointer; line-height: 1; font-weight: bold; 
@@ -5073,11 +5187,6 @@ if (window.ruggyWallet) {
             const startBtn = document.getElementById('start-tracking-btn');
             if (startBtn) startBtn.addEventListener('click', startTracking);
 
-            window.onclick = function(event) {
-                const modal = document.getElementById('developer-modal');
-                if (event.target === modal) modal.style.display = "none";
-            };
-
             const playSpriteVideo = () => {
                 const vid = document.getElementById('timer-video');
                 if (vid) {
@@ -5804,7 +5913,7 @@ window.addEventListener('load', () => {
         <div class="modal-content" style="max-width: 90%; max-height: 90vh; background: #111827; border: 2px solid #6b21a8; padding: 20px; text-align: center;" onclick="event.stopImmediatePropagation()">
             <img decoding="async" id="modal-image" style="max-width: 100%; max-height: 75vh; border-radius: 12px; object-fit: contain;">
             <p id="modal-image-title" style="margin-top: 15px; font-size: 18px; color: #f3e8ff;"></p>
-            <button id="close-image-modal-btn" class="buy-button" style="max-width: 200px; margin-top: 15px; background: #374151;">Close</button>
+            <button id="close-image-modal-btn" onclick="closeImageModal()" class="buy-button" style="max-width: 200px; margin-top: 15px; background: #374151;">Close</button>
         </div>
     </div>
 
@@ -5814,7 +5923,7 @@ window.addEventListener('load', () => {
             <h3 style="color: #f59e0b; margin-bottom: 20px; text-align: center;">Connect Wallet</h3>
             
             <div style="display: grid; gap: 10px;">
-                <button id="select-phantom-btn" 
+                <button id="select-phantom-btn" onclick="selectAndConnectWallet('phantom')"
                         style="background: linear-gradient(145deg, #c4b5fd, #7c3aed); 
                                color: white; font-weight: 700; padding: 16px; 
                                border: none; border-radius: 12px; cursor: pointer; 
@@ -5826,7 +5935,7 @@ window.addEventListener('load', () => {
                     👻 Phantom
                 </button>
 
-                <button id="select-fomo-btn" 
+                <button id="select-fomo-btn" onclick="selectAndConnectWallet('fomo')"
                         style="background: linear-gradient(145deg, #ff8a80, #e53935); 
                                color: white; font-weight: 700; padding: 16px; 
                                border: none; border-radius: 12px; cursor: pointer; 
@@ -5838,7 +5947,7 @@ window.addEventListener('load', () => {
                     👀 FOMO Wallet
                 </button>
 
-                <button id="select-solflare-btn" 
+                <button id="select-solflare-btn" onclick="selectAndConnectWallet('solflare')"
                         style="background: linear-gradient(145deg, #fbbf24, #d97706); 
                                color: white; font-weight: 700; padding: 16px; 
                                border: none; border-radius: 12px; cursor: pointer; 
@@ -5850,7 +5959,7 @@ window.addEventListener('load', () => {
                     🔥 Solflare
                 </button>
 
-                <button id="select-backpack-btn" 
+                <button id="select-backpack-btn" onclick="selectAndConnectWallet('backpack')"
                         style="background: linear-gradient(145deg, #4ade80, #16a34a); 
                                color: white; font-weight: 700; padding: 16px; 
                                border: none; border-radius: 12px; cursor: pointer; 
@@ -5862,7 +5971,7 @@ window.addEventListener('load', () => {
                     🎒 Backpack
                 </button>
 
-                <button id="select-glow-btn" 
+                <button id="select-glow-btn" onclick="selectAndConnectWallet('glow')"
                         style="background: linear-gradient(145deg, #f9a8d4, #db2777); 
                                color: white; font-weight: 700; padding: 16px; 
                                border: none; border-radius: 12px; cursor: pointer; 
