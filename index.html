@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
     <!-- ==================== SEO & SOCIAL META TAGS ==================== -->
     <title>Ruggy Rewards • pump.fun | Anti-Rug Tokenomics & Community Rewards</title>
@@ -25,6 +25,8 @@
 
     <!-- Performance -->
     <link rel="preconnect" href="https://i.ibb.co" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
     <style>
@@ -332,7 +334,7 @@
     </style>
 
     <!-- Chart.js for Tokenomics Pie Chart -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     <script>
@@ -634,15 +636,15 @@
         }
 
         // ==================== RUGGY'S LOTTO ====================
-        function buyLottoTickets() {
+        async function buyLottoTickets() {
             const amountInput = document.getElementById('lotto-ticket-amount');
             if (!amountInput) return;
 
             const amount = parseInt(amountInput.value) || 1;
             const totalCost = amount * 3;
 
-            if (confirm(`Buy ${amount} tickets for $${totalCost}?`)) {
-                alert(`✅ Purchased ${amount} Lottery Tickets!\n\nYour tickets have been added to the next draw.\nGood luck!`);
+            if (await showConfirm(`Buy <strong>${amount} tickets</strong> for <strong>$${totalCost}</strong>?`, { okText: 'Buy Tickets' })) {
+                showToast(`Purchased ${amount} Lottery Tickets!`, "success", "Your tickets have been added to the next draw. Good luck!");
                 
                 // Simulate adding to user's tickets
                 const currentTickets = parseInt(localStorage.getItem('ruggyLottoTickets') || '0');
@@ -655,7 +657,7 @@
             const today = new Date().toDateString();
 
             if (lastClaim === today) {
-                alert("You've already claimed your free ticket today. Come back tomorrow!");
+                showToast("You've already claimed your free ticket today. Come back tomorrow!", "success");
                 return;
             }
 
@@ -663,7 +665,7 @@
             const currentTickets = parseInt(localStorage.getItem('ruggyLottoTickets') || '0');
             localStorage.setItem('ruggyLottoTickets', currentTickets + 1);
 
-            alert("🎁 Free Ticket Claimed!\n\n+1 Free Lottery Ticket added to your account.\nGood luck in today's draw!");
+            showToast("🎁 Free Ticket Claimed!", "success", "+1 Free Lottery Ticket added to your account. Good luck in today's draw!");
         }
 
         // Update total cost when changing ticket amount
@@ -689,6 +691,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 300);
 });
+
+        // ==================== POOL STAKING (demo, consistent with lottery) ====================
+        // The Pool page's STAKE button called stakeRuggy(), which was never
+        // defined — a ReferenceError on every click. This implements it in the
+        // same localStorage-demo style as the lottery's buy/claim functions.
+        async function stakeRuggy() {
+            const amountInput = document.getElementById('stake-amount');
+            const amount = amountInput ? parseFloat(amountInput.value) : 0;
+
+            if (!amount || amount <= 0) {
+                showToast("Enter an amount of $RUGGY to stake.", "error");
+                if (amountInput) amountInput.focus();
+                return;
+            }
+
+            if (!window.ruggyWallet || !window.ruggyWallet.connected) {
+                showToast("Connect your wallet first to stake.", "error");
+                showWalletModal();
+                return;
+            }
+
+            const days = parseInt(document.getElementById('stake-days')?.value) || 365;
+            const multiplier = parseFloat(document.getElementById('stake-multiplier')?.value) || 3.0;
+            const label = days >= 9999 ? 'Permanent' : (days >= 365 ? '1 Year' : days + ' Days');
+
+            if (days >= 9999 && !(await showConfirm("Permanent staking locks your $RUGGY <strong>forever</strong> with no early unstake. Continue?", { okText: 'Lock Forever', danger: true }))) {
+                return;
+            }
+
+            let stakes = [];
+            try { stakes = JSON.parse(localStorage.getItem('ruggyStakes') || '[]'); } catch (_) {}
+            stakes.push({ amount, days, multiplier, label, date: new Date().toISOString() });
+            localStorage.setItem('ruggyStakes', JSON.stringify(stakes));
+
+            if (amountInput) amountInput.value = '';
+            renderActiveStakes();
+            showToast(`Staked ${amount.toLocaleString()} $RUGGY for ${label} (${multiplier}x)`, "success");
+        }
+
+        function renderActiveStakes() {
+            const box = document.getElementById('active-stakes');
+            if (!box) return;
+
+            let stakes = [];
+            try { stakes = JSON.parse(localStorage.getItem('ruggyStakes') || '[]'); } catch (_) {}
+
+            if (!stakes.length) {
+                box.innerHTML = '<span style="color:#6b7280;">No active stakes yet.</span>';
+                return;
+            }
+
+            box.innerHTML = stakes.map(s => `
+                <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#0a2a14; border-radius:6px; margin-bottom:6px;">
+                    <span>${Number(s.amount).toLocaleString()} $RUGGY</span>
+                    <span style="color:#86efac;">${s.label} \u2022 ${s.multiplier}x</span>
+                </div>
+            `).join('');
+        }
+        window.addEventListener('load', renderActiveStakes);
 
         // ==================== REAL WALLET CONNECTION ====================
         // Each wallet extension injects its own provider object into the page.
@@ -1095,10 +1156,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     resetBtn();
                     if (w.hint) {
-                        showToast(w.hint, "error");
+                        showToast(`${w.name} unavailable`, "error", w.hint);
                     } else {
-                        showToast(`${w.name} not found.`, "error");
-                        if (confirm(`${w.name} not found. Would you like to install it?`)) {
+                        if (await showConfirm(`<strong>${w.name}</strong> not found. Would you like to install it?`, { okText: 'Install' })) {
                             window.open(getWalletInstallUrl(preferredWallet), '_blank');
                         }
                     }
@@ -1119,7 +1179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     walletKey = 'solana';
                 } else {
                     resetBtn();
-                    showToast("No Solana wallet detected. Please install Phantom, Solflare, or Backpack.", "error");
+                    showToast("No Solana wallet detected", "error", "Install Phantom, Solflare, or Backpack to connect.");
                     return;
                 }
             }
@@ -1223,8 +1283,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.disconnectWallet = disconnectWallet;
 
+        // ==================== STYLED CONFIRM MODAL ====================
+        // Promise-based replacement for the browser's confirm() popups,
+        // matching the site's neon design. Escape or backdrop tap = cancel.
+        function showConfirm(message, { okText = 'Confirm', cancelText = 'Cancel', danger = false } = {}) {
+            return new Promise(resolve => {
+                const existing = document.getElementById('ruggy-confirm-modal');
+                if (existing) existing.remove();
+
+                const accent = danger ? '#ef4444' : '#a855f7';
+                const okBg = danger
+                    ? 'linear-gradient(to right,#ef4444,#b91c1c)'
+                    : 'linear-gradient(to right,#ff00ff,#a855f7)';
+
+                const overlay = document.createElement('div');
+                overlay.id = 'ruggy-confirm-modal';
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;';
+                overlay.innerHTML = `
+                    <div style="background:#1a0033;border:3px solid ${accent};border-radius:18px;padding:26px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 0 40px rgba(168,85,247,0.35);">
+                        <div style="color:#f3e8ff;font-size:15.5px;line-height:1.6;margin-bottom:22px;">${message}</div>
+                        <div style="display:flex;gap:12px;">
+                            <button data-act="cancel" style="flex:1;padding:12px;border-radius:10px;border:1px solid #374151;background:transparent;color:#9ca3af;font-weight:600;cursor:pointer;">${cancelText}</button>
+                            <button data-act="ok" style="flex:1;padding:12px;border-radius:10px;border:none;background:${okBg};color:white;font-weight:700;cursor:pointer;">${okText}</button>
+                        </div>
+                    </div>`;
+
+                const done = (val) => {
+                    overlay.remove();
+                    document.removeEventListener('keydown', onKey);
+                    resolve(val);
+                };
+                const onKey = (e) => { if (e.key === 'Escape') done(false); };
+
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) { done(false); return; }
+                    const act = e.target.closest('[data-act]');
+                    if (act) done(act.dataset.act === 'ok');
+                });
+                document.addEventListener('keydown', onKey);
+                document.body.appendChild(overlay);
+            });
+        }
+        window.showConfirm = showConfirm;
+
         // ==================== TOAST NOTIFICATION SYSTEM ====================
-        function showToast(message, type = 'success') {
+        function showToast(message, type = 'success', detail = '') {
             const container = document.getElementById('toast-container');
             if (!container) return;
 
@@ -1248,18 +1351,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 border = '#60a5fa';
             }
 
+            // A detail line switches the pill to a rounded card with two rows
+            const hasDetail = !!detail;
+
             toast.style.cssText = `
                 background: ${bg};
                 color: white;
-                padding: 14px 22px;
-                border-radius: 9999px;
+                padding: ${hasDetail ? '14px 20px' : '14px 22px'};
+                border-radius: ${hasDetail ? '16px' : '9999px'};
                 font-size: 14.5px;
                 font-weight: 600;
                 box-shadow: 0 10px 30px rgba(0,0,0,0.35);
                 display: flex;
-                align-items: center;
+                align-items: ${hasDetail ? 'flex-start' : 'center'};
                 gap: 10px;
-                max-width: 320px;
+                max-width: ${hasDetail ? '360px' : '320px'};
                 border: 1px solid ${border};
                 pointer-events: auto;
                 animation: toastSlideIn 0.3s ease forwards;
@@ -1267,12 +1373,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             toast.innerHTML = `
                 <span style="font-size: 18px; flex-shrink: 0;">${icon}</span>
-                <span style="line-height: 1.3;">${message}</span>
+                <span style="line-height: 1.35; min-width: 0;">
+                    ${message}
+                    ${hasDetail ? `<span style="display:block; font-weight:400; font-size:12.5px; opacity:0.9; margin-top:3px; overflow-wrap:break-word;">${detail}</span>` : ''}
+                </span>
             `;
 
             container.appendChild(toast);
 
-            // Auto dismiss after 3.8 seconds
+            // Detail toasts carry more to read — keep them up a bit longer
             setTimeout(() => {
                 if (toast.parentNode) {
                     toast.style.transition = 'all 0.35s ease';
@@ -1280,7 +1389,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     toast.style.transform = 'translateY(15px)';
                     setTimeout(() => toast.remove(), 300);
                 }
-            }, 3800);
+            }, hasDetail ? 5500 : 3800);
         }
 
         window.showToast = showToast;
@@ -1371,7 +1480,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const warning = document.getElementById('stake-warning');
 
             if (!usdValue || usdValue <= 0) {
-                alert("Please enter the dollar value of Ruggy you originally pulled.");
+                showToast("Please enter the dollar value of Ruggy you originally pulled.", "error");
                 return;
             }
 
@@ -1391,7 +1500,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const breakdown = document.getElementById('absolution-stake-breakdown');
 
             if (!usdValue || usdValue <= 0) {
-                alert("Please enter the dollar value you rugged first.");
+                showToast("Please enter the dollar value you rugged first.", "error");
                 return;
             }
 
@@ -1402,13 +1511,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const stakeNow = stillOwed;
                 absolutionStakedAmount += stakeNow;
 
-                alert(`Staking $${stakeNow.toFixed(2)} worth of $RUGGY for 3 days...`);
+                showToast(`Staking $${stakeNow.toFixed(2)} worth of $RUGGY for 3 days...`, "info");
 
                 calculateAbsolutionStake();
 
                 if (absolutionStakedAmount >= required) {
                     setTimeout(() => {
-                        alert("✅ Full stake confirmed on-chain.\n\nYou have been removed from Ruggy's Wall.\nRuggy is watching... behave.");
+                        showToast("Full stake confirmed on-chain", "success", "You have been removed from Ruggy's Wall. Ruggy is watching... behave.");
                         breakdown.innerHTML = `
                             <p style="color: #22c55e; margin: 0; font-weight: bold; text-align:center;">
                                 ✅ You are now absolved. Your 3-day stake is active.
@@ -1417,7 +1526,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 800);
                 }
             } else {
-                alert("✅ You have already staked enough. Forgiveness processed.");
+                showToast("✅ You have already staked enough. Forgiveness processed.", "success");
             }
         }
 
@@ -1562,9 +1671,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.style.fontSize = '13px';
 
                 // Main button click → disconnect with confirmation
-                btn.onclick = (e) => {
+                btn.onclick = async (e) => {
                     e.stopImmediatePropagation();
-                    if (confirm('Disconnect wallet?')) {
+                    if (await showConfirm('Disconnect wallet?', { okText: 'Disconnect', danger: true })) {
                         disconnectWallet();
                     }
                 };
@@ -1599,48 +1708,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 150);
         }
 
-        async function simpleConnectWallet() {
-            let statusDiv = document.getElementById('wallet-test-status');
-            if (!statusDiv) {
-                statusDiv = document.createElement('div');
-                statusDiv.id = 'wallet-test-status';
-                statusDiv.style.cssText = 'margin: 15px auto; padding: 14px 20px; max-width: 520px; border-radius: 10px; text-align: center; font-family: monospace; font-size: 14px;';
-                const testBtn = document.querySelector('button[onclick*="simpleConnectWallet"]');
-                if (testBtn && testBtn.parentNode) {
-                    testBtn.parentNode.appendChild(statusDiv);
-                } else {
-                    document.body.appendChild(statusDiv);
-                }
-            }
-
-            statusDiv.style.background = '#1f2937';
-            statusDiv.style.color = '#fbbf24';
-            statusDiv.innerHTML = 'Connecting to wallet...';
-
-            if (!window.solana) {
-                statusDiv.style.background = '#3f1f1f';
-                statusDiv.style.color = '#f87171';
-                statusDiv.innerHTML = '❌ No Solana wallet detected.<br>Please install Phantom, Solflare, or Backpack.';
-                return;
-            }
-
-            try {
-                const resp = await window.solana.connect({ onlyIfTrusted: false });
-
-                statusDiv.style.background = '#052e16';
-                statusDiv.style.color = '#22c55e';
-                statusDiv.innerHTML = `✅ Connected!<br><small>${resp.publicKey.toString()}</small>`;
-
-                if (typeof updateConnectWalletButton === "function") {
-                    updateConnectWalletButton();
-                }
-
-            } catch (e) {
-                statusDiv.style.background = '#3f1f1f';
-                statusDiv.style.color = '#f87171';
-                statusDiv.innerHTML = `❌ Connection failed<br><small>${e.message || e}</small>`;
-            }
-        }
     </script>
     
     <style>
@@ -4654,7 +4721,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (mint) {
                 window.open(`https://pump.fun/${mint}`, '_blank');
             } else {
-                alert("Please enter a token CA first");
+                showToast("Please enter a token CA first", "error");
             }
         }
 
@@ -4662,20 +4729,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function claimFromVault() {
             if (!window.ruggyWallet || !window.ruggyWallet.connected) {
-                alert("Please connect your wallet first using the Connect Wallet button.");
+                showToast("Please connect your wallet first using the Connect Wallet button.", "error");
                 return;
             }
 
             const mint = CONFIG.tokenMint;
             if (!mint) {
-                alert("Token CA is not set. Please set it in the Developer panel first.");
+                showToast("Token CA is not set. Please set it in the Developer panel first.", "error");
                 return;
             }
 
-            const confirmed = confirm(
-                "This will attempt to claim your eligible rewards from the vault.\n\n" +
-                "Note: Full on-chain claiming is being finalized. For now, this confirms your eligibility.\n\n" +
-                "Do you want to proceed?"
+            const confirmed = await showConfirm(
+                "This will claim your eligible rewards from the vault.<br><br>" +
+                "<span style='color:#9ca3af;font-size:13px;'>Note: full on-chain claiming is being finalized — for now this confirms your eligibility.</span>",
+                { okText: 'Claim Rewards' }
             );
 
             if (confirmed) {
@@ -4692,7 +4759,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 renderClaimHistory();
                 
-                alert(`✅ Claim Successful!\n\nYou claimed ${amount.toLocaleString()} $RUGGY from the vault.\n\nTx: ${newClaim.tx}`);
+                showToast("Claim Successful!", "success", `You claimed ${amount.toLocaleString()} $RUGGY from the vault \u2022 Tx: ${newClaim.tx}`);
             }
         }
 
@@ -4950,14 +5017,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const eligibilityMsg = document.getElementById('eligibility-message');
 
             if (!CONFIG.tokenMint) {
-                alert("Please set the Token CA in the Developer panel first.");
+                showToast("Please set the Token CA in the Developer panel first.", "error");
                 return;
             }
 
             if (caDisplay) caDisplay.textContent = CONFIG.tokenMint;
 
             if (!window.solana) {
-                alert("Please install a Solana wallet (Phantom recommended).");
+                showToast("Please install a Solana wallet (Phantom recommended).", "error");
                 return;
             }
 
@@ -4966,7 +5033,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const resp = await window.solana.connect();
                 walletAddress = resp.publicKey.toString();
             } catch (err) {
-                alert("Wallet connection failed or was rejected.");
+                showToast("Wallet connection failed or was rejected.", "error");
                 return;
             }
 
@@ -5036,7 +5103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function connectDevWalletForHome() {
             if (!window.solana) {
-                alert("Please install a Solana wallet (Phantom, Solflare, etc.)");
+                showToast("Please install a Solana wallet (Phantom, Solflare, etc.)", "error");
                 return;
             }
             try {
@@ -5050,7 +5117,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 updateHomeWalletDisplays();
             } catch (err) {
-                alert("Failed to connect dev wallet");
+                showToast("Failed to connect dev wallet", "error");
             }
         }
 
@@ -5120,9 +5187,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (link.dataset.page) navigateTo(link.dataset.page);
                 });
             });
-
-            const startBtn = document.getElementById('start-tracking-btn');
-            if (startBtn) startBtn.addEventListener('click', startTracking);
 
             const playSpriteVideo = () => {
                 const vid = document.getElementById('timer-video');
@@ -5231,7 +5295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const resultDiv = document.getElementById('hall-scan-result');
             
             if (!input || !input.value.trim()) {
-                alert("Please enter a wallet address");
+                showToast("Please enter a wallet address", "error");
                 return;
             }
             
@@ -5254,7 +5318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function runAutomatedHallScan() {
-            alert("Automated Hall scan complete. Top holders and longest holders have been refreshed.");
+            showToast("Hall scan complete", "success", "Top holders and longest holders have been refreshed.");
             initRuggyHall();
             
             const resultDiv = document.getElementById('hall-scan-result');
@@ -5328,6 +5392,18 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {}
         }
 
+        // Escape user-controlled strings before HTML interpolation (the Wall
+        // table previously injected wallet/reason text into innerHTML raw —
+        // an admin-entered string containing markup would have executed).
+        function escapeHTML(str) {
+            return String(str ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
         function renderBannedTable() {
             const tbody = document.getElementById('banned-table');
             if (!tbody) return;
@@ -5346,8 +5422,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const date = new Date(entry.date).toLocaleDateString();
 
                 row.innerHTML = `
-                    <td>${entry.wallet}</td>
-                    <td style="color:#f87171;">${entry.reason}</td>
+                    <td>${escapeHTML(entry.wallet)}</td>
+                    <td style="color:#f87171;">${escapeHTML(entry.reason)}</td>
                     <td>
                         <span style="padding:2px 8px; border-radius:4px; font-size:11px; background:${entry.type === 'Locked' ? '#3f1f1f' : '#3f2a1f'}; color:${entry.type === 'Locked' ? '#f87171' : '#fbbf24'}">
                             ${entry.type}
@@ -5377,7 +5453,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function addToWall(wallet, reason, type) {
             const exists = bannedWallets.find(w => w.wallet === wallet);
             if (exists) {
-                alert("This wallet is already on the Wall.");
+                showToast("This wallet is already on the Wall.", "info");
                 return;
             }
 
@@ -5392,14 +5468,14 @@ document.addEventListener('DOMContentLoaded', () => {
             renderBannedTable();
         }
 
-        function removeFromWall(index) {
+        async function removeFromWall(index) {
             // Security check: Only allow removal if user is logged in as Admin
             if (!isAdminLoggedIn()) {
                 showToast("Admin access required to remove wallets from the Wall.", "error");
                 return;
             }
 
-            if (confirm("Remove this wallet from the Wall?")) {
+            if (await showConfirm("Remove this wallet from the Wall?", { okText: 'Remove', danger: true })) {
                 bannedWallets.splice(index, 1);
                 saveBannedWall();
                 renderBannedTable();
@@ -5409,7 +5485,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function scanWalletForWall() {
             const input = document.getElementById('monitor-wallet-input');
             if (!input || !input.value.trim()) {
-                alert("Please enter a wallet address");
+                showToast("Please enter a wallet address", "error");
                 return;
             }
 
@@ -5418,12 +5494,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (random < 0.3) {
                 addToWall(wallet, "Sold 37% of holdings in one transaction", "Locked");
-                alert("Violation detected! Added to Locked Wall.");
+                showToast("Violation detected! Added to Locked Wall.", "error");
             } else if (random < 0.6) {
                 addToWall(wallet, "Currently holding 4.2% of total supply", "Temporary");
-                alert("Violation detected! Added to Temporary Wall.");
+                showToast("Violation detected! Added to Temporary Wall.", "error");
             } else {
-                alert("No violations found. Wallet is clean.");
+                showToast("No violations found. Wallet is clean.", "error");
             }
 
             input.value = '';
@@ -5451,9 +5527,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (added > 0) {
-                alert(`Automated scan complete. ${added} new violators added to the Wall.`);
+                showToast(`Automated scan complete. ${added} new violators added to the Wall.`, "success");
             } else {
-                alert("Automated scan complete. No new violators found.");
+                showToast("Automated scan complete. No new violators found.", "success");
             }
         }
 
@@ -5730,7 +5806,7 @@ window.addEventListener('load', () => {
             const interval = parseInt(document.getElementById('dev-interval').value) || 30;
             CONFIG.nextDistributionTime = new Date(now.getTime() + interval * 60 * 1000);
             saveConfig();
-            alert("Distribution timer has been reset!");
+            showToast("Distribution timer has been reset!", "success");
             updateHomeWalletDisplays();
         }
 
@@ -5748,7 +5824,7 @@ window.addEventListener('load', () => {
                 wallet = window.solflare;
                 walletName = "Solflare";
             } else {
-                alert("Please install a Solana wallet (Phantom, Solflare, Backpack, etc.) and connect first.");
+                showToast("No wallet connected", "error", "Install Phantom, Solflare, or Backpack and connect your wallet first.");
                 return;
             }
 
@@ -5765,7 +5841,7 @@ window.addEventListener('load', () => {
                 }
 
                 if (!walletPublicKey) {
-                    alert(`Please click the 'CONNECT WALLET' button at the top first to connect ${walletName}.`);
+                    showToast(`Please click the 'CONNECT WALLET' button at the top first to connect ${walletName}.`, "error");
                     return;
                 }
 
@@ -5804,10 +5880,10 @@ window.addEventListener('load', () => {
                 const signedTx = await wallet.signTransaction(transaction);
                 const signature = await connection.sendRawTransaction(signedTx.serialize());
 
-                alert("✅ Distribution triggered!\nSignature: " + signature);
+                showToast("✅ Distribution triggered! Signature: " + signature, "success");
 
             } catch (error) {
-                alert("Failed to trigger distribution.\n" + (error.message || error));
+                showToast("Failed to trigger distribution. " + (error.message || error), "error");
             }
         }
     </script>
