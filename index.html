@@ -1695,6 +1695,24 @@ document.addEventListener('DOMContentLoaded', () => {
             overflow: visible;
         }
 
+        /* ============================================
+           UNIFORM TITLE EMOJIS
+           Leading emojis in titles are wrapped in this span by
+           normalizeTitleEmojis(). inline-block + line-height:1 takes the
+           emoji out of the text line-box height calculation, so a second
+           line of wrapped text can never crop its bottom — and every
+           title across the site gets identical emoji size, alignment,
+           and spacing relative to its text.
+           ============================================ */
+        .title-emoji {
+            display: inline-block;
+            line-height: 1;
+            font-size: 1.05em;
+            vertical-align: -0.12em;
+            margin-right: 0.3em;
+            text-indent: 0;
+        }
+
         /* Slim scrollbars for scrollable cards */
         .card::-webkit-scrollbar,
         .explore-card::-webkit-scrollbar {
@@ -5794,7 +5812,33 @@ window.addEventListener('load', () => {
 
     <!-- Smart Text Wrapping Logic -->
     <script>
+        // Matches a leading emoji cluster: pictographs, skin-tone modifiers,
+        // variation selector (\uFE0F), and ZWJ sequences.
+        const LEADING_EMOJI = /^([\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\uFE0F\u200D]+)[ \t]*/u;
+
+        function normalizeTitleEmojis() {
+            const titles = document.querySelectorAll('h1, h2, h3, .neon-text, .card h3, .explore-card h3, .section h2');
+
+            titles.forEach(el => {
+                // Already normalized, or starts with markup rather than text
+                if (el.querySelector(':scope > .title-emoji')) return;
+                const first = el.firstChild;
+                if (!first || first.nodeType !== Node.TEXT_NODE) return;
+
+                const m = first.textContent.match(LEADING_EMOJI);
+                if (!m) return;
+
+                const span = document.createElement('span');
+                span.className = 'title-emoji';
+                span.textContent = m[1];
+                first.textContent = first.textContent.slice(m[0].length);
+                el.insertBefore(span, first);
+            });
+        }
+
         function applySmartTextWrapping() {
+            normalizeTitleEmojis();
+
             const titles = document.querySelectorAll('h1, h2, h3, .neon-text, .card h3, .explore-card h3, .section h2');
 
             titles.forEach(el => {
