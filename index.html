@@ -491,6 +491,24 @@
 
             document.body.insertAdjacentHTML('beforeend', modalHTML);
 
+            // The modal is injected dynamically, so its buttons must be wired
+            // up here, right after insertion — they have no inline onclick.
+            const loginBtn = document.getElementById('attempt-admin-login-btn');
+            if (loginBtn) loginBtn.addEventListener('click', attemptAdminLogin);
+
+            const cancelBtn = document.getElementById('close-admin-login-btn');
+            if (cancelBtn) cancelBtn.addEventListener('click', closeAdminLoginModal);
+
+            // Pressing Enter in either field submits the login
+            ['admin-username', 'admin-password'].forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') attemptAdminLogin();
+                    });
+                }
+            });
+
             // Focus password field
             setTimeout(() => {
                 const passInput = document.getElementById('admin-password');
@@ -504,9 +522,13 @@
         }
 
         function attemptAdminLogin() {
-            const username = document.getElementById('admin-username').value.trim();
-            const password = document.getElementById('admin-password').value;
+            const usernameEl = document.getElementById('admin-username');
+            const passwordEl = document.getElementById('admin-password');
             const errorDiv = document.getElementById('admin-login-error');
+            if (!usernameEl || !passwordEl) return;
+
+            const username = usernameEl.value.trim();
+            const password = passwordEl.value;
 
             if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
                 setAdminLoggedIn(true);
@@ -523,9 +545,8 @@
         // Logout function (can be called from inside Admin panel)
         function adminLogout() {
             setAdminLoggedIn(false);
-            const panel = document.getElementById('admin-panel');
-            if (panel) panel.style.display = 'none';
-            alert("You have been logged out.");
+            closeDeveloperModal();
+            showToast("You have been logged out.", "info");
         }
         window.adminLogout = adminLogout;
 
@@ -4367,7 +4388,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <h3 style="color: #f59e0b; margin: 0; font-size: 22px; font-weight: 700;">Ruggy Admin Panel</h3>
                 
-                <button id="admin-logout-btn" 
+                <button id="admin-logout-btn" onclick="adminLogout()" 
                         style="background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; 
                                padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
                     Logout
@@ -4463,7 +4484,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     <div>
                         <label style="font-size:11px; display:block; margin-bottom:4px;">Dev Wallet</label>
-                        <button id="connect-dev-wallet-home-btn" class="buy-button" style="padding:8px 14px; font-size:12px; background: linear-gradient(to right, #a855f7, #7c3aed);">
+                        <button id="connect-dev-wallet-home-btn" onclick="connectDevWalletForHome()" class="buy-button" style="padding:8px 14px; font-size:12px; background: linear-gradient(to right, #a855f7, #7c3aed);">
                             Connect Dev Wallet
                         </button>
                         <div id="dev-wallet-display" style="margin-top:6px; font-size:11px; color:#9ca3af; font-family: monospace; word-break: break-all;"></div>
@@ -4478,11 +4499,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input id="dev-interval" type="number" value="30" style="width:100%; padding:9px; border-radius:6px; border:1px solid #6b21a8; background:#111827; color:white;">
                     </div>
                     
-                    <button id="reset-timer-btn" class="buy-button" style="background: #4b5563; color: #d1d5db; margin-bottom: 8px; font-size:12px; border: 1px solid #6b7280;">
+                    <button id="reset-timer-btn" onclick="resetDistributionTimer()" class="buy-button" style="background: #4b5563; color: #d1d5db; margin-bottom: 8px; font-size:12px; border: 1px solid #6b7280;">
                         Reset Timer
                     </button>
                     
-                    <button id="trigger-distribution-btn" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); margin-bottom: 8px;">
+                    <button id="trigger-distribution-btn" onclick="triggerDistribution()" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); margin-bottom: 8px;">
                         🚀 Trigger Reward Distribution
                     </button>
                     
@@ -4500,9 +4521,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input id="dev-bagworker-5" type="text" placeholder="Bagworker 5" style="width:100%; padding:8px; border-radius:6px; border:1px solid #6b21a8; background:#111827; color:white; font-size:13px;">
                 </div>
                 
-                <button id="save-dev-settings-btn" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); margin-bottom: 12px; width: 100%;">Save Settings</button>
+                <button id="save-dev-settings-btn" onclick="saveDeveloperSettings()" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); margin-bottom: 12px; width: 100%;">Save Settings</button>
                 
-                <button id="logout-dev-btn" style="margin-top:12px; width:100%; padding:10px; background:#ef4444; color:white; border:none; border-radius:8px; cursor:pointer;">Logout</button>
+                <button id="logout-dev-btn" onclick="adminLogout()" style="margin-top:12px; width:100%; padding:10px; background:#ef4444; color:white; border:none; border-radius:8px; cursor:pointer;">Logout</button>
             </div>
         </div>
     </div>
@@ -4675,7 +4696,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (noCaDiv) {
                     noCaDiv.innerHTML = `
                         <p style="color:#f87171;">Failed to load live data.</p>
-                        <button id="start-live-tracking-btn" class="buy-button" style="max-width:160px; margin-top:12px; padding:10px 16px; font-size:13px;">
+                        <button id="start-live-tracking-btn" onclick="startLiveTracking()" class="buy-button" style="max-width:160px; margin-top:12px; padding:10px 16px; font-size:13px;">
                             Retry
                         </button>
                     `;
