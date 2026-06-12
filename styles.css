@@ -1580,3 +1580,49 @@ p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
 #chart-container {
     margin-bottom: 6px;
 }
+
+/* =====================================================================
+   MONEY RAIN — retro pixel dollar bills that fall when the distribution
+   timer hits 00:00. Bills are pure CSS (no images): pixel-font "$",
+   hard 2px borders, inner highlight frame, and a green neon glow to
+   match the rest of the sign. GPU-only animation (transform), bills
+   remove themselves on animationend.
+   ===================================================================== */
+.money-bill {
+    position: fixed;
+    top: -70px;
+    z-index: 99990;
+    pointer-events: none;          /* never blocks clicks */
+    width: 46px;
+    height: 24px;
+    background: linear-gradient(180deg, #16a34a 0%, #15803d 60%, #166534 100%);
+    border: 2px solid #052e16;
+    border-radius: 2px;
+    box-shadow:
+        inset 0 0 0 2px #4ade80,   /* inner frame, like a bill's border */
+        0 0 10px rgba(34, 197, 94, 0.55);
+    color: #d9f99d;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    text-align: center;
+    text-shadow: 0 0 4px #22c55e;
+    image-rendering: pixelated;
+    animation: billFall linear forwards;
+    will-change: transform;
+}
+.money-bill::before {
+    content: "$";
+}
+
+@keyframes billFall {
+    0% {
+        transform: translateY(-70px) translateX(0) rotate(var(--tilt, 0deg));
+    }
+    100% {
+        transform: translateY(112vh) translateX(var(--drift, 0px)) rotate(var(--spin, 360deg));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .money-bill { display: none; }
+}
