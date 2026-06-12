@@ -347,14 +347,18 @@ const Lottery = {
     },
 
     claimFreeTicket() {
-        const today = new Date().toDateString();
-        if (localStorage.getItem(this.FREE_CLAIM_KEY) === today) {
-            showToast("You've already claimed your free ticket today. Come back tomorrow!", "success");
+        // Cooldown is admin-configurable (Rules & Metrics > free ticket hold time)
+        const hours = (typeof CONFIG !== 'undefined' && CONFIG.metrics?.freeTicketCooldownHours) || 24;
+        const last = parseInt(localStorage.getItem(this.FREE_CLAIM_KEY), 10) || 0;
+        const remaining = last + hours * 3600 * 1000 - Date.now();
+        if (remaining > 0) {
+            const h = Math.ceil(remaining / 3600000);
+            showToast("Free ticket on cooldown", "success", `Next free ticket in about ${h} hour${h === 1 ? '' : 's'}.`);
             return;
         }
-        localStorage.setItem(this.FREE_CLAIM_KEY, today);
+        localStorage.setItem(this.FREE_CLAIM_KEY, String(Date.now()));
         this.addTickets(1);
-        showToast("🎁 Free Ticket Claimed!", "success", "+1 Free Lottery Ticket added to your account. Good luck in today's draw!");
+        showToast("🎁 Free Ticket Claimed!", "success", "+1 Free Lottery Ticket added to your account. Good luck in the next draw!");
     }
 };
 
