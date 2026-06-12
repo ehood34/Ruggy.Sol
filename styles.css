@@ -1503,3 +1503,68 @@ p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
 .u28 { display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid #374151; }
 .u29 { margin-bottom:20px; padding:15px; background:#1f2937; border-radius:10px; }
 .u30 { --w1: #c4b5fd; --w2: #7c3aed; --wshadow: rgba(124, 58, 237, 0.4); --wshadow-h: rgba(124, 58, 237, 0.5); }
+
+/* ===== UTILITY CLASSES, BATCH 4 (canonicalized duplicates) ===== */
+.u101 { flex-shrink: 0; }
+.u102 { color: #f59e0b; }
+.u103 { color: #f87171; }
+.u104 { width: 100%; font-size: 13px; }
+.u105 { margin-bottom: 30px; }
+.u106 { color: #ef4444; }
+
+/* ===== EXTRACTED LAYOUT BLOCKS (one-off styles > 120 chars moved out of
+   the markup; xN names map 1:1 to the element that owned them) ===== */
+.x201 { background: rgba(0,0,0,0.95); padding: 6px 16px; border-bottom: 1px solid #c026ff; position: fixed; width: 100%; z-index: 50; }
+.x202 { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; padding-bottom: 6px; }
+.x203 { position: relative; width: 100%; height: 48px; background: white; border-radius: 9999px; border: 3px solid #fbbf24; box-shadow: 0 0 12px rgba(251, 191, 36, 0.5); overflow: hidden; }
+.x204 { position: absolute; left: 0; top: 0; height: 100%; width: 100%; background: linear-gradient(to right, #22c55e, #16a34a); transition: width 0.3s linear; border-radius: 9999px; z-index: 6; }
+.x205 { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 26px; z-index: 15; line-height: 1; background: white; border: 2px solid #22c55e; border-radius: 9999px; padding: 4px 7px; box-shadow: 0 0 8px rgba(34, 197, 94, 0.5); }
+.x206 { position: absolute; top: 50%; transform: translateY(-50%); left: 100%; transition: left 0.25s linear; z-index: 10; width: 52px; height: 52px; border-radius: 8px; overflow: hidden; }
+.x207 { --glow: #ff00ff; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9999px; background: #1f2937; border: 2px solid #6b21a8; }
+.x208 { --glow: #c026d3; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9999px; background: #1f2937; border: 2px solid #6b21a8; }
+.x209 { --glow: #3b82f6; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9999px; background: #1f2937; border: 2px solid #6b21a8; overflow: hidden; }
+.x210 { --glow: #ec4899; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 9999px; background: #1f2937; border: 2px solid #6b21a8; overflow: hidden; }
+.x211 { background: #1f2937; color: #f59e0b; font-weight: 700; padding: 8px 14px; border-radius: 8px; border: 2px solid #6b21a8; cursor: pointer; font-size: 13px; white-space: nowrap; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; --glow: #f59e0b; }
+.x212 { background: linear-gradient(to right, #ff00ff, #a855f7); color: white; font-weight: 700; padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 12px; white-space: nowrap; }
+.x213 { background: #fbbf24; border-radius: 12px; border: 3px solid #f59e0b; z-index: 100000; box-shadow: 0 0 12px rgba(251, 191, 36, 0.6); }
+.x214 { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100000; background: rgba(15, 10, 31, 0.92); align-items: flex-start; justify-content: center; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.x215 { width: 92%; max-width: 420px; background: #120b2a; border: 2px solid #6b21a8; border-radius: 24px; box-shadow: 0 25px 60px -15px rgb(0 0 0 / 0.6); max-height: 80vh; overflow-y: auto; margin: 0 0 30px 0; }
+.x216 { background: rgba(255,255,255,0.08); border: none; color: #c4b5fd; font-size: 26px; width: 42px; height: 42px; border-radius: 9999px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+.x217 { padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); text-align: center; font-weight: 700; color: #22c55e; animation: lottoTextFlash 1.8s infinite alternate ease-in-out; }
+.x218 { display: none; background: #1a0033; border-bottom: 2px solid #6b21a8; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); position: relative; z-index: 9999; }
+.x219 { max-width: 1280px; margin: 0 auto; padding: 8px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.x220 { background: linear-gradient(145deg, #c4b5fd, #7c3aed); color: white; border: none; padding: 7px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s ease; }
+.x221 { background: linear-gradient(145deg, #fbbf24, #d97706); color: white; border: none; padding: 7px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s ease; }
+.x222 { background: linear-gradient(145deg, #4ade80, #16a34a); color: white; border: none; padding: 7px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s ease; }
+.x223 { background: #374151; color: #e5e7eb; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 18px; line-height: 1; }
+.x224 { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; object-fit: cover; object-position: center 30%; z-index: 1; pointer-events: none; -webkit-touch-callout: none; user-select: none; }
+.x225 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; align-items: stretch; justify-content: center; }
+.x226 { position: relative; width: 100%; max-width: 520px; margin: 0 auto; background: #111827; border-radius: 20px; padding: 24px 20px; border: 1px solid #374151; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3); overflow: hidden; box-sizing: border-box; }
+.x227 { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #9ca3af; font-size: 14px; z-index: 1; display: none; text-align: center; }
+.x228 { width: 100% !important; height: auto !important; max-height: 460px; display: block; position: relative; z-index: 2; }
+.x229 { max-height: 200px; overflow-y: auto; padding: 14px 16px; background: #1f2937; border-radius: 10px; border-left: 4px solid #6b21a8; font-size: 13.5px; display: none; line-height: 1.65; color: #d1d5db; }
+.x230 { display: inline-block; width: 14px; height: 14px; background: #ef4444; border-radius: 3px; flex-shrink: 0; margin-top: 3px; }
+.x231 { display: inline-block; width: 14px; height: 14px; background: #fbbf24; border-radius: 3px; flex-shrink: 0; margin-top: 3px; }
+.x232 { display: inline-block; width: 14px; height: 14px; background: #22c55e; border-radius: 3px; flex-shrink: 0; margin-top: 3px; }
+.x233 { display: inline-block; width: 14px; height: 14px; background: #a855f7; border-radius: 3px; flex-shrink: 0; margin-top: 3px; }
+.x234 { max-width: 820px; margin: 0 auto 25px; padding: 14px 18px; background: #3f1f1f; border: 1px solid #ef4444; border-radius: 10px; text-align: center; }
+.x235 { margin-bottom:15px; padding:10px; background:#1f2937; border-radius:8px; font-family:monospace; font-size:13px; color:#ddd; cursor:pointer; }
+.x236 { display: none; background: #052e16; border-left: 5px solid #22c55e; border-radius: 10px; padding: 16px; font-size: 14px; line-height: 1.6; }
+.x237 { width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #166534; background: #052e16; color: white; font-size: 16px; }
+.x238 { padding: 10px 4px; background: #052e16; border: 2px solid #166534; border-radius: 8px; text-align: center; cursor: pointer; font-size: 11px; }
+.x239 { margin-top: 14px; padding: 12px; background: #3f1f1f; border: 1px solid #ef4444; border-radius: 8px; font-size: 12px; color: #fca5a5; line-height: 1.5; }
+.x240 { flex: 1; min-width: 180px; padding: 12px; border-radius: 8px; border: 2px solid #374151; background: #111827; color: white; }
+.x241 { margin-top: 12px; padding: 10px; background: #3f1f1f; border-radius: 6px; font-size: 13px; color: #fca5a5; display: none; }
+.x242 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 30px; max-width: 1100px; margin: 0 auto; }
+.x243 { flex: 1; padding: 14px; border-radius: 10px; border: 2px solid #6b21a8; background: #111827; color: white; font-size: 18px; text-align: center; }
+.x244 { background: linear-gradient(to right, #fbbf24, #f59e0b); color: black; font-weight: bold; padding: 16px 28px; white-space: nowrap; }
+.x245 { display: none; position: fixed; top: 0; left: 0; width: 420px; height: 100vh; z-index: 999999; background: #0f001f; border-right: 4px solid #f59e0b; box-shadow: 8px 0 40px rgba(0,0,0,0.9); overflow-y: auto; animation: slideInFromLeft 0.3s ease-out forwards; }
+.x246 { position: sticky; top: 12px; right: 16px; float: right; background: #1f2937; border: 2px solid #f59e0b; color: #fbbf24; font-size: 24px; cursor: pointer; line-height: 1; font-weight: bold; width: 38px; height: 38px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; z-index: 10; margin: 12px 16px 0 0; }
+.x247 { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.x248 { margin-bottom: 24px; padding: 16px; background: #1f2937; border: 3px solid #f97316; border-radius: 12px; text-align: center; }
+.x249 { background: linear-gradient(to right, #f97316, #ea580c); color: white; border: none; padding: 14px 20px; font-size: 15px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; }
+.x250 { display: none; position: fixed; bottom: 24px; right: 24px; z-index: 999; width: 52px; height: 52px; border-radius: 9999px; background: linear-gradient(145deg, #7c3aed, #a855f7); color: white; border: none; cursor: pointer; box-shadow: 0 8px 25px rgba(124, 58, 237, 0.5); transition: all 0.3s ease; font-size: 26px; line-height: 1; display: flex; align-items: center; justify-content: center; transform: translateY(-1px); }
+.x251 { position: fixed; bottom: 90px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+.x252 { text-align: center; padding: 40px 20px 30px; font-size: 11px; color: #6b7280; max-width: 700px; margin: 0 auto; line-height: 1.6; }
+.x253 { max-width: 620px; text-align: center; background: #111827; border: 3px solid #6b21a8; border-radius: 20px; padding: 40px 30px; margin: 0 auto; }
+.x254 { background: linear-gradient(to right, #22c55e, #16a34a); color: white; border: none; padding: 14px 28px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; }
