@@ -179,69 +179,11 @@
 }
 
 /* ===== STYLE BLOCK 2 ===== */
-/* ============================================
-   HOME CYCLING COLOR ANIMATION (8 Theme Colors)
-============================================ */
-/* homeColorCycle is defined in the RETRO NEON RESTORATION layer */
-
-/* ========================================
-   PAGE TITLE COLORS - Match Navigation Colors
-======================================== */
-
-/* TOKENOMICS - Light gray like nav */
-#tokenomics .neon-text,
-#tokenomics h2.neon-text {
-    color: #9ca3af !important;
-}
-
-/* LORE - Purple like nav */
-#lore .neon-text,
-#lore h2.neon-text {
-    color: #c084fc !important;
-}
-
-/* REWARDS - Green like nav */
-#rewards .neon-text,
-#rewards h2.neon-text {
-    color: #22c55e !important;
-}
-
-/* GALLERY - Pink/Magenta like nav */
-#gallery .neon-text,
-#gallery h2.neon-text {
-    color: #ff00ff !important;
-}
-
-/* HALL - Gold/Amber like nav */
-#hall .neon-text,
-#hall h2.neon-text {
-    color: #f59e0b !important;
-}
-
-/* WALL - Red like nav */
-#wall .neon-text,
-#wall h2.neon-text {
-    color: #ef4444 !important;
-}
-
-/* POOL - Blue like nav */
-#pool .neon-text,
-#pool h2.neon-text {
-    color: #3b82f6 !important;
-}
-
-/* ABSOLUTION - White like nav */
-#absolution .neon-text,
-#absolution h2.neon-text {
-    color: #f1f5f9 !important;
-}
-
-/* LOTTERY page title - Already handled by .lotto-animated-title */
-
-/* HOME page main title (RUGGY) - Keep multi-color, no override */
-#home h1.neon-text {
-    color: inherit !important;
-}
+/* 
+   Old weak glow rules removed.
+   All neon glow styling is now handled by the RETRO NEON RESTORATION block
+   at the bottom of this file (single source of truth).
+*/
 
 /* ===== STYLE BLOCK 3 ===== */
 body { font-family: 'Press Start 2P', system-ui, sans-serif; background: linear-gradient(135deg, #0a0a0a, #1a0033); color: white; margin: 0; padding: 0; }
