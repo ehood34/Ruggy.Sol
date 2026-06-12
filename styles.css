@@ -179,64 +179,10 @@
 }
 
 /* ===== STYLE BLOCK 2 ===== */
-/* Base neon glow for all navigation links - Matches each link's own text color */
-nav .nav-link,
-#desktop-nav .nav-link,
-.nav-link {
-    text-shadow: 
-        0 0 2px currentColor,
-        0 0 5px currentColor !important;
-}
-
-/* HOME cycling animation overrides old glow when active */
-
-/* Page titles and section headings - Glow matches their text color + visible border like RUGGY logo */
-.page-title,
-h1, h2, h3,
-.section-title,
-.card h3,
-.neon-text {
-    -webkit-text-stroke: 0.6px rgba(0,0,0,0.65);
-    text-shadow: 
-        0 0 2px currentColor,
-        0 0 5px currentColor !important;
-}
-
-/* LOTTERY nav title - Same subtle glow style as other navigation titles + border like RUGGY logo */
-nav .nav-link.lotto-animated-title,
-#desktop-nav .nav-link.lotto-animated-title,
-.nav-link.lotto-animated-title,
-#lotto-title.lotto-animated-title {
-    -webkit-text-stroke: 0.6px rgba(0,0,0,0.65);
-    text-shadow: 
-        0 0 2px #16a34a,
-        0 0 5px #eab308 !important;
-}
-
-/* Flashing Lottery page title (big title on the Lottery page) keeps stronger green/gold glow */
-.page-title.lotto-animated-title,
-h1.lotto-animated-title {
-    text-shadow: 
-        0 0 3px #16a34a,
-        0 0 8px #eab308 !important;
-}
-
-/* HOME nav link - cycling animation handles the glow now */
-
 /* ============================================
    HOME CYCLING COLOR ANIMATION (8 Theme Colors)
 ============================================ */
-@keyframes homeColorCycle {
-    0%   { color: #9ca3af; text-shadow: 0 0 6px #9ca3af, 0 0 12px #6b7280; }   /* Tokenomics - Gray */
-    12.5% { color: #c084fc; text-shadow: 0 0 6px #c084fc, 0 0 12px #a855f7; }   /* Lore - Purple */
-    25%  { color: #22c55e; text-shadow: 0 0 6px #22c55e, 0 0 12px #16a34a; }   /* Rewards - Green */
-    37.5% { color: #ff00ff; text-shadow: 0 0 6px #ff00ff, 0 0 12px #ec4899; }   /* Gallery - Pink */
-    50%  { color: #fbbf24; text-shadow: 0 0 6px #fbbf24, 0 0 12px #f59e0b; }   /* Hall - Gold */
-    62.5% { color: #ef4444; text-shadow: 0 0 6px #ef4444, 0 0 12px #dc2626; }   /* Wall - Red */
-    75%  { color: #3b82f6; text-shadow: 0 0 6px #3b82f6, 0 0 12px #2563eb; }   /* Pool - Blue */
-    87.5% { color: #f1e7ff; text-shadow: 0 0 6px #f1e7ff, 0 0 12px #c4b5fd; }   /* Absolution - White */
-    100% { color: #9ca3af; text-shadow: 0 0 6px #9ca3af, 0 0 12px #6b7280; }
-}
+/* homeColorCycle is defined in the RETRO NEON RESTORATION layer */
 
 .home-cycling {
     animation: homeColorCycle 16s linear infinite !important;
@@ -875,9 +821,6 @@ th:nth-child(3), td:nth-child(3) { width: 38%; }
         font-size: 24px !important;
         white-space: normal !important;
         overflow: visible;
-        text-shadow: 
-            0 0 3px #c026d3,
-            0 0 6px #c026d3;
     }
 
     #wall .card[style*="margin-top: 30px"] > div[style*="display: grid"] {
@@ -1266,7 +1209,7 @@ h1, h2, h3, .neon-text,
 #lotto-title.lotto-animated-title {
     color: #22c55e;
     animation: lottoTextFlash 1.8s infinite alternate ease-in-out !important;
-    text-shadow: 0 0 4px #22c55e, 0 0 10px #eab308;
+    text-shadow: 0 0 3px #22c55e, 0 0 10px #22c55e, 0 0 22px #eab308;
     font-weight: 900;
 }
 
@@ -1274,7 +1217,7 @@ h1, h2, h3, .neon-text,
 .nav-link.lotto-animated-title {
     color: #22c55e;
     animation: lottoTextFlash 1.8s infinite alternate ease-in-out !important;
-    text-shadow: 0 0 4px #22c55e, 0 0 10px #eab308;
+    text-shadow: 0 0 3px #22c55e, 0 0 10px #22c55e, 0 0 22px #eab308;
     font-weight: 900;
     -webkit-text-stroke: 0.6px rgba(0,0,0,0.65);
     display: inline-flex;
@@ -1283,17 +1226,7 @@ h1, h2, h3, .neon-text,
     line-height: 1;
 }
 
-/* Flashing text animation for LOTTERY button in mobile hamburger menu */
-@keyframes lottoTextFlash {
-    0% {
-        color: #22c55e;
-        text-shadow: 0 0 4px #22c55e, 0 0 10px #eab308;
-    }
-    100% {
-        color: #eab308;
-        text-shadow: 0 0 4px #eab308, 0 0 10px #22c55e;
-    }
-}
+/* lottoTextFlash is defined in the RETRO NEON RESTORATION layer */
 
 /* Hover for big title */
 #lotto-title.lotto-animated-title:hover {
@@ -1306,7 +1239,7 @@ h1, h2, h3, .neon-text,
 .nav-link.lotto-animated-title.active {
     animation-duration: 0.6s !important;
     filter: brightness(1.4) saturate(1.3) !important;
-    text-shadow: 0 0 6px #22c55e, 0 0 14px #eab308;
+    text-shadow: 0 0 4px #22c55e, 0 0 14px #22c55e, 0 0 30px #eab308;
     transform: translateY(-1px);
 }
 
@@ -1314,7 +1247,7 @@ h1, h2, h3, .neon-text,
 .card h3.lotto-animated-title {
     color: #22c55e;
     animation: lottoTextFlash 1.8s infinite alternate ease-in-out !important;
-    text-shadow: 0 0 4px #22c55e, 0 0 10px #eab308;
+    text-shadow: 0 0 3px #22c55e, 0 0 10px #22c55e, 0 0 22px #eab308;
     font-weight: 900;
 }
 
@@ -1349,37 +1282,56 @@ h1, h2, h3, .neon-text,
    definition of a keyframe name wins).
    ===================================================================== */
 
-/* --- Navigation links: full neon tube treatment --- */
+/* --- Navigation links: full neon tube treatment.
+       The faint white inner layer is the "hot glass core" of a real
+       neon tube; the dark stroke keeps letterforms crisp inside it. --- */
 nav .nav-link,
 #desktop-nav .nav-link,
 .nav-link {
     -webkit-text-stroke: 0.7px rgba(0, 0, 0, 0.85);
     text-shadow:
-        0 0 1px currentColor,
+        0 0 1px rgba(255, 255, 255, 0.85),
         0 0 4px currentColor,
         0 0 10px currentColor,
-        0 0 20px currentColor !important;
+        0 0 22px currentColor,
+        0 0 38px currentColor !important;
 }
-nav .nav-link:hover,
-.nav-link:hover {
+nav .nav-link:hover {
     text-shadow:
-        0 0 2px currentColor,
+        0 0 1px rgba(255, 255, 255, 0.95),
         0 0 6px currentColor,
         0 0 14px currentColor,
-        0 0 28px currentColor !important;
+        0 0 30px currentColor,
+        0 0 52px currentColor !important;
+    filter: brightness(1.15);
 }
 
-/* --- Page titles & section headings --- */
+/* --- Page titles & section headings: the brightest tubes on the sign,
+       with a slow breathing pulse like a real storefront --- */
 .page-title,
 h1.neon-text, h2.neon-text,
 .section h2,
 .section-title {
     -webkit-text-stroke: 0.8px rgba(0, 0, 0, 0.8);
     text-shadow:
-        0 0 2px currentColor,
+        0 0 1px rgba(255, 255, 255, 0.9),
         0 0 6px currentColor,
-        0 0 14px currentColor,
-        0 0 28px currentColor !important;
+        0 0 16px currentColor,
+        0 0 32px currentColor,
+        0 0 56px currentColor !important;
+    animation: neonBreathe 3.2s ease-in-out infinite;
+}
+
+@keyframes neonBreathe {
+    0%, 100% { filter: brightness(1); }
+    50%      { filter: brightness(1.18); }
+}
+
+/* Respect users who turn animations off */
+@media (prefers-reduced-motion: reduce) {
+    .page-title, h1.neon-text, h2.neon-text, .section h2, .section-title {
+        animation: none;
+    }
 }
 
 /* --- Card headings: bright but a notch below page titles --- */
@@ -1387,19 +1339,21 @@ h1.neon-text, h2.neon-text,
 .explore-card h3 {
     -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.75);
     text-shadow:
-        0 0 1px currentColor,
+        0 0 1px rgba(255, 255, 255, 0.7),
         0 0 4px currentColor,
-        0 0 9px currentColor !important;
+        0 0 10px currentColor,
+        0 0 20px currentColor !important;
 }
 
 /* --- RUGGY logo letters: outshine their inline 3px/6px shadows --- */
 .hover-scale h1 span {
     -webkit-text-stroke: 0.7px rgba(0, 0, 0, 0.85) !important;
     text-shadow:
-        0 0 2px currentColor,
+        0 0 1px rgba(255, 255, 255, 0.9),
         0 0 6px currentColor,
-        0 0 13px currentColor,
-        0 0 26px currentColor !important;
+        0 0 14px currentColor,
+        0 0 28px currentColor,
+        0 0 46px currentColor !important;
 }
 
 /* --- HOME cycling animation: brighter ramp (same name overrides) --- */
@@ -1435,3 +1389,37 @@ nav .nav-link {
 p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
     -webkit-text-stroke: 0;
 }
+
+/* ===== UTILITY CLASSES, BATCH 2 (extracted from repeated inline styles) ===== */
+.btn-bare { cursor: pointer; padding: 0; overflow: visible; transition: transform 0.2s; }
+.mb12 { margin-bottom:12px; }
+.mb10 { margin-bottom:10px; }
+.mb20 { margin-bottom: 20px; }
+.gold { color: #fbbf24; }
+.green { color: #22c55e; }
+.gray { color: #9ca3af; }
+.bold { font-weight: bold; }
+.hint-green { font-size: 10px; color: #86efac; }
+.feature-img { max-width: 100%; height: 280px; object-fit: cover; border-radius: 16px; border: 3px solid #6b21a8; }
+.page-h2 { font-size: clamp(28px, 8vw, 42px); text-align: center; margin-bottom: 8px; }
+.row-top { display: flex; align-items: flex-start; gap: 10px; }
+.row-between { display: flex; justify-content: space-between; }
+.text-14 { font-size: 14px; line-height: 1.4; }
+.text-15 { font-size: 15px; line-height: 1.7; }
+.text-14-flat { font-size: 14px; margin: 0; }
+.muted-125 { font-size: 12.5px; color:#9ca3af; }
+.muted-12 { font-size: 12px; color: #9ca3af; }
+.cell { padding: 10px; text-align: left; }
+.label-sm { font-size:12px; display:block; margin-bottom:4px; }
+.w-full { width:100%; }
+.page-wrap { padding-top: 110px; padding-bottom: 80px; max-width: 1100px; margin: 0 auto; }
+.green-mb15 { color: #22c55e; margin-bottom: 15px; }
+.stat-lg { font-size: 28px; font-weight: bold; }
+.center-mb25 { text-align: center; margin-bottom: 25px; }
+.fs15 { font-size: 15px; }
+.row-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 13px; padding-bottom: 10px; border-bottom: 1px solid #374151; }
+.stat-box-green { padding: 10px 6px; background: #052e16; border: 2px solid #166534; border-radius: 8px; text-align: center; cursor: pointer; font-size: 11px; }
+.stat-box-green { padding: 10px 6px; background: #052e16; border: 2px solid #f59e0b; border-radius: 8px; text-align: center; cursor: pointer; font-size: 11px; box-shadow: 0 0 8px #f59e0b; }
+.dev-input { width:100%; padding:9px; border-radius:6px; border:1px solid #6b21a8; background:#111827; color:white; font-size:12px; font-family: monospace; }
+.dev-input { width:100%; padding:9px; border-radius:6px; border:1px solid #6b21a8; background:#111827; color:white; }
+.dev-input-sm { width:100%; padding:8px; margin-bottom:6px; border-radius:6px; border:1px solid #6b21a8; background:#111827; color:white; font-size:13px; }
