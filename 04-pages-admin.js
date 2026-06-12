@@ -40,6 +40,25 @@ function loadConfig() {
         }
     } catch (e) {}
 
+    // Appearance / effects defaults (admin panel > Appearance & Effects)
+    CONFIG.ui = Object.assign({
+        neonLevel: 'normal',        // 'soft' | 'normal' | 'max'
+        breathe: true,              // page-title breathing pulse
+        rainOnZero: true,           // money rain when timer hits 00:00
+        rainDurationSec: 60,
+        rainMaxBills: 40,
+        rainBillWidth: 124,
+        rainImage: ''               // empty = MoneyRain.BILL_IMAGE default
+    }, CONFIG.ui || {});
+
+    // Editable site content defaults (admin panel > Site Content)
+    CONFIG.content = Object.assign({
+        heroTitle: 'RUGGY',
+        heroSub: 'The Ultimate Anti-Rug Mascot',
+        jackpotText: '$124,850',
+        ticketPrice: 3
+    }, CONFIG.content || {});
+
     // Set default distribution splits if not present (first time load)
     if (!CONFIG.distributionSplits) {
         CONFIG.distributionSplits = {
@@ -407,8 +426,10 @@ function startSimpleTimer(retryCount = 0) {
             barFill.style.width = "0%";
             timerEl.textContent = "00:00";
 
-            // 💵 Distribution moment: make it rain for a minute
-            if (typeof MoneyRain !== 'undefined') MoneyRain.start();
+            // 💵 Distribution moment: make it rain (admin-toggleable)
+            if (typeof MoneyRain !== 'undefined' && (!CONFIG.ui || CONFIG.ui.rainOnZero !== false)) {
+                MoneyRain.start();
+            }
 
             // Auto-restart after a short pause (fresh full interval)
             clearInterval(window.rewardTimerInterval);
@@ -625,6 +646,7 @@ async function connectDevWalletForHome() {
 
 document.addEventListener('DOMContentLoaded', function() {
     loadConfig();
+    applySiteSettings();
 
     // ==================== DYNAMIC NAV PADDING (Includes Wallet Bar when visible) ====================
     function updateDynamicNavPadding() {
@@ -1042,6 +1064,117 @@ function getAdminInputValue(id, defaultValue = '') {
     return el ? el.value.trim() : defaultValue;
 }
 
+// ==================== PANEL POPULATE + CONFIG TOOLS ====================
+// Fills EVERY admin input from the live CONFIG when the panel opens.
+// (The old loadAdminSettingsIntoPanel stub read a wrong storage key and
+// only filled the CA — so Save would clobber saved settings with the
+// blank defaults shown in the form.)
+function populateDevPanel() {
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && val !== undefined && val !== null) el.value = val;
+    };
+    const check = (id, on) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!on;
+    };
+
+    // Token & timing
+    set('dev-ca', CONFIG.tokenMint);
+    set('dev-interval', CONFIG.distributionIntervalMinutes);
+
+    // Bagworkers
+    (CONFIG.bagworkers || []).forEach((w, i) => set('dev-bagworker-' + (i + 1), w));
+
+    // Splits
+    const s = CONFIG.distributionSplits || {};
+    set('dev-liq-percent', s.liquidity);
+    set('dev-antirug-percent', s.antiRug);
+    set('dev-community-percent', s.community);
+    set('dev-creator-percent', s.creator);
+
+    // Wallets + socials
+    set('dev-burn-wallet', CONFIG.burnWallet);
+    set('dev-creator-wallet', CONFIG.creatorWallet);
+    set('dev-x-link', CONFIG.socialX);
+    set('dev-telegram-link', CONFIG.socialTelegram);
+    set('dev-dexscreener-link', CONFIG.socialDexscreener);
+    set('dev-pumpfun-link', CONFIG.socialPumpfun);
+
+    // Site content
+    const c = CONFIG.content || {};
+    set('content-hero-title', c.heroTitle);
+    set('content-hero-sub', c.heroSub);
+    set('content-jackpot', c.jackpotText);
+    set('content-ticket-price', c.ticketPrice);
+
+    // Appearance & effects
+    const u = CONFIG.ui || {};
+    set('ui-neon-level', u.neonLevel || 'normal');
+    check('ui-breathe', u.breathe !== false);
+    check('ui-rain-on-zero', u.rainOnZero !== false);
+    set('ui-rain-duration', u.rainDurationSec);
+    set('ui-rain-max', u.rainMaxBills);
+    set('ui-rain-width', u.rainBillWidth);
+    set('ui-rain-image', u.rainImage);
+}
+window.populateDevPanel = populateDevPanel;
+
+// Download the full CONFIG as a JSON file — settings live in THIS
+// browser's localStorage, so export/import is how you move them
+// between devices or back them up.
+function exportSiteConfig() {
+    const blob = new Blob([JSON.stringify(CONFIG, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ruggy-config.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast("Settings exported", "success", "ruggy-config.json downloaded \u2014 import it on another device to transfer settings.");
+}
+window.exportSiteConfig = exportSiteConfig;
+
+function importSiteConfig(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const parsed = JSON.parse(reader.result);
+            if (!parsed || typeof parsed !== 'object') throw new Error('not an object');
+            safeStorage.setItem('ruggyConfig', JSON.stringify(parsed));
+            showToast("Settings imported", "success", "Reloading with the imported configuration\u2026");
+            setTimeout(() => location.reload(), 900);
+        } catch (e) {
+            showToast("Import failed", "error", "That file is not a valid ruggy-config.json export.");
+        }
+    };
+    reader.readAsText(file);
+}
+window.importSiteConfig = importSiteConfig;
+
+async function resetSiteData() {
+    const ok = await showConfirm(
+        "Reset ALL site data in this browser?<br><br>" +
+        "<span style='color:#9ca3af;font-size:13px;'>Clears settings, stakes, lottery tickets, and the Wall. The admin login session is kept. This cannot be undone.</span>",
+        { okText: 'Reset Everything', danger: true }
+    );
+    if (!ok) return;
+    ['ruggyConfig', 'ruggyStakes', 'ruggyLottoTickets', 'lastFreeLottoTicket',
+     'ruggyBannedWall', 'ruggyLastConnectedWallet'].forEach(k => {
+        try { localStorage.removeItem(k); } catch (_) {}
+    });
+    showToast("Site data reset", "success", "Reloading fresh\u2026");
+    setTimeout(() => location.reload(), 900);
+}
+window.resetSiteData = resetSiteData;
+
+// Import file input wiring (delegated change listener)
+document.addEventListener('change', (e) => {
+    if (e.target && e.target.id === 'import-config-file' && e.target.files && e.target.files[0]) {
+        importSiteConfig(e.target.files[0]);
+        e.target.value = '';
+    }
+});
+
 function getAdminInputNumber(id, defaultValue = 0) {
     const el = document.getElementById(id);
     return el ? (parseInt(el.value) || defaultValue) : defaultValue;
@@ -1079,7 +1212,25 @@ function saveDeveloperSettings() {
     CONFIG.socialDexscreener = getAdminInputValue('dev-dexscreener-link');
     CONFIG.socialPumpfun = getAdminInputValue('dev-pumpfun-link');
 
+    // Site Content
+    CONFIG.content = CONFIG.content || {};
+    CONFIG.content.heroTitle = getAdminInputValue('content-hero-title') || 'RUGGY';
+    CONFIG.content.heroSub = getAdminInputValue('content-hero-sub') || 'The Ultimate Anti-Rug Mascot';
+    CONFIG.content.jackpotText = getAdminInputValue('content-jackpot') || '$124,850';
+    CONFIG.content.ticketPrice = getAdminInputNumber('content-ticket-price', 3);
+
+    // Appearance & Effects
+    CONFIG.ui = CONFIG.ui || {};
+    CONFIG.ui.neonLevel = getAdminInputValue('ui-neon-level') || 'normal';
+    CONFIG.ui.breathe = !!document.getElementById('ui-breathe')?.checked;
+    CONFIG.ui.rainOnZero = !!document.getElementById('ui-rain-on-zero')?.checked;
+    CONFIG.ui.rainDurationSec = getAdminInputNumber('ui-rain-duration', 60);
+    CONFIG.ui.rainMaxBills = getAdminInputNumber('ui-rain-max', 40);
+    CONFIG.ui.rainBillWidth = getAdminInputNumber('ui-rain-width', 124);
+    CONFIG.ui.rainImage = getAdminInputValue('ui-rain-image');
+
     saveConfig();
+    applySiteSettings();
     updateHomeWalletDisplays();
 
     // A changed interval applies to the live countdown immediately
@@ -1322,6 +1473,36 @@ function showPieExplanation(index) {
 
 loadBannedWall();
 
+// ==================== APPLY SITE SETTINGS ====================
+// Pushes CONFIG.ui + CONFIG.content into the live page. Runs on load
+// (after loadConfig) and again whenever the admin saves.
+function applySiteSettings() {
+    const ui = CONFIG.ui || {};
+    const content = CONFIG.content || {};
+
+    // --- Content ---
+    const heroTitle = document.querySelector('.hero-title');
+    if (heroTitle && content.heroTitle) heroTitle.textContent = content.heroTitle;
+
+    const heroSub = document.querySelector('.hero-sub');
+    if (heroSub && content.heroSub) heroSub.textContent = content.heroSub;
+
+    const jackpot = document.getElementById('lotto-jackpot-display');
+    if (jackpot && content.jackpotText) jackpot.textContent = content.jackpotText;
+
+    const price = Number(content.ticketPrice) || 3;
+    RUGGY_SETTINGS.lottery.ticketPriceUsd = price;
+    const priceDisplay = document.getElementById('lotto-ticket-price-display');
+    if (priceDisplay) priceDisplay.textContent = '$' + price + ' USD';
+
+    // --- Appearance ---
+    document.body.classList.remove('neon-soft', 'neon-max');
+    if (ui.neonLevel === 'soft') document.body.classList.add('neon-soft');
+    if (ui.neonLevel === 'max') document.body.classList.add('neon-max');
+    document.body.classList.toggle('no-breathe', ui.breathe === false);
+}
+window.applySiteSettings = applySiteSettings;
+
 // ==================== MONEY RAIN ====================
 // Retro pixel dollar bills rain from the top of the screen — fired when
 // the distribution timer hits 00:00 (and from the admin test button).
@@ -1346,16 +1527,30 @@ const MoneyRain = {
         this._preloaded = true;
         const img = new Image();
         img.onerror = () => { this._imageBroken = true; };
-        img.src = this.BILL_IMAGE;
+        img.src = this._image || this.BILL_IMAGE;
     },
 
     start(durationMs) {
         if (this.active) return;  // already raining — don't stack storms
         if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+        // Admin-configurable behavior (panel > Appearance & Effects)
+        const ui = (typeof CONFIG !== 'undefined' && CONFIG.ui) || {};
+        this._duration = durationMs
+            || (Number(ui.rainDurationSec) > 0 ? Number(ui.rainDurationSec) * 1000 : this.DEFAULT_DURATION_MS);
+        this._maxBills = Number(ui.rainMaxBills) > 0 ? Number(ui.rainMaxBills) : this.MAX_BILLS;
+        this._width = Number(ui.rainBillWidth) > 0 ? Number(ui.rainBillWidth) : this.BILL_WIDTH;
+        this._height = Math.round(this._width / 3.083);   // keep the image's native ratio
+        const image = (ui.rainImage || '').trim() || this.BILL_IMAGE;
+        if (image !== this._image) {
+            this._image = image;
+            this._imageBroken = false;  // new image gets a fresh chance
+            this._preloaded = false;
+        }
+
         this.preload();
         this.active = true;
-        this._endsAt = Date.now() + (durationMs || this.DEFAULT_DURATION_MS);
+        this._endsAt = Date.now() + this._duration;
         this._spawn();
     },
 
@@ -1372,7 +1567,7 @@ const MoneyRain = {
         if (!this._imageBroken) {
             bill = document.createElement('img');
             bill.className = 'money-bill';
-            bill.src = this.BILL_IMAGE;
+            bill.src = this._image || this.BILL_IMAGE;
             bill.alt = '';
             bill.decoding = 'async';
             bill.onerror = () => {
@@ -1386,8 +1581,8 @@ const MoneyRain = {
 
         // Force the dollar rectangle inline with !important — immune to
         // stale cached stylesheets and any present/future CSS cascade.
-        bill.style.setProperty('width', this.BILL_WIDTH + 'px', 'important');
-        bill.style.setProperty('height', this.BILL_HEIGHT + 'px', 'important');
+        bill.style.setProperty('width', (this._width || this.BILL_WIDTH) + 'px', 'important');
+        bill.style.setProperty('height', (this._height || this.BILL_HEIGHT) + 'px', 'important');
         bill.style.setProperty('object-fit', 'cover', 'important');
         return bill;
     },
@@ -1398,7 +1593,7 @@ const MoneyRain = {
             return;
         }
 
-        if (document.querySelectorAll('.money-bill').length < this.MAX_BILLS) {
+        if (document.querySelectorAll('.money-bill').length < (this._maxBills || this.MAX_BILLS)) {
             const bill = this._makeBill();
 
             // Uniform size (CSS); randomize only position and motion
