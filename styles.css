@@ -177,12 +177,71 @@
     font-size: 12px;
     line-height: 1;
 }
+
 /* ===== STYLE BLOCK 2 ===== */
-/* 
-   Old weak glow rules removed.
-   All neon glow styling is now handled by the RETRO NEON RESTORATION block
-   at the bottom of this file (single source of truth).
-*/
+/* ============================================
+   HOME CYCLING COLOR ANIMATION (8 Theme Colors)
+============================================ */
+/* homeColorCycle is defined in the RETRO NEON RESTORATION layer */
+
+/* ========================================
+   PAGE TITLE COLORS - Match Navigation Colors
+======================================== */
+
+/* TOKENOMICS - Light gray like nav */
+#tokenomics .neon-text,
+#tokenomics h2.neon-text {
+    color: #9ca3af !important;
+}
+
+/* LORE - Purple like nav */
+#lore .neon-text,
+#lore h2.neon-text {
+    color: #c084fc !important;
+}
+
+/* REWARDS - Green like nav */
+#rewards .neon-text,
+#rewards h2.neon-text {
+    color: #22c55e !important;
+}
+
+/* GALLERY - Pink/Magenta like nav */
+#gallery .neon-text,
+#gallery h2.neon-text {
+    color: #ff00ff !important;
+}
+
+/* HALL - Gold/Amber like nav */
+#hall .neon-text,
+#hall h2.neon-text {
+    color: #f59e0b !important;
+}
+
+/* WALL - Red like nav */
+#wall .neon-text,
+#wall h2.neon-text {
+    color: #ef4444 !important;
+}
+
+/* POOL - Blue like nav */
+#pool .neon-text,
+#pool h2.neon-text {
+    color: #3b82f6 !important;
+}
+
+/* ABSOLUTION - White like nav */
+#absolution .neon-text,
+#absolution h2.neon-text {
+    color: #f1f5f9 !important;
+}
+
+/* LOTTERY page title - Already handled by .lotto-animated-title */
+
+/* HOME page main title (RUGGY) - Keep multi-color, no override */
+#home h1.neon-text {
+    color: inherit !important;
+}
 
 /* ===== STYLE BLOCK 3 ===== */
 body { font-family: 'Press Start 2P', system-ui, sans-serif; background: linear-gradient(135deg, #0a0a0a, #1a0033); color: white; margin: 0; padding: 0; }
@@ -1512,3 +1571,12 @@ p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
 .x252 { text-align: center; padding: 40px 20px 30px; font-size: 11px; color: #6b7280; max-width: 700px; margin: 0 auto; line-height: 1.6; }
 .x253 { max-width: 620px; text-align: center; background: #111827; border: 3px solid #6b21a8; border-radius: 20px; padding: 40px 30px; margin: 0 auto; }
 .x254 { background: linear-gradient(to right, #22c55e, #16a34a); color: white; border: none; padding: 14px 28px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; }
+
+/* --- Tokenomics: breathing room between the chart and the slice
+       explanation box that appears below it --- */
+#pie-explanation {
+    margin-top: 18px;
+}
+#chart-container {
+    margin-bottom: 6px;
+}
