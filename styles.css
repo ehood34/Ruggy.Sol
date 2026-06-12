@@ -304,7 +304,6 @@ h1.lotto-animated-title {
 }
 
 /* ===== STYLE BLOCK 3 ===== */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap');
 body { font-family: 'Press Start 2P', system-ui, sans-serif; background: linear-gradient(135deg, #0a0a0a, #1a0033); color: white; margin: 0; padding: 0; }
 .section { display: none; }
 .section.active { display: block; }
@@ -1339,3 +1338,100 @@ h1, h2, h3, .neon-text,
 .pad-card { padding: 20px 20px 26px; }
 .label-xs { font-size: 11px; display: block; margin-bottom: 4px; }
 .center-mb30 { text-align: center; margin-bottom: 30px; }
+
+
+/* =====================================================================
+   RETRO NEON RESTORATION
+   Sits last in the cascade on purpose. Multi-layer glows restore the
+   vibrant arcade look; every glowing element keeps a dark text-stroke
+   so it stays readable against the glow. The same-name @keyframes
+   redefinitions below override the earlier, dimmer ones (last
+   definition of a keyframe name wins).
+   ===================================================================== */
+
+/* --- Navigation links: full neon tube treatment --- */
+nav .nav-link,
+#desktop-nav .nav-link,
+.nav-link {
+    -webkit-text-stroke: 0.7px rgba(0, 0, 0, 0.85);
+    text-shadow:
+        0 0 1px currentColor,
+        0 0 4px currentColor,
+        0 0 10px currentColor,
+        0 0 20px currentColor !important;
+}
+nav .nav-link:hover,
+.nav-link:hover {
+    text-shadow:
+        0 0 2px currentColor,
+        0 0 6px currentColor,
+        0 0 14px currentColor,
+        0 0 28px currentColor !important;
+}
+
+/* --- Page titles & section headings --- */
+.page-title,
+h1.neon-text, h2.neon-text,
+.section h2,
+.section-title {
+    -webkit-text-stroke: 0.8px rgba(0, 0, 0, 0.8);
+    text-shadow:
+        0 0 2px currentColor,
+        0 0 6px currentColor,
+        0 0 14px currentColor,
+        0 0 28px currentColor !important;
+}
+
+/* --- Card headings: bright but a notch below page titles --- */
+.card h3,
+.explore-card h3 {
+    -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.75);
+    text-shadow:
+        0 0 1px currentColor,
+        0 0 4px currentColor,
+        0 0 9px currentColor !important;
+}
+
+/* --- RUGGY logo letters: outshine their inline 3px/6px shadows --- */
+.hover-scale h1 span {
+    -webkit-text-stroke: 0.7px rgba(0, 0, 0, 0.85) !important;
+    text-shadow:
+        0 0 2px currentColor,
+        0 0 6px currentColor,
+        0 0 13px currentColor,
+        0 0 26px currentColor !important;
+}
+
+/* --- HOME cycling animation: brighter ramp (same name overrides) --- */
+@keyframes homeColorCycle {
+    0%    { color: #9ca3af; text-shadow: 0 0 4px #9ca3af, 0 0 12px #9ca3af, 0 0 24px #6b7280; }
+    12.5% { color: #c084fc; text-shadow: 0 0 4px #c084fc, 0 0 12px #c084fc, 0 0 24px #a855f7; }
+    25%   { color: #22c55e; text-shadow: 0 0 4px #22c55e, 0 0 12px #22c55e, 0 0 24px #16a34a; }
+    37.5% { color: #ff00ff; text-shadow: 0 0 4px #ff00ff, 0 0 12px #ff00ff, 0 0 24px #ec4899; }
+    50%   { color: #fbbf24; text-shadow: 0 0 4px #fbbf24, 0 0 12px #fbbf24, 0 0 24px #f59e0b; }
+    62.5% { color: #ef4444; text-shadow: 0 0 4px #ef4444, 0 0 12px #ef4444, 0 0 24px #dc2626; }
+    75%   { color: #3b82f6; text-shadow: 0 0 4px #3b82f6, 0 0 12px #3b82f6, 0 0 24px #2563eb; }
+    87.5% { color: #f1e7ff; text-shadow: 0 0 4px #f1e7ff, 0 0 12px #f1e7ff, 0 0 24px #c4b5fd; }
+    100%  { color: #9ca3af; text-shadow: 0 0 4px #9ca3af, 0 0 12px #9ca3af, 0 0 24px #6b7280; }
+}
+
+/* --- Lottery flashing: punchy green <-> gold (same name overrides) --- */
+@keyframes lottoTextFlash {
+    0%   { color: #22c55e; text-shadow: 0 0 3px #22c55e, 0 0 10px #22c55e, 0 0 22px #eab308; }
+    100% { color: #eab308; text-shadow: 0 0 3px #eab308, 0 0 10px #eab308, 0 0 22px #22c55e; }
+}
+
+/* --- Pixel-font readability: the arcade font is dense, give it air --- */
+nav .nav-link {
+    letter-spacing: 0.5px;
+}
+.section h2,
+.page-title {
+    line-height: 1.5;
+    letter-spacing: 1px;
+}
+
+/* Body copy stays clean: never let glow bleed into paragraphs/small text */
+p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
+    -webkit-text-stroke: 0;
+}
