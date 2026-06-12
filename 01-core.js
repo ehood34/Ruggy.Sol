@@ -720,22 +720,11 @@ function showFullAdminPanel() {
 }
 
 function loadAdminSettingsIntoPanel() {
-    // This function can pre-load current CONFIG values into the admin panel inputs
-    // For now it just ensures the panel is ready
-    const caInput = document.getElementById('dev-ca');
-    if (caInput) {
-        // Load from localStorage if available (safer than global CONFIG)
-        try {
-            const saved = localStorage.getItem('ruggy_dev_settings');
-            if (saved) {
-                const settings = JSON.parse(saved);
-                if (settings.tokenMint) {
-                    caInput.value = settings.tokenMint;
-                }
-            }
-        } catch (e) {
-            // Ignore storage errors
-        }
+    // Fill every input from the live CONFIG (defined in 04-pages-admin.js).
+    // The old stub here read a nonexistent storage key and only set the CA,
+    // so the form opened blank and Save clobbered the real settings.
+    if (typeof window.populateDevPanel === 'function') {
+        window.populateDevPanel();
     }
 }
 
@@ -1324,7 +1313,8 @@ const UI_ACTION_WHITELIST = new Set([
     'adminLogout', 'saveDeveloperSettings', 'resetDistributionTimer',
     'triggerDistribution', 'toggleRewardsPause', 'connectDevWalletForHome',
     'startLiveTracking', 'scanWalletForWall', 'scanWalletForHall',
-    'runAutomatedWallScan', 'runAutomatedHallScan', 'startMoneyRain'
+    'runAutomatedWallScan', 'runAutomatedHallScan', 'startMoneyRain',
+    'exportSiteConfig', 'resetSiteData'
 ]);
 
 // Delegated input events (admin split sliders)
