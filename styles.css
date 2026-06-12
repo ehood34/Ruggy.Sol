@@ -1642,3 +1642,92 @@ p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
 @media (prefers-reduced-motion: reduce) {
     .money-bill { display: none; }
 }
+
+/* =====================================================================
+   ADMIN PANEL: collapsible sections + tool buttons
+   ===================================================================== */
+.admin-section {
+    background: #160b2e;
+    border: 1px solid #4c1d95;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+.admin-section summary {
+    cursor: pointer;
+    padding: 11px 14px;
+    font-weight: 700;
+    font-size: 13.5px;
+    color: #e9d5ff;
+    list-style: none;
+    user-select: none;
+}
+.admin-section summary::-webkit-details-marker { display: none; }
+.admin-section summary::after {
+    content: "▸";
+    float: right;
+    transition: transform 0.2s ease;
+}
+.admin-section[open] summary::after { transform: rotate(90deg); }
+.admin-section-body { padding: 4px 14px 14px; }
+.admin-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #d1d5db;
+    margin: 10px 0;
+    cursor: pointer;
+}
+.admin-tool-btn {
+    width: 100%;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+    background: #1f2937;
+    border: 1px solid #4b5563;
+    color: #e5e7eb;
+}
+
+/* =====================================================================
+   NEON INTENSITY LEVELS (admin > Appearance). Same selectors as the
+   restoration layer, placed later with body-class specificity so they
+   win cleanly. Soft reuses mobile-scale halos; Maximum goes full Vegas.
+   ===================================================================== */
+body.neon-soft .nav-link,
+body.neon-soft nav .nav-link {
+    text-shadow: 0 0 1px rgba(255,255,255,0.8), 0 0 3px currentColor, 0 0 7px currentColor, 0 0 12px currentColor !important;
+}
+body.neon-soft .page-title,
+body.neon-soft h1.neon-text, body.neon-soft h2.neon-text,
+body.neon-soft .section h2, body.neon-soft .section-title {
+    text-shadow: 0 0 1px rgba(255,255,255,0.85), 0 0 4px currentColor, 0 0 10px currentColor, 0 0 20px currentColor !important;
+}
+body.neon-soft .card h3, body.neon-soft .explore-card h3 {
+    text-shadow: 0 0 1px rgba(255,255,255,0.6), 0 0 3px currentColor, 0 0 8px currentColor !important;
+}
+body.neon-soft .logo-letter {
+    text-shadow: 0 0 1px rgba(255,255,255,0.85), 0 0 4px currentColor, 0 0 9px currentColor, 0 0 16px currentColor;
+}
+
+body.neon-max .nav-link,
+body.neon-max nav .nav-link {
+    text-shadow: 0 0 2px rgba(255,255,255,1), 0 0 6px currentColor, 0 0 14px currentColor, 0 0 30px currentColor, 0 0 55px currentColor !important;
+}
+body.neon-max .page-title,
+body.neon-max h1.neon-text, body.neon-max h2.neon-text,
+body.neon-max .section h2, body.neon-max .section-title {
+    text-shadow: 0 0 2px rgba(255,255,255,1), 0 0 8px currentColor, 0 0 22px currentColor, 0 0 45px currentColor, 0 0 80px currentColor !important;
+}
+body.neon-max .card h3, body.neon-max .explore-card h3 {
+    text-shadow: 0 0 1px rgba(255,255,255,0.85), 0 0 6px currentColor, 0 0 14px currentColor, 0 0 28px currentColor !important;
+}
+body.neon-max .logo-letter {
+    text-shadow: 0 0 2px rgba(255,255,255,1), 0 0 8px currentColor, 0 0 20px currentColor, 0 0 40px currentColor, 0 0 64px currentColor;
+}
+
+/* Breathing toggle (admin > Appearance) */
+body.no-breathe .page-title,
+body.no-breathe h1.neon-text, body.no-breathe h2.neon-text,
+body.no-breathe .section h2, body.no-breathe .section-title {
+    animation: none !important;
+}
