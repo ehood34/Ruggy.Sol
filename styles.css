@@ -1596,8 +1596,8 @@ p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
     /* Real-dollar proportions (~2.35:1), big enough to read mid-fall.
        object-fit: cover fills the rectangle from the source image
        without distortion (crops excess instead of stretching). */
-    width: 110px;
-    height: 47px;
+    width: 124px;
+    height: 40px;
     object-fit: cover;
     border-radius: 3px;
     image-rendering: pixelated;    /* crisp retro scaling */
@@ -1610,8 +1610,8 @@ p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
 
 /* Fallback if the bill image can't load: the original CSS-drawn pixel bill */
 .money-bill-css {
-    width: 110px;
-    height: 47px;
+    width: 124px;
+    height: 40px;
     background: linear-gradient(180deg, #16a34a 0%, #15803d 60%, #166534 100%);
     border: 2px solid #052e16;
     border-radius: 2px;
@@ -1621,7 +1621,7 @@ p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
     color: #d9f99d;
     font-family: 'Press Start 2P', monospace;
     font-size: 18px;
-    line-height: 43px;
+    line-height: 36px;
     text-align: center;
     text-shadow: 0 0 4px #22c55e;
     filter: none;
