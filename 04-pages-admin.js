@@ -407,6 +407,9 @@ function startSimpleTimer(retryCount = 0) {
             barFill.style.width = "0%";
             timerEl.textContent = "00:00";
 
+            // 💵 Distribution moment: make it rain for a minute
+            if (typeof MoneyRain !== 'undefined') MoneyRain.start();
+
             // Auto-restart after a short pause (fresh full interval)
             clearInterval(window.rewardTimerInterval);
             window.rewardTimerInterval = null;
@@ -1318,6 +1321,68 @@ function showPieExplanation(index) {
 }
 
 loadBannedWall();
+
+// ==================== MONEY RAIN ====================
+// Retro pixel dollar bills rain from the top of the screen — fired when
+// the distribution timer hits 00:00 (and from the admin test button).
+// Proper object per the house pattern; window.startMoneyRain is the
+// compatibility alias used by the data-action whitelist.
+const MoneyRain = {
+    DEFAULT_DURATION_MS: 60000,   // rain for 1 minute
+    MAX_BILLS: 40,                // concurrent cap keeps phones smooth
+
+    active: false,
+    _spawnTimer: null,
+    _endsAt: 0,
+
+    start(durationMs) {
+        if (this.active) return;  // already raining — don't stack storms
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        this.active = true;
+        this._endsAt = Date.now() + (durationMs || this.DEFAULT_DURATION_MS);
+        this._spawn();
+    },
+
+    stop() {
+        this.active = false;
+        clearTimeout(this._spawnTimer);
+        // Bills already in the air finish their fall and self-remove.
+    },
+
+    _spawn() {
+        if (!this.active || Date.now() > this._endsAt) {
+            this.stop();
+            return;
+        }
+
+        if (document.querySelectorAll('.money-bill').length < this.MAX_BILLS) {
+            const bill = document.createElement('div');
+            bill.className = 'money-bill';
+
+            // Randomize each bill: position, fall speed, sway, spin, size
+            const scale = 0.8 + Math.random() * 0.7;
+            bill.style.left = (Math.random() * 100) + 'vw';
+            bill.style.width = Math.round(46 * scale) + 'px';
+            bill.style.height = Math.round(24 * scale) + 'px';
+            bill.style.fontSize = Math.round(10 * scale) + 'px';
+            bill.style.lineHeight = Math.round(20 * scale) + 'px';
+            bill.style.animationDuration = (3.5 + Math.random() * 3.5) + 's';
+            bill.style.setProperty('--tilt', (Math.random() * 40 - 20) + 'deg');
+            bill.style.setProperty('--drift', (Math.random() * 180 - 90) + 'px');
+            bill.style.setProperty('--spin', (Math.random() * 720 - 360) + 'deg');
+
+            bill.addEventListener('animationend', () => bill.remove());
+            document.body.appendChild(bill);
+        }
+
+        this._spawnTimer = setTimeout(() => this._spawn(), 110 + Math.random() * 170);
+    }
+};
+
+// Compatibility alias (admin test button + Ruggy namespace)
+function startMoneyRain(durationMs) { return MoneyRain.start(durationMs); }
+window.startMoneyRain = startMoneyRain;
 
 function resetDistributionTimer() {
     const interval = parseInt(document.getElementById('dev-interval')?.value, 10) || 30;
