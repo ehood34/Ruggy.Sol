@@ -1458,7 +1458,7 @@
         <div class="card" style="max-width: 900px; margin: 0 auto 40px; text-align: center; border: 3px solid #fbbf24;">
             <div class="mb15">
                 <div style="font-size: 16px; color: #fbbf24; font-weight: bold;">CURRENT JACKPOT</div>
-                <div style="font-size: 56px; font-weight: bold; color: #22c55e; line-height: 1;">$124,850</div>
+                <div id="lotto-jackpot-display" style="font-size: 56px; font-weight: bold; color: #22c55e; line-height: 1;">$124,850</div>
                 <div class="u2">Rolling + Growing Every Draw</div>
             </div>
             
@@ -1482,7 +1482,7 @@
                 
                 <div class="center-mb25">
                     <div class="u2">Ticket Price</div>
-                    <div style="font-size: 38px; font-weight: bold; color: #22c55e;">$3 USD</div>
+                    <div id="lotto-ticket-price-display" style="font-size: 38px; font-weight: bold; color: #22c55e;">$3 USD</div>
                     <div class="u2">
                         <span id="lotto-sol-price">(~0.015 SOL • live)</span>
                     </div>
@@ -1726,6 +1726,55 @@
                     <input id="dev-bagworker-5" type="text" placeholder="Bagworker 5" style="width:100%; padding:8px; border-radius:6px; border:1px solid #6b21a8; background:#111827; color:white; font-size:13px;">
                 </div>
                 
+                <details class="admin-section">
+                    <summary>📝 Site Content</summary>
+                    <div class="admin-section-body">
+                        <label class="label-sm">Hero Title (home page)</label>
+                        <input id="content-hero-title" type="text" class="dev-input" placeholder="RUGGY">
+                        <label class="label-sm">Hero Subtitle</label>
+                        <input id="content-hero-sub" type="text" class="dev-input" placeholder="The Ultimate Anti-Rug Mascot">
+                        <label class="label-sm">Lottery Jackpot Display</label>
+                        <input id="content-jackpot" type="text" class="dev-input" placeholder="$124,850">
+                        <label class="label-sm">Lottery Ticket Price (USD)</label>
+                        <input id="content-ticket-price" type="number" min="1" class="dev-input" placeholder="3">
+                    </div>
+                </details>
+
+                <details class="admin-section">
+                    <summary>🎨 Appearance &amp; Effects</summary>
+                    <div class="admin-section-body">
+                        <label class="label-sm">Neon Intensity</label>
+                        <select id="ui-neon-level" class="dev-input">
+                            <option value="soft">Soft</option>
+                            <option value="normal" selected>Normal</option>
+                            <option value="max">Maximum</option>
+                        </select>
+                        <label class="admin-check"><input id="ui-breathe" type="checkbox" checked> Page titles breathe (pulse)</label>
+                        <label class="admin-check"><input id="ui-rain-on-zero" type="checkbox" checked> 💵 Money rain when timer hits 00:00</label>
+                        <label class="label-sm">Rain Duration (seconds)</label>
+                        <input id="ui-rain-duration" type="number" min="5" max="600" class="dev-input" placeholder="60">
+                        <label class="label-sm">Max Bills On Screen</label>
+                        <input id="ui-rain-max" type="number" min="5" max="120" class="dev-input" placeholder="40">
+                        <label class="label-sm">Bill Width (px)</label>
+                        <input id="ui-rain-width" type="number" min="40" max="320" class="dev-input" placeholder="124">
+                        <label class="label-sm">Bill Image URL (blank = default)</label>
+                        <input id="ui-rain-image" type="text" class="dev-input" placeholder="https://i.ibb.co/...jpg">
+                    </div>
+                </details>
+
+                <details class="admin-section">
+                    <summary>🧰 Maintenance</summary>
+                    <div class="admin-section-body">
+                        <p class="muted-sm" style="margin: 0 0 10px;">Settings live in <em>this browser's</em> storage. Export to back up or move them to another device.</p>
+                        <button data-action="exportSiteConfig" class="buy-button admin-tool-btn">⬇ Export Settings (JSON)</button>
+                        <label class="buy-button admin-tool-btn" style="display:block; text-align:center; cursor:pointer;">
+                            ⬆ Import Settings
+                            <input id="import-config-file" type="file" accept=".json,application/json" style="display:none;">
+                        </label>
+                        <button data-action="resetSiteData" class="buy-button admin-tool-btn" style="background:#7f1d1d; border:1px solid #ef4444; color:#fecaca;">🗑 Reset All Site Data</button>
+                    </div>
+                </details>
+
                 <button id="save-dev-settings-btn" data-action="saveDeveloperSettings" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); margin-bottom: 12px; width: 100%;">Save Settings</button>
                 
             </div>
