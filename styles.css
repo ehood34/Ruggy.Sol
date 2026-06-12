@@ -602,7 +602,10 @@ body { font-family: 'Press Start 2P', system-ui, sans-serif; background: linear-
     height: 100%; 
     background: rgba(0, 0, 0, 0.88); 
     backdrop-filter: blur(8px);
-    display: flex;
+    /* Hidden by default — JS sets inline display:flex to open. Previously
+       display:flex here silently beat .section's display:none (later rule,
+       equal specificity), making both modals render OPEN on page load. */
+    display: none;
     align-items: center;
     justify-content: center;
     padding: 20px;
