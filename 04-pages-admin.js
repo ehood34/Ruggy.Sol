@@ -1330,15 +1330,28 @@ loadBannedWall();
 const MoneyRain = {
     DEFAULT_DURATION_MS: 60000,   // rain for 1 minute
     MAX_BILLS: 40,                // concurrent cap keeps phones smooth
+    BILL_IMAGE: 'https://i.ibb.co/MkrsjWdq/IMG-4463.jpg',
 
     active: false,
     _spawnTimer: null,
     _endsAt: 0,
+    _imageBroken: false,
+    _preloaded: false,
+
+    // Warm the image cache so the first bill doesn't pop in blank
+    preload() {
+        if (this._preloaded) return;
+        this._preloaded = true;
+        const img = new Image();
+        img.onerror = () => { this._imageBroken = true; };
+        img.src = this.BILL_IMAGE;
+    },
 
     start(durationMs) {
         if (this.active) return;  // already raining — don't stack storms
         if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+        this.preload();
         this.active = true;
         this._endsAt = Date.now() + (durationMs || this.DEFAULT_DURATION_MS);
         this._spawn();
@@ -1350,6 +1363,26 @@ const MoneyRain = {
         // Bills already in the air finish their fall and self-remove.
     },
 
+    _makeBill() {
+        // Image bill (uniform size set in CSS); falls back to the
+        // CSS-drawn pixel bill if the image can't load.
+        if (!this._imageBroken) {
+            const img = document.createElement('img');
+            img.className = 'money-bill';
+            img.src = this.BILL_IMAGE;
+            img.alt = '';
+            img.decoding = 'async';
+            img.onerror = () => {
+                this._imageBroken = true;
+                img.remove();
+            };
+            return img;
+        }
+        const div = document.createElement('div');
+        div.className = 'money-bill money-bill-css';
+        return div;
+    },
+
     _spawn() {
         if (!this.active || Date.now() > this._endsAt) {
             this.stop();
@@ -1357,16 +1390,10 @@ const MoneyRain = {
         }
 
         if (document.querySelectorAll('.money-bill').length < this.MAX_BILLS) {
-            const bill = document.createElement('div');
-            bill.className = 'money-bill';
+            const bill = this._makeBill();
 
-            // Randomize each bill: position, fall speed, sway, spin, size
-            const scale = 0.8 + Math.random() * 0.7;
+            // Uniform size (CSS); randomize only position and motion
             bill.style.left = (Math.random() * 100) + 'vw';
-            bill.style.width = Math.round(46 * scale) + 'px';
-            bill.style.height = Math.round(24 * scale) + 'px';
-            bill.style.fontSize = Math.round(10 * scale) + 'px';
-            bill.style.lineHeight = Math.round(20 * scale) + 'px';
             bill.style.animationDuration = (3.5 + Math.random() * 3.5) + 's';
             bill.style.setProperty('--tilt', (Math.random() * 40 - 20) + 'deg');
             bill.style.setProperty('--drift', (Math.random() * 180 - 90) + 'px');
