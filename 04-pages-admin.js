@@ -51,6 +51,37 @@ function loadConfig() {
         rainImage: ''               // empty = MoneyRain.BILL_IMAGE default
     }, CONFIG.ui || {});
 
+    // Site metrics & rules (admin panel > 📊 Rules & Metrics).
+    // EVERY number the website mentions in prose/tooltips binds to these via
+    // [data-m] spans, and the JS rules read them too — change once, updates
+    // everywhere. Splits + thresholds reuse their existing CONFIG fields.
+    CONFIG.metrics = Object.assign({
+        holderShutoff: 500,            // auto-distribution stops after N holders
+        distributionEnabled: true,     // manual master shutoff
+        roiTakeProfit: 200,            // % ROI that opens the take-profit window
+        roiSafeSellPct: 50,            // % you may take in that window
+        lockedBanSellPct: 30,          // selling >= this % at once = locked ban
+        overholdPct: 3,                // holding > this % of supply = temp ban
+        hallTopShown: 12,              // rows in Top Holders
+        hallLongestShown: 12,          // rows in Longest Holders
+        hallBagworkersShown: 5,        // bagworker slots
+        wallShown: 25,                 // wall rows per view
+        absolutionStakePct: 20,        // stake % of pulled value
+        absolutionLockDays: 3,
+        lotteryDailyTime: '8:00 PM UTC',
+        lotteryWeeklyDay: 'Sunday',
+        lotteryWeeklyTime: '8:00 PM UTC',
+        freeTicketCooldownHours: 24
+    }, CONFIG.metrics || {});
+
+    // Chain connection (admin panel > ⛓ Chain)
+    CONFIG.chain = Object.assign({
+        enabled: false,
+        rpc: 'https://api.devnet.solana.com',
+        programId: '',
+        mint: ''
+    }, CONFIG.chain || {});
+
     // Editable site content defaults (admin panel > Site Content)
     CONFIG.content = Object.assign({
         heroTitle: 'RUGGY',
@@ -366,6 +397,13 @@ function startSimpleTimer(retryCount = 0) {
     // Clear any existing interval
     if (window.rewardTimerInterval) {
         clearInterval(window.rewardTimerInterval);
+    }
+
+    // Manual master shutoff (admin > Rules & Metrics)
+    if (typeof CONFIG !== 'undefined' && CONFIG.metrics && CONFIG.metrics.distributionEnabled === false) {
+        const tEl = document.getElementById('distribution-timer') || document.getElementById('reward-timer');
+        if (tEl) tEl.textContent = 'PAUSED';
+        return;
     }
 
     // === TIMER HONORS THE ADMIN-SET INTERVAL ===
@@ -776,7 +814,7 @@ function initRuggyHall() {
 
     const topHolders = [...holdersPool]
         .sort((a, b) => b.balance - a.balance)
-        .slice(0, 12);
+        .slice(0, (CONFIG.metrics?.hallTopShown) || 12);
 
     const topHoldersBody = document.getElementById('top-holders-table');
     if (topHoldersBody) {
@@ -794,7 +832,7 @@ function initRuggyHall() {
 
     const longestHolders = [...holdersPool]
         .sort((a, b) => b.daysHeld - a.daysHeld)
-        .slice(0, 12);
+        .slice(0, (CONFIG.metrics?.hallLongestShown) || 12);
 
     const longestBody = document.getElementById('longest-holders-table');
     if (longestBody) {
@@ -933,6 +971,10 @@ function renderBannedTable() {
 
     tbody.innerHTML = '';
 
+    // Total-banned counter (Wall page header)
+    const counter = document.getElementById('wall-total-banned');
+    if (counter) counter.textContent = bannedWallets.length.toLocaleString();
+
     if (bannedWallets.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = `<td colspan="5" style="text-align:center; color:#9ca3af; padding:20px;">No violators detected yet.</td>`;
@@ -940,7 +982,7 @@ function renderBannedTable() {
         return;
     }
 
-    bannedWallets.forEach((entry, index) => {
+    bannedWallets.slice(0, (CONFIG.metrics?.wallShown) || 25).forEach((entry, index) => {
         const row = document.createElement('tr');
         const date = new Date(entry.date).toLocaleDateString();
 
@@ -1108,6 +1150,34 @@ function populateDevPanel() {
     set('content-jackpot', c.jackpotText);
     set('content-ticket-price', c.ticketPrice);
 
+    // Rules & Metrics
+    const mv = CONFIG.metrics || {};
+    check('m-dist-enabled', mv.distributionEnabled !== false);
+    set('m-holder-shutoff', mv.holderShutoff);
+    set('m-community-threshold', CONFIG.airdropThreshold);
+    set('m-antirug-threshold', CONFIG.antiRugThreshold);
+    set('m-roi-takeprofit', mv.roiTakeProfit);
+    set('m-roi-safesell', mv.roiSafeSellPct);
+    set('m-lockedban-pct', mv.lockedBanSellPct);
+    set('m-overhold-pct', mv.overholdPct);
+    set('m-hall-top', mv.hallTopShown);
+    set('m-hall-longest', mv.hallLongestShown);
+    set('m-hall-bagworkers', mv.hallBagworkersShown);
+    set('m-wall-shown', mv.wallShown);
+    set('m-abs-pct', mv.absolutionStakePct);
+    set('m-abs-days', mv.absolutionLockDays);
+    set('m-lotto-daily-time', mv.lotteryDailyTime);
+    set('m-lotto-weekly-day', mv.lotteryWeeklyDay);
+    set('m-lotto-weekly-time', mv.lotteryWeeklyTime);
+    set('m-free-ticket-hours', mv.freeTicketCooldownHours);
+
+    // Chain
+    const ch = CONFIG.chain || {};
+    check('chain-enabled', ch.enabled);
+    set('chain-rpc', ch.rpc);
+    set('chain-program', ch.programId);
+    set('chain-mint', ch.mint);
+
     // Appearance & effects
     const u = CONFIG.ui || {};
     set('ui-neon-level', u.neonLevel || 'normal');
@@ -1229,8 +1299,45 @@ function saveDeveloperSettings() {
     CONFIG.ui.rainBillWidth = getAdminInputNumber('ui-rain-width', 124);
     CONFIG.ui.rainImage = getAdminInputValue('ui-rain-image');
 
+    // Rules & Metrics
+    CONFIG.metrics = CONFIG.metrics || {};
+    const mm = CONFIG.metrics;
+    mm.distributionEnabled = !!document.getElementById('m-dist-enabled')?.checked;
+    mm.holderShutoff = getAdminInputNumber('m-holder-shutoff', 500);
+    CONFIG.airdropThreshold = getAdminInputNumber('m-community-threshold', 500000);
+    CONFIG.antiRugThreshold = getAdminInputNumber('m-antirug-threshold', 1000000);
+    mm.roiTakeProfit = getAdminInputNumber('m-roi-takeprofit', 200);
+    mm.roiSafeSellPct = getAdminInputNumber('m-roi-safesell', 50);
+    mm.lockedBanSellPct = getAdminInputNumber('m-lockedban-pct', 30);
+    mm.overholdPct = parseFloat(document.getElementById('m-overhold-pct')?.value) || 3;
+    mm.hallTopShown = getAdminInputNumber('m-hall-top', 12);
+    mm.hallLongestShown = getAdminInputNumber('m-hall-longest', 12);
+    mm.hallBagworkersShown = getAdminInputNumber('m-hall-bagworkers', 5);
+    mm.wallShown = getAdminInputNumber('m-wall-shown', 25);
+    mm.absolutionStakePct = getAdminInputNumber('m-abs-pct', 20);
+    mm.absolutionLockDays = getAdminInputNumber('m-abs-days', 3);
+    mm.lotteryDailyTime = getAdminInputValue('m-lotto-daily-time') || '8:00 PM UTC';
+    mm.lotteryWeeklyDay = getAdminInputValue('m-lotto-weekly-day') || 'Sunday';
+    mm.lotteryWeeklyTime = getAdminInputValue('m-lotto-weekly-time') || '8:00 PM UTC';
+    mm.freeTicketCooldownHours = getAdminInputNumber('m-free-ticket-hours', 24);
+
+    // Chain
+    CONFIG.chain = CONFIG.chain || {};
+    CONFIG.chain.enabled = !!document.getElementById('chain-enabled')?.checked;
+    CONFIG.chain.rpc = getAdminInputValue('chain-rpc') || 'https://api.devnet.solana.com';
+    CONFIG.chain.programId = getAdminInputValue('chain-program');
+    CONFIG.chain.mint = getAdminInputValue('chain-mint');
+
+    const sp = CONFIG.distributionSplits || {};
+    const splitTotal = (sp.liquidity||0)+(sp.antiRug||0)+(sp.community||0)+(sp.creator||0);
+    if (splitTotal !== 100) {
+        showToast("Splits don't total 100%", "error",
+            `Your four fee splits add to ${splitTotal}%. The site will display them as entered — adjust so they total 100%.`);
+    }
+
     saveConfig();
     applySiteSettings();
+    if (typeof applyChainSettings === 'function') applyChainSettings();
     updateHomeWalletDisplays();
 
     // A changed interval applies to the live countdown immediately
@@ -1439,25 +1546,27 @@ function showPieExplanation(index) {
     const content = document.getElementById('pie-explanation-content');
     if (!explanationBox || !content) return;
 
+    const s = CONFIG.distributionSplits || { liquidity: 40, antiRug: 20, community: 30, creator: 10 };
+    const v = metricsView();
     const explanations = [
         {
-            title: "🔥 Burn Wallet / Liquidity (40%)",
-            text: "This portion goes to a dedicated wallet that performs automatic buybacks and burns. Burns mean coins are permanently removed and staked into the Liquidity Pool. <strong>Once 50% of the LP is permanently locked, burns stop</strong> and extra fees are redirected: <strong>Community gets +30% boost</strong>, <strong>Anti-Rug gets +10% boost</strong>.",
+            title: `🔥 Burn Wallet / Liquidity (${s.liquidity}%)`,
+            text: "This portion goes to a dedicated wallet that performs automatic buybacks and burns. Burns mean coins are permanently removed and staked into the Liquidity Pool. <strong>Once 50% of the LP is permanently locked, burns stop</strong> and extra fees are redirected: <strong>Community gets a boost</strong>, <strong>Anti-Rug gets a boost</strong>.",
             color: "#ef4444"
         },
         {
-            title: "👥 Community (30%)",
-            text: "Rewards sent to holders with <strong>500,000+</strong> $RUGGY. <strong>Receives +30% boost</strong> once 50% of LP is locked. This portion supports the broader community of dedicated holders.",
+            title: `👥 Community (${s.community}%)`,
+            text: `Rewards sent to holders with <strong>${Number(v.communityThreshold).toLocaleString()}+</strong> $RUGGY. This portion supports the broader community of dedicated holders.`,
             color: "#fbbf24"
         },
         {
-            title: "🛡️ Anti-Rug (20%)",
-            text: "Additional rewards for our strongest believers (1,000,000+ $RUGGY). <strong>Receives +10% boost</strong> once 50% of LP is locked. Combined with Community rewards, top holders receive 50% total of fees.",
+            title: `🛡 Anti-Rug Vault (${s.antiRug}%)`,
+            text: `Insurance vault for holders with <strong>${Number(v.antiRugThreshold).toLocaleString()}+</strong> $RUGGY. Protects loyal holders against catastrophic dumps.`,
             color: "#22c55e"
         },
         {
-            title: "📣 MDR Fund (10%)",
-            text: "This portion funds <strong>Marketing, Development, and Research</strong>. MDR directives and spending will be voted on by the community in Telegram. It is used for advertising campaigns, influencer partnerships, community growth initiatives, ongoing project development, and research into new features and strategies to strengthen $RUGGY long-term.",
+            title: `🚀 MDR Fund (${s.creator}%)`,
+            text: "Marketing, Development & Research — keeps Ruggy growing: promotions, listings, development, and community events.",
             color: "#a855f7"
         }
     ];
@@ -1472,6 +1581,76 @@ function showPieExplanation(index) {
 }
 
 loadBannedWall();
+
+// ==================== METRICS BINDING ENGINE ====================
+// Resolves every bindable value, including derived ones. HTML binds via
+// <span data-m="key"></span>; formats: data-fmt="pct|num|raw" (default raw).
+function metricsView() {
+    const m = CONFIG.metrics || {};
+    const s = CONFIG.distributionSplits || { liquidity: 40, antiRug: 20, community: 30, creator: 10 };
+    return {
+        // fee splits (+ derived)
+        liquidityPct: s.liquidity,
+        antiRugPct: s.antiRug,
+        communityPct: s.community,
+        creatorPct: s.creator,
+        bothGroupsPct: (Number(s.community) || 0) + (Number(s.antiRug) || 0),
+        // thresholds & cadence
+        communityThreshold: CONFIG.airdropThreshold,
+        antiRugThreshold: CONFIG.antiRugThreshold,
+        intervalMinutes: CONFIG.distributionIntervalMinutes,
+        holderShutoff: m.holderShutoff,
+        distributionStatus: m.distributionEnabled ? 'ACTIVE' : 'PAUSED BY ADMIN',
+        // ROI / ban rules
+        roiTakeProfit: m.roiTakeProfit,
+        roiSafeSellPct: m.roiSafeSellPct,
+        lockedBanSellPct: m.lockedBanSellPct,
+        overholdPct: m.overholdPct,
+        // hall / wall
+        hallTopShown: m.hallTopShown,
+        hallLongestShown: m.hallLongestShown,
+        hallBagworkersShown: m.hallBagworkersShown,
+        wallShown: m.wallShown,
+        wallTotalBanned: (typeof bannedWallets !== 'undefined' ? bannedWallets.length : 0),
+        // absolution / lottery
+        absolutionStakePct: m.absolutionStakePct,
+        absolutionLockDays: m.absolutionLockDays,
+        lotteryDailyTime: m.lotteryDailyTime,
+        lotteryWeeklyDay: m.lotteryWeeklyDay,
+        lotteryWeeklyTime: m.lotteryWeeklyTime,
+        freeTicketCooldownHours: m.freeTicketCooldownHours
+    };
+}
+
+function applyMetrics() {
+    const view = metricsView();
+    document.querySelectorAll('[data-m]').forEach((el) => {
+        const key = el.dataset.m;
+        if (!(key in view) || view[key] === undefined || view[key] === null) return;
+        const v = view[key];
+        const fmt = el.dataset.fmt || 'raw';
+        el.textContent =
+            fmt === 'pct' ? v + '%' :
+            fmt === 'num' ? Number(v).toLocaleString() :
+            v;
+    });
+    // rules that re-render lists
+    if (typeof renderBannedTable === 'function') renderBannedTable();
+    // live chart refresh with new splits
+    if (window.feePieChart && CONFIG.distributionSplits) {
+        const s = CONFIG.distributionSplits;
+        // slice order matches initTokenomicsChart: liquidity, community, antiRug, creator
+        window.feePieChart.data.datasets[0].data = [s.liquidity, s.community, s.antiRug, s.creator];
+        window.feePieChart.data.labels = [
+            `Liquidity & Burns (${s.liquidity}%)`,
+            `Community (${s.community}%)`,
+            `Anti-Rug Holders (${s.antiRug}%)`,
+            `MDR Fund (${s.creator}%)`
+        ];
+        window.feePieChart.update();
+    }
+}
+window.applyMetrics = applyMetrics;
 
 // ==================== APPLY SITE SETTINGS ====================
 // Pushes CONFIG.ui + CONFIG.content into the live page. Runs on load
@@ -1500,6 +1679,8 @@ function applySiteSettings() {
     if (ui.neonLevel === 'soft') document.body.classList.add('neon-soft');
     if (ui.neonLevel === 'max') document.body.classList.add('neon-max');
     document.body.classList.toggle('no-breathe', ui.breathe === false);
+
+    applyMetrics();
 }
 window.applySiteSettings = applySiteSettings;
 
