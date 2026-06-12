@@ -1331,6 +1331,8 @@ const MoneyRain = {
     DEFAULT_DURATION_MS: 60000,   // rain for 1 minute
     MAX_BILLS: 40,                // concurrent cap keeps phones smooth
     BILL_IMAGE: 'https://i.ibb.co/MkrsjWdq/IMG-4463.jpg',
+    BILL_WIDTH: 110,              // px — real-dollar rectangle (~2.35:1)
+    BILL_HEIGHT: 47,
 
     active: false,
     _spawnTimer: null,
@@ -1366,21 +1368,28 @@ const MoneyRain = {
     _makeBill() {
         // Image bill (uniform size set in CSS); falls back to the
         // CSS-drawn pixel bill if the image can't load.
+        let bill;
         if (!this._imageBroken) {
-            const img = document.createElement('img');
-            img.className = 'money-bill';
-            img.src = this.BILL_IMAGE;
-            img.alt = '';
-            img.decoding = 'async';
-            img.onerror = () => {
+            bill = document.createElement('img');
+            bill.className = 'money-bill';
+            bill.src = this.BILL_IMAGE;
+            bill.alt = '';
+            bill.decoding = 'async';
+            bill.onerror = () => {
                 this._imageBroken = true;
-                img.remove();
+                bill.remove();
             };
-            return img;
+        } else {
+            bill = document.createElement('div');
+            bill.className = 'money-bill money-bill-css';
         }
-        const div = document.createElement('div');
-        div.className = 'money-bill money-bill-css';
-        return div;
+
+        // Force the dollar rectangle inline with !important — immune to
+        // stale cached stylesheets and any present/future CSS cascade.
+        bill.style.setProperty('width', this.BILL_WIDTH + 'px', 'important');
+        bill.style.setProperty('height', this.BILL_HEIGHT + 'px', 'important');
+        bill.style.setProperty('object-fit', 'cover', 'important');
+        return bill;
     },
 
     _spawn() {
