@@ -1330,9 +1330,9 @@ loadBannedWall();
 const MoneyRain = {
     DEFAULT_DURATION_MS: 60000,   // rain for 1 minute
     MAX_BILLS: 40,                // concurrent cap keeps phones smooth
-    BILL_IMAGE: 'https://i.ibb.co/MkrsjWdq/IMG-4463.jpg',
-    BILL_WIDTH: 110,              // px — real-dollar rectangle (~2.35:1)
-    BILL_HEIGHT: 47,
+    BILL_IMAGE: 'https://i.ibb.co/d07MM3Wf/IMG-4464.jpg',
+    BILL_WIDTH: 124,              // px — matches the image's native 1776x576
+    BILL_HEIGHT: 40,              // ratio (3.08:1) exactly: zero crop, zero stretch
 
     active: false,
     _spawnTimer: null,
