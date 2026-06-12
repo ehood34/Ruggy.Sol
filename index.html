@@ -46,6 +46,7 @@
     <script defer src="04-pages-admin.js"></script>
     <script defer src="05-text-emoji.js"></script>
     <script defer src="06-final-wiring.js"></script>
+    <script defer src="07-chain.js"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -496,7 +497,7 @@
                             <span class="x230"></span>
                             <span class="text-14"><strong>Burn Wallet</strong><br><span class="muted-125">Buybacks & Burns</span></span>
                         </div>
-                        <span style="font-weight: bold; color: #ef4444; font-size: 15px; white-space: nowrap; margin-top: 2px;">40%</span>
+                        <span style="font-weight: bold; color: #ef4444; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span data-m="liquidityPct" data-fmt="pct">40%</span></span>
                     </div>
                     
                     <div class="row-head">
@@ -504,7 +505,7 @@
                             <span class="x231"></span>
                             <span class="text-14"><strong>Community</strong><br><span class="muted-125">500k+ holders</span></span>
                         </div>
-                        <span style="font-weight: bold; color: #fbbf24; font-size: 15px; white-space: nowrap; margin-top: 2px;">30%</span>
+                        <span style="font-weight: bold; color: #fbbf24; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span data-m="communityPct" data-fmt="pct">30%</span></span>
                     </div>
                     
                     <div class="row-head">
@@ -512,7 +513,7 @@
                             <span class="x232"></span>
                             <span class="text-14"><strong>Anti-Rug</strong><br><span class="muted-125">1M+ holders</span></span>
                         </div>
-                        <span style="font-weight: bold; color: #22c55e; font-size: 15px; white-space: nowrap; margin-top: 2px;">20%</span>
+                        <span style="font-weight: bold; color: #22c55e; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span data-m="antiRugPct" data-fmt="pct">20%</span></span>
                     </div>
                     
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -520,7 +521,7 @@
                             <span class="x233"></span>
                             <span class="text-14"><strong>MDR Fund</strong><br><span class="muted-125">Marketing, Development & Research</span></span>
                         </div>
-                        <span style="font-weight: bold; color: #a855f7; font-size: 15px; white-space: nowrap; margin-top: 2px;">10%</span>
+                        <span style="font-weight: bold; color: #a855f7; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span data-m="creatorPct" data-fmt="pct">10%</span></span>
                     </div>
                 </div>
             </div>
@@ -531,7 +532,7 @@
                     <h3 class="u9">📡 Distribution Mode</h3>
                     <p style="font-size: 13px; line-height: 1.6; margin: 0;">
                         <strong>Automatic Sending:</strong> Rewards are sent automatically to qualified wallets when the timer ends.<br><br>
-                        <strong>After 500 holders:</strong> Automatic distribution stops, but rewards are <strong>still sent to the community vault every 30 minutes</strong>. They accumulate in the vault for approved wallets to <strong>claim whenever they like</strong> by connecting their wallet on this site.
+                        <strong>After <span data-m="holderShutoff" data-fmt="num">500</span> holders:</strong> Automatic distribution stops, but rewards are <strong>still sent to the community vault every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes</strong>. They accumulate in the vault for approved wallets to <strong>claim whenever they like</strong> by connecting their wallet on this site.
                     </p>
                 </div>
 
@@ -539,9 +540,9 @@
                     <h3 class="green-mb15">💰 Take Profit Rules – For True Holders</h3>
                     <div class="text-15">
                         <p><strong>True holders deserve their reward.</strong></p>
-                        <p>After every <strong>200% ROI</strong>, you can safely take up to <strong>50%</strong> of your Ruggy with no ban risk.</p>
-                        <p>If you sell more than 50% in that window → <strong>Locked Ban</strong>.</p>
-                        <p class="gold">This only applies to your first sell after 200% ROI. After using it, your counter resets.</p>
+                        <p>After every <strong><span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI</strong>, you can safely take up to <strong><span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> of your Ruggy with no ban risk.</p>
+                        <p>If you sell more than <span data-m="roiSafeSellPct" data-fmt="pct">50%</span> in that window → <strong>Locked Ban</strong>.</p>
+                        <p class="gold">This only applies to your first sell after <span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI. After using it, your counter resets.</p>
                     </div>
                 </div>
 
@@ -551,7 +552,7 @@
                     <div style="margin-bottom: 20px; padding: 16px; background: #3f1f1f; border-radius: 12px; border-left: 5px solid #ef4444;">
                         <h4 class="u11">🔴 Locked Ban</h4>
                         <p class="text-14-flat">
-                            Selling <strong>30% or more</strong> of your total holdings at once = <strong>Locked Ban</strong>.<br>
+                            Selling <strong><span data-m="lockedBanSellPct" data-fmt="pct">30%</span> or more</strong> of your total holdings at once = <strong>Locked Ban</strong>.<br>
                             You will not receive rewards until you <strong>Absolve yourself</strong> at the <strong>Ruggy Absolution</strong> page.
                         </p>
                     </div>
@@ -559,7 +560,7 @@
                     <div style="padding: 16px; background: #3f2a1f; border-radius: 12px; border-left: 5px solid #f59e0b;">
                         <h4 class="u12">🟠 Temporary Ban</h4>
                         <p class="text-14-flat">
-                            Holding <strong>more than 3%</strong> of the total token supply = <strong>Temporary Ban</strong> from rewards until your holdings drop below 3%.
+                            Holding <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total token supply = <strong>Temporary Ban</strong> from rewards until your holdings drop below <span data-m="overholdPct" data-fmt="pct">3%</span>.
                         </p>
                     </div>
                 </div>
@@ -595,9 +596,9 @@
             
             <div class="fs15">
                 <p><strong>True holders deserve their reward.</strong></p>
-                <p>After every <strong>200% ROI</strong>, you are allowed to take up to <strong>50%</strong> of your Ruggy with <strong>no ban consequence</strong>.</p>
-                <p>If you sell <strong>more than 50%</strong> during this window, you will be placed on <strong>Locked Ban</strong>.</p>
-                <p class="gold"><strong>Important:</strong> This Take Profit window only applies to your <strong>first sell</strong> after reaching 200% ROI. Once used, your ROI counter resets.</p>
+                <p>After every <strong><span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI</strong>, you are allowed to take up to <strong><span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> of your Ruggy with <strong>no ban consequence</strong>.</p>
+                <p>If you sell <strong>more than <span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> during this window, you will be placed on <strong>Locked Ban</strong>.</p>
+                <p class="gold"><strong>Important:</strong> This Take Profit window only applies to your <strong>first sell</strong> after reaching <span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI. Once used, your ROI counter resets.</p>
             </div>
         </div>
 
@@ -635,20 +636,21 @@
             <div style="display: grid; gap: 18px; font-size: 14px;">
                 <div>
                     <strong class="u103">🔴 Locked Ban</strong><br>
-                    You sold <strong>30% or more</strong> of your $RUGGY holdings at any point.<br>
+                    You sold <strong><span data-m="lockedBanSellPct" data-fmt="pct">30%</span> or more</strong> of your $RUGGY holdings at any point.<br>
                     You will not receive rewards until you <strong>Absolve yourself</strong> at the <strong>Ruggy Absolution</strong> page.
                 </div>
                 
                 <div>
                     <strong class="gold">🟡 Temporary Ban</strong><br>
-                    You currently hold <strong>more than 3%</strong> of the total supply. 
-                    Sell down below 3% to become eligible again.
+                    You currently hold <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total supply. 
+                    Sell down below <span data-m="overholdPct" data-fmt="pct">3%</span> to become eligible again.
                 </div>
                 
                 <div>
                     <strong class="green">How to Get Off the Wall</strong><br>
-                    • Temporary Ban → Sell until you hold under 3%.<br>
-                    • Permanent Ban → Unfortunately, Ruggy does not forgive 30%+ sells.
+                    • Temporary Ban → Sell until you hold under <span data-m="overholdPct" data-fmt="pct">3%</span>.<br>
+                    • Permanent Ban → Unfortunately, Ruggy does not forgive <span data-m="lockedBanSellPct" data-fmt="pct">30%</span>+ sells.<br>
+                    • <strong class="u103">Locked Ban accounts cannot participate in the Lottery</strong> until absolved.
                 </div>
             </div>
         </div>
@@ -666,7 +668,7 @@
         <div class="card" style="max-width: 700px; margin: 0 auto 35px;">
             <h3 style="margin-bottom: 12px; color: #ff00ff;">Check Your Reward Eligibility</h3>
             <p style="font-size:12px; color:#9ca3af; margin-bottom:8px;">
-                Automatic airdrops continue until <strong>500 holders</strong>. After that, rewards are still sent to the vault every 30 minutes and accumulate for manual claiming.
+                Automatic airdrops continue until <strong><span data-m="holderShutoff" data-fmt="num">500</span> holders</strong>. After that, rewards are still sent to the vault every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes and accumulate for manual claiming.
             </p>
             
             <div id="rewards-ca-display" data-action="copyTokenCA" title="Click to copy"
@@ -701,7 +703,7 @@
             <h3 style="color: #22c55e; margin-bottom: 12px; text-align: center;">💰 Claim Directly From Vault</h3>
             
             <p style="text-align: center; font-size: 15px; margin-bottom: 20px; color: #d1fae5;">
-                After <strong>500+ holders</strong>, automatic distribution stops.<br>
+                After <strong><span data-m="holderShutoff" data-fmt="num">500</span>+ holders</strong>, automatic distribution stops.<br>
                 However, rewards are <strong>still sent to the community vault every 30 minutes</strong> and will accumulate.<br>
                 Approved wallets can <strong>claim them whenever they like</strong> by connecting here.
             </p>
@@ -743,15 +745,15 @@
 
         <div style="max-width: 700px; margin: 0 auto 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="card">
-                <h3 style="color: #eab308; margin-bottom: 15px;">Community Airdrops <span style="font-size:12px; color:#fbbf24;">(30% of fees)</span></h3>
-                <p style="font-size: 14px;">Hold <strong id="airdrop-threshold-display">500,000+</strong> Ruggy to qualify for Community rewards.<br>
+                <h3 style="color: #eab308; margin-bottom: 15px;">Community Airdrops <span style="font-size:12px; color:#fbbf24;">(<span data-m="communityPct" data-fmt="pct">30%</span> of fees)</span></h3>
+                <p style="font-size: 14px;">Hold <strong id="airdrop-threshold-display"><span data-m="communityThreshold" data-fmt="num">500,000</span>+</strong> Ruggy to qualify for Community rewards.<br>
                 <span class="u16">+30% boost once 50% LP is locked.</span></p>
             </div>
             
             <div class="card" style="border: 2px solid #22c55e;">
                 <h3 class="green-mb15">Anti-Rug Rewards</h3>
                 <p style="font-size: 14px; line-height: 1.6;">
-                    Hold <strong id="antirug-threshold-display">1,000,000+</strong> Ruggy to qualify for <strong>both</strong> = <strong>50% total</strong> (Community 30% + Anti-Rug 20%)<br>
+                    Hold <strong id="antirug-threshold-display"><span data-m="antiRugThreshold" data-fmt="num">1,000,000</span>+</strong> Ruggy to qualify for <strong>both</strong> = <strong><span data-m="bothGroupsPct" data-fmt="pct">50%</span> total</strong> (Community <span data-m="communityPct" data-fmt="pct">30%</span> + Anti-Rug <span data-m="antiRugPct" data-fmt="pct">20%</span>)<br>
                     <span class="u16">+10% boost once 50% LP is locked.</span>
                 </p>
             </div>
@@ -1013,7 +1015,8 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 25px;">
             
             <div class="card">
-                <h3 style="color: #facc15; margin-bottom: 20px; text-align: center;">🏆 Top 100 Holders</h3>
+                <h3 style="color: #facc15; margin-bottom: 20px; text-align: center;">🏆 Top Holders</h3>
+                <p class="muted-sm" style="text-align:center; margin:-12px 0 14px;">Showing the top <span data-m="hallTopShown" data-fmt="num">12</span> wallets by balance</p>
                 <div class="table-container">
                     <table class="u104">
                         <thead>
@@ -1031,6 +1034,7 @@
 
             <div class="card">
                 <h3 style="color: #22c55e; margin-bottom: 20px; text-align: center;">⏳ Longest Holders</h3>
+                <p class="muted-sm" style="text-align:center; margin:-12px 0 14px;">Showing the <span data-m="hallLongestShown" data-fmt="num">12</span> longest-held wallets</p>
                 <div class="table-container">
                     <table class="u104">
                         <thead>
@@ -1047,7 +1051,7 @@
             </div>
 
             <div class="card">
-                <h3 class="u24">🔥 Top 5 Bagworkers</h3>
+                <h3 class="u24">🔥 Top <span data-m="hallBagworkersShown" data-fmt="num">5</span> Bagworkers</h3>
                 <div class="table-container">
                     <table class="u104">
                         <thead>
@@ -1063,7 +1067,7 @@
                 <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #374151; text-align: center;">
                     <p style="font-size: 13px; color: #d1d5db; line-height: 1.6; margin: 0;">
                         The Top 5 are <strong>voted on by the community weekly in Telegram</strong>.<br><br>
-                        The Top 5 Bagworkers of the week receive a <strong>special bonus drop every Sunday</strong> from the Marketing wallet, along with being featured on this page for the week.<br><br>
+                        The Top <span data-m="hallBagworkersShown" data-fmt="num">5</span> Bagworkers of the week receive a <strong>special bonus drop every Sunday</strong> from the Marketing wallet, along with being featured on this page for the week.<br><br>
                         <span class="u102">Thank you for your hard work!</span>
                     </p>
                 </div>
@@ -1084,6 +1088,11 @@
         <p style="text-align: center; color: #9ca3af; margin-bottom: 20px; font-size: 15px;">
             Ruggy's Wall of Shame • Those who upset Ruggy by breaking the rules
         </p>
+        <p style="text-align: center; margin: -8px 0 20px; font-size: 14px;">
+            <span class="gold"><strong>Total wallets banned: <span id="wall-total-banned">0</span></strong></span>
+            <span class="muted-sm"> • showing up to <span data-m="wallShown" data-fmt="num">25</span> at a time</span><br>
+            <span class="u103" style="font-size:13px;"><strong>⚠ Locked Ban accounts cannot participate in the Lottery.</strong></span>
+        </p>
 
         <div class="card" style="margin-bottom: 30px; border: 2px solid #ef4444;">
             <h3 style="color: #ef4444; margin-bottom: 15px;">📜 Wall Rules – How You End Up Here</h3>
@@ -1091,14 +1100,14 @@
             <div style="display: grid; gap: 16px; font-size: 14px;">
                 <div>
                     <strong class="u103">Locked Ban (Red)</strong><br>
-                    You sold <strong>30% or more</strong> of your $RUGGY holdings at any point.<br>
+                    You sold <strong><span data-m="lockedBanSellPct" data-fmt="pct">30%</span> or more</strong> of your $RUGGY holdings at any point.<br>
                     You will not receive rewards until you <strong>Absolve yourself</strong> at the Ruggy Absolution page.
                 </div>
                 
                 <div>
                     <strong class="gold">Temporary Ban (Yellow)</strong><br>
                     You currently hold <strong>more than 3%</strong> of the total $RUGGY supply. 
-                    This is seen as hoarding/control. Sell down below 3% to become eligible again.
+                    This is seen as hoarding/control. Sell down below <span data-m="overholdPct" data-fmt="pct">3%</span> to become eligible again.
                 </div>
                 
                 <div>
@@ -1176,9 +1185,9 @@
             <h3 class="green-mb15">💰 Take Profit Rules – For True Holders</h3>
             <div class="text-15">
                 <p><strong>True holders deserve their reward.</strong></p>
-                <p>After every <strong>200% ROI</strong>, you can safely take up to <strong>50%</strong> of your Ruggy with no ban risk.</p>
-                <p>If you sell more than 50% in that window → <strong>Locked Ban</strong>.</p>
-                <p class="gold">This only applies to your first sell after 200% ROI. After using it, your counter resets.</p>
+                <p>After every <strong><span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI</strong>, you can safely take up to <strong><span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> of your Ruggy with no ban risk.</p>
+                <p>If you sell more than <span data-m="roiSafeSellPct" data-fmt="pct">50%</span> in that window → <strong>Locked Ban</strong>.</p>
+                <p class="gold">This only applies to your first sell after <span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI. After using it, your counter resets.</p>
             </div>
         </div>
     </section>
@@ -1361,7 +1370,7 @@
                     If you are on a <strong>Locked Ban</strong>, you have two paths to forgiveness:
                 </p>
                 <ul style="margin-top: 14px; margin-bottom: 16px; font-size: 15px; line-height: 1.75;">
-                    <li style="margin-bottom: 8px;"><strong>Path 1:</strong> Stake <strong>20% of the dollar value</strong> of the Ruggy you pulled, locked for <strong>3 days</strong>.</li>
+                    <li style="margin-bottom: 8px;"><strong>Path 1:</strong> Stake <strong><span data-m="absolutionStakePct" data-fmt="pct">20%</span> of the dollar value</strong> of the Ruggy you pulled, locked for <strong><span data-m="absolutionLockDays" data-fmt="raw">3</span> days</strong>.</li>
                     <li><strong>Path 2:</strong> Submit a formal explanation to a moderator explaining your actions against Ruggy.</li>
                 </ul>
                 <p class="fs15">
@@ -1388,7 +1397,7 @@
                 <h4 style="color: #22c55e; margin-bottom: 12px;">🔒 Stake to Absolve (3 Days)</h4>
                 <p style="font-size: 14px; margin-bottom: 12px;">
                     Enter the <strong>dollar value</strong> of Ruggy you originally pulled from the coin. 
-                    You must stake <strong>20%</strong> of that value, locked for <strong>3 days</strong>.
+                    You must stake <strong><span data-m="absolutionStakePct" data-fmt="pct">20%</span></strong> of that value, locked for <strong><span data-m="absolutionLockDays" data-fmt="raw">3</span> days</strong>.
                 </p>
                 
                 <div class="mb15">
@@ -1460,6 +1469,14 @@
                 <div style="font-size: 16px; color: #fbbf24; font-weight: bold;">CURRENT JACKPOT</div>
                 <div id="lotto-jackpot-display" style="font-size: 56px; font-weight: bold; color: #22c55e; line-height: 1;">$124,850</div>
                 <div class="u2">Rolling + Growing Every Draw</div>
+                <p style="margin: 12px 0 0; font-size: 14px;">
+                    <span class="gold">🗓 Daily draw at <strong><span data-m="lotteryDailyTime" data-fmt="raw">8:00 PM UTC</span></strong></span>
+                    &nbsp;•&nbsp;
+                    <span class="green">Weekly draw every <strong><span data-m="lotteryWeeklyDay" data-fmt="raw">Sunday</span></strong> at <strong><span data-m="lotteryWeeklyTime" data-fmt="raw">8:00 PM UTC</span></strong></span>
+                </p>
+                <p class="u103" style="margin: 8px 0 0; font-size: 13px;">
+                    <strong>⚠ Locked Ban accounts cannot participate in the Lottery</strong> — absolve yourself first.
+                </p>
             </div>
             
             <div style="display: flex; justify-content: center; gap: 40px; margin-top: 20px; flex-wrap: wrap;">
@@ -1525,8 +1542,9 @@
                 </div>
 
                 <button data-action="claimDailyFreeTicket" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a);">
-                    Claim Today's Free Ticket
+                    Claim Your Free Ticket
                 </button>
+                <p class="muted-sm" style="text-align:center; margin:8px 0 0;">One free ticket every <span data-m="freeTicketCooldownHours" data-fmt="num">24</span> hours of holding</p>
             </div>
 
             <!-- Prize Breakdown -->
@@ -1727,6 +1745,58 @@
                 </div>
                 
                 <details class="admin-section">
+                    <summary>📊 Rules &amp; Metrics</summary>
+                    <div class="admin-section-body">
+                        <p class="muted-sm" style="margin:0 0 10px;">Every value here updates ALL mentions across the site (tooltips, pages, rules) and the behaviors tied to it.</p>
+
+                        <h5 class="u3">Distribution</h5>
+                        <label class="admin-check"><input id="m-dist-enabled" type="checkbox" checked> Distributions enabled (manual master switch)</label>
+                        <label class="label-sm">Auto-distribution shutoff (holders)</label>
+                        <input id="m-holder-shutoff" type="number" min="1" class="dev-input" placeholder="500">
+                        <label class="label-sm">Community group: tokens required</label>
+                        <input id="m-community-threshold" type="number" min="0" class="dev-input" placeholder="500000">
+                        <label class="label-sm">Anti-Rug group: tokens required</label>
+                        <input id="m-antirug-threshold" type="number" min="0" class="dev-input" placeholder="1000000">
+
+                        <h5 class="u3">Take Profit &amp; Bans</h5>
+                        <label class="label-sm">Take-profit unlocks at ROI (%)</label>
+                        <input id="m-roi-takeprofit" type="number" min="1" class="dev-input" placeholder="200">
+                        <label class="label-sm">Safe sell amount in window (%)</label>
+                        <input id="m-roi-safesell" type="number" min="1" max="100" class="dev-input" placeholder="50">
+                        <label class="label-sm">Locked Ban: selling ≥ (%) at once</label>
+                        <input id="m-lockedban-pct" type="number" min="1" max="100" class="dev-input" placeholder="30">
+                        <label class="label-sm">Temporary Ban: holding &gt; (%) of supply</label>
+                        <input id="m-overhold-pct" type="number" min="0.1" max="100" step="0.1" class="dev-input" placeholder="3">
+
+                        <h5 class="u3">Hall &amp; Wall</h5>
+                        <label class="label-sm">Top Holders shown</label>
+                        <input id="m-hall-top" type="number" min="1" max="100" class="dev-input" placeholder="12">
+                        <label class="label-sm">Longest Holders shown</label>
+                        <input id="m-hall-longest" type="number" min="1" max="100" class="dev-input" placeholder="12">
+                        <label class="label-sm">Bagworkers shown</label>
+                        <input id="m-hall-bagworkers" type="number" min="1" max="10" class="dev-input" placeholder="5">
+                        <label class="label-sm">Wall: wallets shown at a time</label>
+                        <input id="m-wall-shown" type="number" min="1" max="500" class="dev-input" placeholder="25">
+
+                        <h5 class="u3">Absolution</h5>
+                        <label class="label-sm">Absolution stake (% of pulled value)</label>
+                        <input id="m-abs-pct" type="number" min="1" max="100" class="dev-input" placeholder="20">
+                        <label class="label-sm">Absolution lock time (days)</label>
+                        <input id="m-abs-days" type="number" min="1" class="dev-input" placeholder="3">
+
+                        <h5 class="u3">Lottery Schedule</h5>
+                        <label class="label-sm">Daily draw time</label>
+                        <input id="m-lotto-daily-time" type="text" class="dev-input" placeholder="8:00 PM UTC">
+                        <label class="label-sm">Weekly draw day</label>
+                        <input id="m-lotto-weekly-day" type="text" class="dev-input" placeholder="Sunday">
+                        <label class="label-sm">Weekly draw time</label>
+                        <input id="m-lotto-weekly-time" type="text" class="dev-input" placeholder="8:00 PM UTC">
+                        <label class="label-sm">Free ticket hold time (hours)</label>
+                        <input id="m-free-ticket-hours" type="number" min="1" class="dev-input" placeholder="24">
+                    </div>
+                </details>
+
+                <details class="admin-section">
                     <summary>📝 Site Content</summary>
                     <div class="admin-section-body">
                         <label class="label-sm">Hero Title (home page)</label>
@@ -1759,6 +1829,20 @@
                         <input id="ui-rain-width" type="number" min="40" max="320" class="dev-input" placeholder="124">
                         <label class="label-sm">Bill Image URL (blank = default)</label>
                         <input id="ui-rain-image" type="text" class="dev-input" placeholder="https://i.ibb.co/...jpg">
+                    </div>
+                </details>
+
+                <details class="admin-section">
+                    <summary>⛓ Chain (devnet/mainnet)</summary>
+                    <div class="admin-section-body">
+                        <label class="admin-check"><input id="chain-enabled" type="checkbox"> Connect site to on-chain program</label>
+                        <label class="label-sm">RPC URL</label>
+                        <input id="chain-rpc" type="text" class="dev-input" placeholder="https://api.devnet.solana.com">
+                        <label class="label-sm">Program ID (from anchor deploy)</label>
+                        <input id="chain-program" type="text" class="dev-input" placeholder="Your program ID">
+                        <label class="label-sm">Token Mint (CA)</label>
+                        <input id="chain-mint" type="text" class="dev-input" placeholder="Your token mint">
+                        <p class="muted-sm" style="margin:6px 0 0;">When enabled: countdown + jackpot read live chain state every 30s.</p>
                     </div>
                 </details>
 
