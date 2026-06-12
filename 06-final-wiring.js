@@ -214,5 +214,9 @@ window.Ruggy = {
 
     Chart: {
         init: (...a) => window.initTokenomicsChart(...a)
+    },
+
+    Effects: {
+        moneyRain: (...a) => window.startMoneyRain(...a)
     }
 };
