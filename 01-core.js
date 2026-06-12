@@ -1386,7 +1386,9 @@ document.addEventListener('click', function(e) {
     // The developer panel slides in from the left (no backdrop),
     // so "outside" is any click that isn't inside the panel.
     const dev = document.getElementById('developer-modal');
-    if (dev && dev.style.display !== 'none' && !dev.hasAttribute('hidden') && !dev.contains(e.target)) {
+    // Open state is always set inline as display:flex; the hidden default
+    // now lives in a class, so style.display starts '' — test for 'flex'.
+    if (dev && dev.style.display === 'flex' && !dev.hasAttribute('hidden') && !dev.contains(e.target)) {
         // Ignore the click that just opened the panel (it bubbles here too)
         if (!window.__adminPanelOpenedAt || Date.now() - window.__adminPanelOpenedAt > 300) {
             closeDeveloperModal();
