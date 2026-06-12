@@ -191,7 +191,10 @@ window.Ruggy = {
         openLogin: (...a) => window.openAdminWithLogin(...a),
         logout: (...a) => window.adminLogout(...a),
         saveSettings: (...a) => window.saveDeveloperSettings(...a),
-        triggerDistribution: (...a) => window.triggerDistribution(...a)
+        triggerDistribution: (...a) => window.triggerDistribution(...a),
+        applySettings: (...a) => window.applySiteSettings(...a),
+        exportConfig: (...a) => window.exportSiteConfig(...a),
+        resetData: (...a) => window.resetSiteData(...a)
     },
 
     Pages: {
