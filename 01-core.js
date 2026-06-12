@@ -1324,7 +1324,7 @@ const UI_ACTION_WHITELIST = new Set([
     'adminLogout', 'saveDeveloperSettings', 'resetDistributionTimer',
     'triggerDistribution', 'toggleRewardsPause', 'connectDevWalletForHome',
     'startLiveTracking', 'scanWalletForWall', 'scanWalletForHall',
-    'runAutomatedWallScan', 'runAutomatedHallScan'
+    'runAutomatedWallScan', 'runAutomatedHallScan', 'startMoneyRain'
 ]);
 
 // Delegated input events (admin split sliders)
