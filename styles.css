@@ -1312,7 +1312,17 @@ nav .nav-link {
     line-height: 1.5;
     letter-spacing: 1px;
 }
+.timer-wrapper {
+    width: 220px;
+    flex-shrink: 0;
+}
 
+.topbar-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
 /* --- MOBILE TUNING: glow scales with glyph size. The desktop halos
        (up to 56px) overwhelm 15-24px mobile text, bleeding far outside
        the characters — so every glow is trimmed ~50-60% under 768px.
