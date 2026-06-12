@@ -184,12 +184,6 @@
 ============================================ */
 /* homeColorCycle is defined in the RETRO NEON RESTORATION layer */
 
-.home-cycling {
-    animation: homeColorCycle 16s linear infinite !important;
-    font-weight: 700;
-    -webkit-text-stroke: 0.6px rgba(0,0,0,0.5);
-}
-
 /* ========================================
    PAGE TITLE COLORS - Match Navigation Colors
 ======================================== */
@@ -257,7 +251,6 @@ body { font-family: 'Press Start 2P', system-ui, sans-serif; background: linear-
     transition: all 0.3s ease; 
     cursor: pointer; 
     position: relative;
-    -webkit-text-stroke: 0.6px rgba(0,0,0,0.65);
 }
 
 @media (max-width: 768px) {
@@ -406,11 +399,6 @@ body { font-family: 'Press Start 2P', system-ui, sans-serif; background: linear-
         0 0 25px rgba(255, 0, 255, 0.6),
         0 15px 35px rgba(0, 0, 0, 0.5);
     border-color: #ff00ff;
-}
-
-.gallery-card:hover p {
-    color: #ff00ff;
-    text-shadow: 0 0 8px rgba(255, 0, 255, 0.5);
 }
 
 /* nav-gradient keyframe removed - no longer used for navigation hover */
@@ -1201,64 +1189,7 @@ h1, h2, h3, .neon-text,
     }
 }
 
-/* ============================================
-   RUGGY'S LOTTO TITLE - FLASHING GREEN ↔ GOLD
-   Strong alternating contrast (flashing effect)
-   ============================================ */
-/* Big page title - flashing green/gold - subtle glow matching navigation */
-#lotto-title.lotto-animated-title {
-    color: #22c55e;
-    animation: lottoTextFlash 1.8s infinite alternate ease-in-out !important;
-    text-shadow: 0 0 3px #22c55e, 0 0 10px #22c55e, 0 0 22px #eab308;
-    font-weight: 900;
-}
-
-/* Desktop Nav LOTTERY link - Flashing green ↔ gold (matching hamburger + page title) */
-.nav-link.lotto-animated-title {
-    color: #22c55e;
-    animation: lottoTextFlash 1.8s infinite alternate ease-in-out !important;
-    text-shadow: 0 0 3px #22c55e, 0 0 10px #22c55e, 0 0 22px #eab308;
-    font-weight: 900;
-    -webkit-text-stroke: 0.6px rgba(0,0,0,0.65);
-    display: inline-flex;
-    align-items: center;
-    vertical-align: middle;
-    line-height: 1;
-}
-
-/* lottoTextFlash is defined in the RETRO NEON RESTORATION layer */
-
-/* Hover for big title */
-#lotto-title.lotto-animated-title:hover {
-    animation-duration: 0.55s !important;
-    filter: brightness(1.3) saturate(1.3) !important;
-}
-
-/* Hover for desktop nav LOTTERY link */
-.nav-link.lotto-animated-title:hover,
-.nav-link.lotto-animated-title.active {
-    animation-duration: 0.6s !important;
-    filter: brightness(1.4) saturate(1.3) !important;
-    text-shadow: 0 0 4px #22c55e, 0 0 14px #22c55e, 0 0 30px #eab308;
-    transform: translateY(-1px);
-}
-
-/* Lotto animated title - Base state (visible immediately, no hover needed) */
-.card h3.lotto-animated-title {
-    color: #22c55e;
-    animation: lottoTextFlash 1.8s infinite alternate ease-in-out !important;
-    text-shadow: 0 0 3px #22c55e, 0 0 10px #22c55e, 0 0 22px #eab308;
-    font-weight: 900;
-}
-
-/* Disable purple hover effect on Lotto elements */
-#lotto-title:hover,
-.nav-link.lotto-animated-title:hover,
-.card h3.lotto-animated-title:hover {
-    background: linear-gradient(90deg, #16a34a, #eab308) !important;
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-}
+/* Lotto title styling lives in the RETRO NEON RESTORATION layer */
 
 /* ===== UTILITY CLASSES (extracted from repeated inline styles) ===== */
 .tile { cursor: pointer; border-radius: 16px; overflow: hidden; border: 2px solid #374151; background: #111827; }
@@ -1345,15 +1276,67 @@ h1.neon-text, h2.neon-text,
         0 0 20px currentColor !important;
 }
 
-/* --- RUGGY logo letters: outshine their inline 3px/6px shadows --- */
-.hover-scale h1 span {
-    -webkit-text-stroke: 0.7px rgba(0, 0, 0, 0.85) !important;
+/* --- RUGGY logo: fully CSS-controlled. Each letter carries only a
+       color token inline (style="--c: #ef4444"); ALL glow lives here. --- */
+.logo-letter {
+    color: var(--c, #ff00ff);
+    -webkit-text-stroke: 0.7px rgba(0, 0, 0, 0.85);
     text-shadow:
         0 0 1px rgba(255, 255, 255, 0.9),
         0 0 6px currentColor,
         0 0 14px currentColor,
         0 0 28px currentColor,
-        0 0 46px currentColor !important;
+        0 0 46px currentColor;
+}
+
+/* --- HOME nav link: cycling rainbow --- */
+.home-cycling {
+    animation: homeColorCycle 16s linear infinite !important;
+    font-weight: 700;
+    -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.6);
+}
+
+/* --- LOTTERY: flashing green <-> gold, all variants in one place --- */
+#lotto-title.lotto-animated-title,
+.nav-link.lotto-animated-title,
+.card h3.lotto-animated-title {
+    color: #22c55e;
+    animation: lottoTextFlash 1.8s infinite alternate ease-in-out !important;
+    text-shadow: 0 0 3px #22c55e, 0 0 10px #22c55e, 0 0 22px #eab308 !important;
+    font-weight: 900;
+    -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.65);
+}
+.nav-link.lotto-animated-title {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    line-height: 1;
+}
+#lotto-title.lotto-animated-title:hover {
+    animation-duration: 0.55s !important;
+    filter: brightness(1.3) saturate(1.3) !important;
+}
+.nav-link.lotto-animated-title:hover,
+.nav-link.lotto-animated-title.active {
+    animation-duration: 0.6s !important;
+    filter: brightness(1.4) saturate(1.3) !important;
+    text-shadow: 0 0 4px #22c55e, 0 0 14px #22c55e, 0 0 30px #eab308 !important;
+    transform: translateY(-1px);
+}
+/* Keep generic purple hovers off lotto text WITHOUT the old
+   background-clip transparency hack (transparent fill + glow halos
+   rendered as a blurry blob, especially on mobile). Solid color +
+   faster flash reads far better. */
+#lotto-title:hover,
+.card h3.lotto-animated-title:hover {
+    background: none !important;
+    -webkit-text-fill-color: currentColor !important;
+}
+
+/* --- Gallery captions glow on tile hover --- */
+.gallery-card:hover p {
+    color: #ff00ff;
+    text-shadow: 0 0 4px #ff00ff, 0 0 12px rgba(255, 0, 255, 0.6);
 }
 
 /* --- HOME cycling animation: brighter ramp (same name overrides) --- */
@@ -1383,6 +1366,58 @@ nav .nav-link {
 .page-title {
     line-height: 1.5;
     letter-spacing: 1px;
+}
+
+/* --- MOBILE TUNING: glow scales with glyph size. The desktop halos
+       (up to 56px) overwhelm 15-24px mobile text, bleeding far outside
+       the characters — so every glow is trimmed ~50-60% under 768px.
+       Same selectors, smaller radii; the look survives, the blur doesn't. --- */
+@media (max-width: 768px) {
+    nav .nav-link,
+    #desktop-nav .nav-link,
+    .nav-link {
+        text-shadow:
+            0 0 1px rgba(255, 255, 255, 0.8),
+            0 0 3px currentColor,
+            0 0 7px currentColor,
+            0 0 12px currentColor !important;
+    }
+    nav .nav-link:hover {
+        text-shadow:
+            0 0 1px rgba(255, 255, 255, 0.9),
+            0 0 4px currentColor,
+            0 0 9px currentColor,
+            0 0 16px currentColor !important;
+    }
+    .page-title,
+    h1.neon-text, h2.neon-text,
+    .section h2,
+    .section-title {
+        text-shadow:
+            0 0 1px rgba(255, 255, 255, 0.85),
+            0 0 4px currentColor,
+            0 0 10px currentColor,
+            0 0 20px currentColor !important;
+    }
+    .card h3,
+    .explore-card h3 {
+        text-shadow:
+            0 0 1px rgba(255, 255, 255, 0.6),
+            0 0 3px currentColor,
+            0 0 8px currentColor !important;
+    }
+    .logo-letter {
+        text-shadow:
+            0 0 1px rgba(255, 255, 255, 0.85),
+            0 0 4px currentColor,
+            0 0 9px currentColor,
+            0 0 16px currentColor;
+    }
+    #lotto-title.lotto-animated-title,
+    .nav-link.lotto-animated-title,
+    .card h3.lotto-animated-title {
+        text-shadow: 0 0 2px #22c55e, 0 0 7px #22c55e, 0 0 13px #eab308 !important;
+    }
 }
 
 /* Body copy stays clean: never let glow bleed into paragraphs/small text */
@@ -1423,3 +1458,48 @@ p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
 .dev-input { width:100%; padding:9px; border-radius:6px; border:1px solid #6b21a8; background:#111827; color:white; font-size:12px; font-family: monospace; }
 .dev-input { width:100%; padding:9px; border-radius:6px; border:1px solid #6b21a8; background:#111827; color:white; }
 .dev-input-sm { width:100%; padding:8px; margin-bottom:6px; border-radius:6px; border:1px solid #6b21a8; background:#111827; color:white; font-size:13px; }
+
+/* --- Hero (home page) typography: extracted from inline styles --- */
+.hero-title {
+    font-size: clamp(42px, 12vw, 68px);
+    margin-bottom: 12px;
+}
+.hero-sub {
+    font-size: clamp(18px, 4.5vw, 24px);
+    color: #f3e8ff;
+    margin-bottom: 30px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* ===== UTILITY CLASSES, BATCH 3 (deduplicated inline styles; uN names are auto-generated) ===== */
+.u1 { text-align: center; color: #9ca3af; margin-bottom: 35px; font-size: 15px; }
+.u2 { font-size: 15px; color: #9ca3af; }
+.u3 { color:#f59e0b; margin-bottom:10px; font-size:13px; }
+.u4 { width: 100%; height: 100%; object-fit: cover; border-radius: 9999px; }
+.u5 { font-size: 14px; color: #9ca3af; }
+.u6 { font-size: 20px; font-weight: bold; }
+.u7 { cursor: pointer; padding: 0; overflow: hidden; transition: transform 0.2s; }
+.u8 { text-align: center; color: #9ca3af; margin-bottom: 30px; font-size: 15px; }
+.u9 { color: #f59e0b; margin-bottom: 12px; }
+.u10 { color: #ef4444; margin-bottom: 20px; }
+.u11 { color: #f87171; margin-bottom: 8px; }
+.u12 { color: #fbbf24; margin-bottom: 8px; }
+.u13 { color: #3b82f6; margin-bottom: 15px; }
+.u14 { font-size: 28px; font-weight: bold; color: #22c55e; }
+.u15 { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.u16 { color:#86efac; font-size:12px; }
+.u17 { padding-top: 110px; padding-bottom: 80px; max-width: 900px; margin: 0 auto; }
+.u18 { padding-top: 110px; padding-bottom: 80px; max-width: 1400px; margin: 0 auto; }
+.u19 { max-width: 100%; height: 260px; object-fit: cover; border-radius: 16px; border: 3px solid #6b21a8; }
+.u20 { color: #f59e0b; margin-bottom: 15px; }
+.u21 { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+.u22 { flex: 1; min-width: 280px; padding: 12px; border-radius: 8px; border: 2px solid #6b21a8; background: #111827; color: white; font-family: monospace; }
+.u23 { width: auto; padding: 12px 24px; background: linear-gradient(to right, #3b82f6, #2563eb); }
+.u24 { color: #f59e0b; margin-bottom: 20px; text-align: center; }
+.u25 { font-size: 13px; color: #86efac; }
+.u26 { font-size: 32px; font-weight: bold; color: #22c55e; }
+.mb15 { margin-bottom: 15px; }
+.u27 { font-size: 22px; font-weight: bold; color: #fbbf24; }
+.u28 { display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid #374151; }
+.u29 { margin-bottom:20px; padding:15px; background:#1f2937; border-radius:10px; }
+.u30 { --w1: #c4b5fd; --w2: #7c3aed; --wshadow: rgba(124, 58, 237, 0.4); --wshadow-h: rgba(124, 58, 237, 0.5); }
