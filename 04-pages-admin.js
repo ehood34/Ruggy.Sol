@@ -349,13 +349,23 @@ function startSimpleTimer(retryCount = 0) {
         clearInterval(window.rewardTimerInterval);
     }
 
-    // === ALWAYS FORCE A FRESH 30 MINUTE TIMER ===
+    // === TIMER HONORS THE ADMIN-SET INTERVAL ===
+    // Duration comes from CONFIG.distributionIntervalMinutes (dev panel).
+    // If an explicit future target exists (admin just applied a new
+    // interval), count down to it; otherwise start a fresh full interval.
     const now = Date.now();
-    const freshTarget = now + (30 * 60 * 1000);
-    let targetTime = freshTarget;
+    const intervalMinutes = (typeof CONFIG !== 'undefined' && CONFIG.distributionIntervalMinutes) || 30;
+    const durationMs = intervalMinutes * 60 * 1000;
 
+    let targetTime = now + durationMs;
+    if (typeof CONFIG !== 'undefined' && CONFIG.nextDistributionTime) {
+        const saved = new Date(CONFIG.nextDistributionTime).getTime();
+        if (saved > now && saved <= now + durationMs) {
+            targetTime = saved;
+        }
+    }
     if (typeof CONFIG !== 'undefined') {
-        CONFIG.nextDistributionTime = new Date(freshTarget).toISOString();
+        CONFIG.nextDistributionTime = new Date(targetTime).toISOString();
     }
 
 
@@ -367,7 +377,7 @@ function startSimpleTimer(retryCount = 0) {
         const currentNow = Date.now();
         const remainingMs = Math.max(0, targetTime - currentNow);
 
-        const totalDuration = 30 * 60 * 1000; // Always use 30 minutes for progress
+        const totalDuration = durationMs; // progress scales to the configured interval
 
         const progress = Math.max(0, Math.min(100, (remainingMs / totalDuration) * 100));
 
@@ -397,9 +407,10 @@ function startSimpleTimer(retryCount = 0) {
             barFill.style.width = "0%";
             timerEl.textContent = "00:00";
 
-            // Auto-restart after a short pause
+            // Auto-restart after a short pause (fresh full interval)
             clearInterval(window.rewardTimerInterval);
             window.rewardTimerInterval = null;
+            if (typeof CONFIG !== 'undefined') CONFIG.nextDistributionTime = null;
 
             setTimeout(() => {
                 if (typeof startSimpleTimer === 'function') {
@@ -689,12 +700,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     applySocialLinks();
 
-    // === FORCE FRESH 30-MINUTE DISTRIBUTION TIMER ON EVERY PAGE LOAD ===
+    // === FRESH DISTRIBUTION TIMER ON PAGE LOAD (admin-configured interval) ===
     (function initializeDistributionTimer() {
         const now = Date.now();
-        
-        // Always reset to a fresh 30 minutes when the site loads
-        CONFIG.nextDistributionTime = new Date(now + (30 * 60 * 1000)).toISOString();
+        const minutes = CONFIG.distributionIntervalMinutes || 30;
+        CONFIG.nextDistributionTime = new Date(now + (minutes * 60 * 1000)).toISOString();
 
         // Start the countdown reliably
         setTimeout(() => {
@@ -1037,7 +1047,9 @@ function getAdminInputNumber(id, defaultValue = 0) {
 function saveDeveloperSettings() {
     // Token & Timing
     CONFIG.tokenMint = getAdminInputValue('dev-ca');
+    const previousInterval = CONFIG.distributionIntervalMinutes;
     CONFIG.distributionIntervalMinutes = getAdminInputNumber('dev-interval', 30);
+    const intervalChanged = previousInterval !== CONFIG.distributionIntervalMinutes;
 
     // Bagworkers
     CONFIG.bagworkers = [];
@@ -1066,6 +1078,18 @@ function saveDeveloperSettings() {
 
     saveConfig();
     updateHomeWalletDisplays();
+
+    // A changed interval applies to the live countdown immediately
+    if (intervalChanged) {
+        CONFIG.nextDistributionTime = new Date(
+            Date.now() + CONFIG.distributionIntervalMinutes * 60 * 1000
+        ).toISOString();
+        if (window.rewardTimerInterval) {
+            clearInterval(window.rewardTimerInterval);
+            window.rewardTimerInterval = null;
+        }
+        if (typeof startSimpleTimer === 'function') startSimpleTimer();
+    }
 
     if (CONFIG.tokenMint && document.getElementById('home')?.classList.contains('active')) {
         startLiveTracking();
@@ -1296,11 +1320,24 @@ function showPieExplanation(index) {
 loadBannedWall();
 
 function resetDistributionTimer() {
-    const now = new Date();
-    const interval = parseInt(document.getElementById('dev-interval').value) || 30;
-    CONFIG.nextDistributionTime = new Date(now.getTime() + interval * 60 * 1000);
+    const interval = parseInt(document.getElementById('dev-interval')?.value, 10) || 30;
+
+    // Persist both the interval and the new target
+    CONFIG.distributionIntervalMinutes = interval;
+    CONFIG.nextDistributionTime = new Date(Date.now() + interval * 60 * 1000).toISOString();
     saveConfig();
-    showToast("Distribution timer has been reset!", "success");
+
+    // Restart the LIVE countdown so the nav timer jumps to the new
+    // interval immediately (previously this only saved config and the
+    // visible timer kept counting its old target).
+    if (window.rewardTimerInterval) {
+        clearInterval(window.rewardTimerInterval);
+        window.rewardTimerInterval = null;
+    }
+    if (typeof startSimpleTimer === 'function') startSimpleTimer();
+
+    showToast("Distribution timer updated", "success",
+        `Counting down ${interval} minute${interval === 1 ? '' : 's'} from now.`);
     updateHomeWalletDisplays();
 }
 
