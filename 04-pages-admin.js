@@ -157,6 +157,11 @@ function navigateTo(page) {
         // init self-heals (retries until Chart.js + layout are ready), so one
         // call on activation is enough. The section observer is a backstop.
         if (typeof initTokenomicsChart === 'function') initTokenomicsChart();
+    } else {
+        // Leaving Tokenomics: clear any open pie-slice explanation so it
+        // doesn't linger stale and reappear on the next visit.
+        const exp = document.getElementById('pie-explanation');
+        if (exp) exp.style.display = 'none';
     }
 
     if (page === 'lotto') {
