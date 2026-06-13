@@ -1686,6 +1686,14 @@ p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
 
 @media (prefers-reduced-motion: reduce) {
     .money-bill { display: none; }
+    /* Honor reduced-motion globally: stop decorative spins/pulses/glows but
+       keep functional transitions short rather than fully removed. */
+    *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 /* =====================================================================
@@ -1835,4 +1843,26 @@ select:focus-visible {
 .section:focus,
 .section:focus-visible {
     outline: none !important;
+}
+
+/* ============================================
+   ACCESSIBILITY: skip-to-content link.
+   Visually hidden until it receives keyboard focus, then it
+   appears at the top-left so keyboard users can jump past the nav.
+   ============================================ */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 200000;
+    background: #22d3ee;
+    color: #0a0a0a;
+    font-weight: 700;
+    padding: 12px 20px;
+    border-radius: 0 0 10px 0;
+    text-decoration: none;
+}
+.skip-link:focus {
+    left: 0;
+    outline: 3px solid #fff;
 }
