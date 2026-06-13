@@ -135,6 +135,14 @@ function saveConfig() {
 }
 
 
+// Human-readable page titles for the tab + screen-reader announcement
+const PAGE_TITLES = {
+    home: 'Ruggy Rewards', tokenomics: 'Tokenomics', lore: 'Lore',
+    rewards: 'Rewards', gallery: 'Gallery', hall: 'Hall of Fame',
+    wall: 'Wall of Shame', pool: 'Staking Pool', absolution: 'Absolution',
+    lotto: 'Lottery'
+};
+
 function navigateTo(page) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
 
@@ -148,14 +156,27 @@ function navigateTo(page) {
         if (homeSection) homeSection.classList.add('active');
     }
 
+    // A11y: update the document title (screen readers announce page changes)
+    const label = PAGE_TITLES[page] || 'Ruggy Rewards';
+    document.title = page === 'home' ? 'Ruggy Rewards' : label + ' • Ruggy Rewards';
+
+    // A11y: move focus to the newly-activated section so keyboard users land
+    // on the right content instead of staying on the clicked nav link.
+    const active = document.querySelector('.section.active');
+    if (active) {
+        active.setAttribute('tabindex', '-1');
+        setTimeout(() => { try { active.focus({ preventScroll: true }); } catch (_) {} }, 30);
+    }
+
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
         if (link.dataset.page === page) link.classList.add('active');
     });
 
     if (page === 'tokenomics') {
-        // init self-heals (retries until Chart.js + layout are ready), so one
-        // call on activation is enough. The section observer is a backstop.
+        // Start fetching Chart.js immediately (on-demand), then init — which
+        // self-heals until the library + layout are ready.
+        if (typeof ensureChartJsLoaded === 'function') ensureChartJsLoaded();
         if (typeof initTokenomicsChart === 'function') initTokenomicsChart();
     } else {
         // Leaving Tokenomics: clear any open pie-slice explanation so it
@@ -1541,9 +1562,10 @@ const TokenomicsChart = {
     return;
         }
     
-        // Chart.js comes from a CDN — on slow mobile connections it may not have
-        // loaded yet when the section first opens. Retry until it appears.
+        // Chart.js is loaded on demand (only here, only when Tokenomics opens).
+        // Kick off the load if it hasn't started, then retry until it's ready.
         if (typeof Chart === 'undefined') {
+    ensureChartJsLoaded();
     if (attempt < RUGGY_SETTINGS.chart.maxRetries) {
         setTimeout(() => TokenomicsChart.init(attempt + 1), RUGGY_SETTINGS.chart.libRetryMs);
     }
@@ -1689,6 +1711,22 @@ const TokenomicsChart = {
 
 // Compatibility aliases
 function initTokenomicsChart(attempt = 0) { return TokenomicsChart.init(attempt); }
+// Loads Chart.js from the CDN exactly once, on demand. Returns immediately if
+// it's already loaded or loading. This keeps Chart.js (~75KB) off every other
+// page — it's only fetched when the user actually opens Tokenomics.
+let __chartJsState = 'idle'; // idle | loading | loaded
+function ensureChartJsLoaded() {
+    if (typeof Chart !== 'undefined') { __chartJsState = 'loaded'; return; }
+    if (__chartJsState === 'loading') return;
+    __chartJsState = 'loading';
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    s.async = true;
+    s.onload = () => { __chartJsState = 'loaded'; };
+    s.onerror = () => { __chartJsState = 'idle'; }; // allow a later retry
+    document.head.appendChild(s);
+}
+
 function setupTokenomicsChartObserver() { return TokenomicsChart.observe(); }
 window.initTokenomicsChart = initTokenomicsChart;
 
