@@ -184,6 +184,9 @@ function navigateTo(page) {
     if (page === 'rewards' || page === 'pool') {
         if (typeof renderStakeNotice === 'function') renderStakeNotice();
     }
+    if (page === 'pool' && typeof renderStakeDonut === 'function') {
+        setTimeout(renderStakeDonut, 60);
+    }
 }
 
 let liveTrackingInterval = null;
