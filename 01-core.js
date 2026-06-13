@@ -1563,6 +1563,7 @@ function toggleMobileMenu() {
 
     const isHidden = menu.style.display === 'none' || menu.style.display === '';
 
+    const btn = document.getElementById('mobile-menu-btn');
     if (isHidden) {
         // Start the menu card just below the fixed navigation bar,
         // measured live so it adapts to whatever height the nav has.
@@ -1572,9 +1573,17 @@ function toggleMobileMenu() {
 
         menu.style.display = 'flex';
         document.body.style.overflow = 'hidden';
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        // Move focus into the menu for keyboard/screen-reader users
+        const firstLink = menu.querySelector('.nav-link, button');
+        if (firstLink) setTimeout(() => firstLink.focus(), 50);
     } else {
         menu.style.display = 'none';
         document.body.style.overflow = '';
+        if (btn) {
+            btn.setAttribute('aria-expanded', 'false');
+            btn.focus(); // return focus to the trigger
+        }
     }
 }
 
@@ -1586,6 +1595,8 @@ function closeMobileMenu() {
     if (menu && menu.style.display === 'flex') {
         menu.style.display = 'none';
         document.body.style.overflow = '';
+        const btn = document.getElementById('mobile-menu-btn');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
     }
 }
 window.closeMobileMenu = closeMobileMenu;
