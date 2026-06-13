@@ -1113,33 +1113,17 @@ window.addEventListener('load', () => {
 async function tryAutoReconnect() {
     const lastWallet = localStorage.getItem('ruggyLastConnectedWallet');
     if (!lastWallet || !WALLET_PROVIDERS[lastWallet]) return;
-
-    const w = WALLET_PROVIDERS[lastWallet];
-    if (!w.detect()) return;
-
+    if (!WALLET_PROVIDERS[lastWallet].detect()) return;
+    // Reuse the one connect path with forcePrompt=false (onlyIfTrusted), so a
+    // previously-approved wallet reconnects silently and anything else no-ops.
+    // { silent:true } suppresses the spinner/toast for this background attempt.
     try {
-        await ensureWalletLibrariesLoaded();
-    } catch (e) {
-        return;
-    }
-
-    const provider = w.get();
-    if (!provider || typeof provider.connect !== 'function') return;
-
-    try {
-        // Silent reconnect - only connects if user previously approved
-        const resp = await provider.connect({ onlyIfTrusted: true });
-        const publicKey = await resolveWalletPublicKey(resp, provider);
-        if (publicKey) {
-            setWalletState(provider, publicKey, lastWallet, w.name);
-            attachProviderEvents(provider);
-        }
-    } catch (err) {
-        // Silent fail is expected if user hasn't approved the site before
-    }
+        await connectWallet(lastWallet, false, { silent: true });
+    } catch (_) { /* expected if the site was never approved */ }
 }
 
-async function connectWallet(preferredWallet = null, forcePrompt = true) {
+async function connectWallet(preferredWallet = null, forcePrompt = true, opts = {}) {
+    const silent = !!opts.silent; // background auto-reconnect: no spinner/toast/error
     const btn = document.getElementById('connect-btn');
     // Restore the button to whatever the TRUE current state is, rather than a
     // captured snapshot — this avoids leaving a stale "Connecting…" or old
@@ -1149,8 +1133,8 @@ async function connectWallet(preferredWallet = null, forcePrompt = true) {
         if (typeof updateConnectWalletButton === 'function') updateConnectWalletButton();
     };
 
-    // Show loading state
-    if (btn) {
+    // Show loading state (skipped for silent background reconnect)
+    if (btn && !silent) {
         btn.disabled = true;
         btn.innerHTML = `
             <span style="display:inline-flex; align-items:center; gap:8px;">
@@ -1164,7 +1148,7 @@ async function connectWallet(preferredWallet = null, forcePrompt = true) {
         await ensureWalletLibrariesLoaded();
     } catch (e) {
         resetBtn();
-        showToast("Failed to load wallet libraries. Please refresh the page.", "error");
+        if (!silent) showToast("Failed to load wallet libraries. Please refresh the page.", "error");
         return;
     }
 
@@ -1222,6 +1206,7 @@ async function connectWallet(preferredWallet = null, forcePrompt = true) {
         // normalize them all to a single PublicKey
         const publicKey = await resolveWalletPublicKey(resp, provider);
         if (!publicKey) {
+            if (silent) { resetBtn(); return; }
             throw new Error(`${name} connected but did not provide a public key`);
         }
 
@@ -1239,13 +1224,13 @@ async function connectWallet(preferredWallet = null, forcePrompt = true) {
         }
 
         closeWalletConnectBar();
-        showToast(`Connected to ${name}`, "success");
+        if (!silent) showToast(`Connected to ${name}`, "success");
 
         return resp.publicKey;
 
     } catch (err) {
         resetBtn();
-
+        if (silent) return; // background reconnect fails quietly
         if (err.message && err.message.includes('User rejected')) {
             showToast("Connection rejected by user.", "error");
         } else {
@@ -1510,6 +1495,27 @@ function toggleMobileMenu() {
 // Expose toggleMobileMenu globally
 window.toggleMobileMenu = toggleMobileMenu;
 
+function closeMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    if (menu && menu.style.display === 'flex') {
+        menu.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+window.closeMobileMenu = closeMobileMenu;
+
+// Edge cases: Escape key closes the menu; tapping the dark backdrop (the
+// overlay itself, not the card inside it) closes it too.
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMobileMenu();
+});
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('mobile-menu');
+    if (menu && menu.style.display === 'flex' && e.target === menu) {
+        closeMobileMenu();
+    }
+});
+
 // Attach close behavior to mobile menu links (so menu closes after navigation)
 function attachMobileMenuLinkListeners() {
     const mobileMenu = document.getElementById('mobile-menu');
@@ -1535,12 +1541,12 @@ if (document.readyState === 'loading') {
     attachMobileMenuLinkListeners();
 }
 
+// One path for choosing a wallet from any surface (modal or connect bar):
+// close the chooser UI, then connect with an explicit approval prompt.
 async function connectSpecificWallet(walletType) {
-    // When user explicitly clicks a wallet in the modal, we want to show the approval prompt
+    if (typeof closeWalletModal === 'function') closeWalletModal();
     await connectWallet(walletType, true);
 }
-
-// Expose globally
 window.connectSpecificWallet = connectSpecificWallet;
 
 function checkLockedBanStatus() {
@@ -1909,8 +1915,5 @@ function updateConnectWalletButton() {
 }
 
 function selectAndConnectWallet(walletType) {
-    closeWalletModal();
-    setTimeout(() => {
-        connectWallet(walletType);
-    }, 150);
+    connectSpecificWallet(walletType);
 }
