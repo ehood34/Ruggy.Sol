@@ -74,6 +74,7 @@ function copyTokenCA() {
 // ==================== ENHANCED PAGE TRANSITIONS ====================
 const originalNavigateTo = window.navigateTo;
 window.navigateTo = function(page) {
+    window.scrollTo(0, 0); // land at top immediately, before the transition
     const sections = document.querySelectorAll('.section');
     
     sections.forEach(section => {
@@ -221,5 +222,7 @@ window.Ruggy = {
 
     Effects: {
         moneyRain: (...a) => window.startMoneyRain(...a)
-    }
+    },
+
+    get Chain() { return window.RuggyChain; }
 };
