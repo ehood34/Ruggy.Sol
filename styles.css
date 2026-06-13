@@ -977,6 +977,51 @@ h1.neon-text, h2.neon-text, .section h2 {
    ============================================ */
 :root {
     --nav-height: 170px;
+
+    /* ============================================
+       DESIGN TOKENS — change the theme in one place.
+       Names map to how the color is USED, so swapping
+       a value re-themes everything that references it.
+       (Existing literal hex values still work; these are
+       here so new/edited rules can use var(--token).)
+       ============================================ */
+
+    /* Brand / neon */
+    --c-neon-pink:    #ff00ff;   /* primary neon, logo, accents   (13x) */
+    --c-neon-green:   #22c55e;   /* success, staking, "good"      (25x) */
+    --c-green-deep:   #16a34a;   /* green gradient end             (6x) */
+    --c-gold:         #fbbf24;   /* gold highlights, permanent     (10x) */
+    --c-gold-deep:    #f59e0b;   /* amber/gold deep                (15x) */
+    --c-amber:        #eab308;   /* community tier                 (5x) */
+    --c-purple:       #a855f7;   /* MDR, purple accents            (6x) */
+    --c-purple-deep:  #6b21a8;   /* deep purple borders/bg        (20x) */
+    --c-blue:         #3b82f6;   /* info, links, consolation       (6x) */
+    --c-red:          #ef4444;   /* danger, bans, burn            (10x) */
+
+    /* Surfaces / text */
+    --c-bg-900:       #0a0a0a;   /* page background */
+    --c-bg-800:       #111827;   /* card background                (9x) */
+    --c-bg-700:       #1f2937;   /* raised panel                  (12x) */
+    --c-border:       #374151;   /* hairline borders               (8x) */
+    --c-text-muted:   #9ca3af;   /* secondary text                (13x) */
+
+    /* Neon glow shadows (use with currentColor-friendly elements) */
+    --glow-soft:   0 0 8px currentColor;
+    --glow-med:    0 0 16px currentColor, 0 0 32px currentColor;
+    --glow-green:  0 0 8px #22c55e, 0 0 16px #16a34a;
+    --glow-gold:   0 0 8px #fbbf24, 0 0 16px #f59e0b;
+
+    /* Spacing scale */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 40px;
+
+    /* Radius scale */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
 }
 
 #home {
