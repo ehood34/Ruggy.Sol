@@ -828,7 +828,9 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation(); // don't let the tap reach the backdrop/close handlers
             // Close the menu FIRST (idempotent, no toggle race), then navigate.
             if (typeof closeMobileMenu === 'function') closeMobileMenu();
-            if (link.dataset.page) navigateTo(link.dataset.page);
+            // IMPORTANT: call window.navigateTo (the final wrapped version),
+            // not the bare hoisted original, so only ONE nav implementation runs.
+            if (link.dataset.page) window.navigateTo(link.dataset.page);
         });
     });
 
@@ -856,7 +858,7 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
 
     updateHomeWalletDisplays();
-    navigateTo('home');
+    (window.navigateTo || navigateTo)('home');
 
     setTimeout(() => {
         if (document.getElementById('tokenomics')?.classList.contains('active')) {
