@@ -89,7 +89,8 @@ function attachCriticalEventListeners() {
 
     // Hamburger menu button
     const hamburgerBtn = document.getElementById('mobile-menu-btn');
-    if (hamburgerBtn) {
+    if (hamburgerBtn && !hamburgerBtn.dataset.bound) {
+        hamburgerBtn.dataset.bound = '1'; // guard against double-attachment
         hamburgerBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             // Explicit open/close based on current state (no blind toggle that
@@ -103,11 +104,11 @@ function attachCriticalEventListeners() {
 
     // Mobile menu close button (inside the popup)
     const closeBtn = document.getElementById('mobile-menu-close-btn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function() {
-            if (typeof toggleMobileMenu === 'function') {
-                toggleMobileMenu();
-            }
+    if (closeBtn && !closeBtn.dataset.bound) {
+        closeBtn.dataset.bound = '1';
+        closeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (typeof closeMobileMenu === 'function') closeMobileMenu();
         });
     }
 }
@@ -1607,30 +1608,9 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Attach close behavior to mobile menu links (so menu closes after navigation)
-function attachMobileMenuLinkListeners() {
-    const mobileMenu = document.getElementById('mobile-menu');
-    if (!mobileMenu) return;
-
-    const links = mobileMenu.querySelectorAll('a[data-page]');
-    links.forEach(link => {
-        link.addEventListener('click', () => {
-            // Close menu after a short delay so navigation can start
-            setTimeout(() => {
-                if (typeof window.toggleMobileMenu === 'function') {
-                    window.toggleMobileMenu();
-                }
-            }, 80);
-        });
-    });
-}
-
-// Run after DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', attachMobileMenuLinkListeners);
-} else {
-    attachMobileMenuLinkListeners();
-}
+// NOTE: mobile menu links are closed by the single nav-link click handler in
+// 04-pages-admin.js (closeMobileMenu() runs before navigation). A previous
+// second handler here re-opened the menu via a delayed toggle — removed.
 
 // One path for choosing a wallet from any surface (modal or connect bar):
 // close the chooser UI, then connect with an explicit approval prompt.
@@ -1893,7 +1873,7 @@ document.addEventListener('click', function(e) {
     // the dark backdrop itself (not the content inside) means "outside".
     if (e.target.id === 'wallet-modal') closeWalletModal();
     if (e.target.id === 'image-modal') closeImageModal();
-    if (e.target.id === 'mobile-menu') toggleMobileMenu();
+    if (e.target.id === 'mobile-menu' && typeof closeMobileMenu === 'function') closeMobileMenu();
     if (e.target.id === 'admin-login-modal' && typeof closeAdminLoginModal === 'function') {
         closeAdminLoginModal();
     }
