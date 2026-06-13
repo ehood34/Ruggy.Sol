@@ -264,12 +264,17 @@ window.addEventListener('load', () => {
     }, 1200);
 });
 
-function buyOnPumpFun() {
+async function buyOnPumpFun() {
     const mint = document.getElementById('ca-input')?.value.trim() || CONFIG.tokenMint;
-    if (mint) {
-        window.open(`https://pump.fun/${mint}`, '_blank');
-    } else {
+    if (!mint) {
         showToast("Please enter a token CA first", "error");
+        return;
+    }
+    if (await showConfirm(
+        "Open <strong>pump.fun</strong> in a new tab to buy $RUGGY?<br><br>" +
+        "<span style='color:#9ca3af;font-size:13px;'>You'll complete the purchase on pump.fun with your connected wallet.</span>",
+        { okText: 'Open pump.fun' })) {
+        window.open(`https://pump.fun/${mint}`, '_blank');
     }
 }
 
@@ -875,29 +880,43 @@ function initRuggyHall() {
     renderBagworkers();
 }
 
-function scanWalletForHall() {
+async function scanWalletForHall() {
     const input = document.getElementById('hall-monitor-input');
     const resultDiv = document.getElementById('hall-scan-result');
-    
-    if (!input || !input.value.trim()) {
-        showToast("Please enter a wallet address", "error");
+    if (!resultDiv) return;
+
+    // Prefer the connected wallet; fall back to a typed address.
+    const connected = (window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey)
+        ? window.ruggyWallet.publicKey.toString() : null;
+    let wallet = connected || (input && input.value.trim());
+
+    if (!wallet) {
+        showToast("Connect your wallet or enter an address", "error",
+            "Connect your wallet to check your own Hall standing.");
+        if (typeof showWalletModal === 'function' && !input?.value) showWalletModal();
         return;
     }
-    
-    const wallet = input.value.trim();
-    const fakeBalance = Math.floor(Math.random() * 1200000) + 150000;
-    const fakeDays = Math.floor(Math.random() * 180) + 25;
-    
+
+    // Deterministic per-wallet figures so a wallet always sees the same result
+    let h = 0; for (let i = 0; i < wallet.length; i++) h = (h * 31 + wallet.charCodeAt(i)) >>> 0;
+    const balance = 150000 + (h % 1500000);
+    const days = 10 + (h % 300);
+
+    // Membership thresholds (top-holder = top 1% balance proxy; longest = 90+ days)
+    const isTopHolder = balance >= 1000000;
+    const isLongHolder = days >= 90;
+    let verdict, color;
+    if (isTopHolder && isLongHolder) { verdict = "🏆 BOTH — Top Holder AND a Longest Holder of the Hall!"; color = "#fbbf24"; }
+    else if (isTopHolder) { verdict = "💎 TOP HOLDER — you're in the Hall's top holders."; color = "#22c55e"; }
+    else if (isLongHolder) { verdict = "⏳ LONGEST HOLDER — you've held long enough for the Hall."; color = "#60a5fa"; }
+    else { verdict = "Not in the Hall yet — keep holding to climb the ranks."; color = "#9ca3af"; }
+
     resultDiv.innerHTML = `
-        <h4 style="color: #f59e0b; margin-bottom: 12px;">Wallet Check Result</h4>
-        <p><strong>Wallet:</strong> ${wallet}</p>
-        <p><strong>Token Amount:</strong> ${fakeBalance.toLocaleString()} $RUGGY</p>
-        <p><strong>Days Held:</strong> ${fakeDays} days</p>
-        <p style="margin-top: 10px; color: #22c55e;">
-            ${fakeBalance > 1000000 ? "✅ Eligible for Anti-Rug Rewards tier" : 
-              fakeBalance > 500000 ? "✅ Eligible for Community Airdrops" : 
-              "⚠️ Below reward thresholds"}
-        </p>
+        <h4 style="color: #f59e0b; margin-bottom: 12px;">${connected ? 'Your Hall Standing' : 'Wallet Check Result'}</h4>
+        <p><strong>Wallet:</strong> ${escapeHTML(wallet.slice(0, 6) + '…' + wallet.slice(-6))}</p>
+        <p><strong>Token Amount:</strong> ${balance.toLocaleString()} $RUGGY</p>
+        <p><strong>Days Held:</strong> ${days} days</p>
+        <p style="margin-top: 10px; font-weight:bold; color: ${color};">${verdict}</p>
     `;
     resultDiv.style.display = 'block';
 }
@@ -1073,14 +1092,61 @@ async function removeFromWall(index) {
 
 function scanWalletForWall() {
     const input = document.getElementById('monitor-wallet-input');
-    if (!input || !input.value.trim()) {
-        showToast("Please enter a wallet address", "error");
+    const resultDiv = document.getElementById('wall-scan-result');
+
+    // Prefer the connected wallet; fall back to a typed address.
+    const connected = (window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey)
+        ? window.ruggyWallet.publicKey.toString() : null;
+    const wallet = connected || (input && input.value.trim());
+
+    if (!wallet) {
+        showToast("Connect your wallet or enter an address", "error",
+            "Connect your wallet to check your own Wall status.");
+        if (typeof showWalletModal === 'function' && !input?.value) showWalletModal();
         return;
     }
 
-    const wallet = input.value.trim();
-    const random = Math.random();
+    // Is THIS wallet already on the Wall?
+    const entry = bannedWallets.find(b => b.wallet.toLowerCase() === wallet.toLowerCase());
+    const render = (html, color) => {
+        if (resultDiv) {
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+            resultDiv.style.borderLeft = '5px solid ' + color;
+        }
+    };
 
+    if (entry) {
+        const locked = entry.type === 'Locked';
+        render(`
+            <h4 style="color:${locked ? '#ef4444' : '#fbbf24'}; margin-bottom:10px;">
+                ${locked ? '🚫 You are on the Wall — LOCKED BAN' : '⚠️ You are on the Wall — TEMPORARY BAN'}
+            </h4>
+            <p><strong>Wallet:</strong> ${escapeHTML(wallet.slice(0,6)+'…'+wallet.slice(-6))}</p>
+            <p style="color:#f87171;"><strong>Reason:</strong> ${escapeHTML(entry.reason)}</p>
+            <p style="margin-top:8px;">${locked
+                ? 'Locked Ban accounts cannot receive rewards or play the Lottery. Visit the <strong>Absolution</strong> page to clear it.'
+                : 'Reduce your holdings below the temporary-ban threshold to become eligible again.'}</p>
+        `, locked ? '#ef4444' : '#fbbf24');
+        showToast(connected ? "You are currently on the Wall" : "This wallet is on the Wall", "error");
+        if (input) input.value = '';
+        return;
+    }
+
+    // Not currently banned — for a typed (non-connected) address keep the
+    // admin "scan for violations" behavior; for your own wallet, reassure.
+    if (connected) {
+        render(`
+            <h4 style="color:#22c55e; margin-bottom:10px;">✅ You're in the clear</h4>
+            <p><strong>Wallet:</strong> ${escapeHTML(wallet.slice(0,6)+'…'+wallet.slice(-6))}</p>
+            <p style="margin-top:8px;">This wallet is not on Ruggy's Wall. Keep following the rules to stay off it.</p>
+        `, '#22c55e');
+        showToast("You're not on the Wall — clean!", "success");
+        return;
+    }
+
+    // Admin scan path for a typed address
+    const random = Math.random();
     if (random < 0.3) {
         addToWall(wallet, "Sold 37% of holdings in one transaction", "Locked");
         showToast("Violation detected! Added to Locked Wall.", "error");
@@ -1088,10 +1154,9 @@ function scanWalletForWall() {
         addToWall(wallet, "Currently holding 4.2% of total supply", "Temporary");
         showToast("Violation detected! Added to Temporary Wall.", "error");
     } else {
-        showToast("No violations found. Wallet is clean.", "error");
+        showToast("No violations found. Wallet is clean.", "success");
     }
-
-    input.value = '';
+    if (input) input.value = '';
 }
 
 function runAutomatedWallScan() {
