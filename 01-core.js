@@ -403,6 +403,7 @@ function renderTicketTables() {
     set('tickets-daily-count', l.daily);
     set('tickets-weekly-count', l.weekly);
     set('tickets-free-count', l.free);
+    set('free-tickets-available', l.free);
 
     const dailyPrice = Lottery.priceFor('daily');
     const weeklyPrice = Lottery.priceFor('weekly');
@@ -417,6 +418,35 @@ function renderTicketTables() {
     }
 }
 window.renderTicketTables = renderTicketTables;
+
+// Enter previously-earned free tickets into the DAILY draw (max 5 per action).
+async function enterFreeTickets() {
+    if (!Lottery._wallet()) {
+        showToast("Connect your wallet first", "error", "Free tickets are tied to your wallet.");
+        if (typeof showWalletModal === 'function') showWalletModal();
+        return;
+    }
+    const input = document.getElementById('free-ticket-enter-amount');
+    let n = parseInt(input?.value, 10) || 1;
+    n = Math.max(1, Math.min(5, n)); // hard cap of 5
+    const l = Lottery.ledger();
+    if (l.free < n) {
+        showToast("Not enough free tickets", "error",
+            `You have ${l.free} free ticket${l.free === 1 ? '' : 's'} available.`);
+        return;
+    }
+    if (!(await showConfirm(
+        `Enter <strong>${n} free ticket${n === 1 ? '' : 's'}</strong> into the <strong>Daily draw</strong>?`,
+        { okText: 'Enter Daily Draw' }))) {
+        return;
+    }
+    l.free -= n;
+    l.daily += n;   // free tickets only ever feed the daily draw
+    Lottery.saveLedger(l);
+    renderTicketTables();
+    showToast(`Entered ${n} free ticket${n === 1 ? '' : 's'} into the Daily draw!`, "success", "Good luck!");
+}
+window.enterFreeTickets = enterFreeTickets;
 
 // Compatibility aliases (data-action whitelist + legacy call sites)
 async function buyLottoTickets() { return Lottery.buy('daily'); }
@@ -452,6 +482,21 @@ if (oneYearOption) {
 // The Pool page's STAKE button called stakeRuggy(), which was never
 // defined — a ReferenceError on every click. This implements it in the
 // same localStorage-demo style as the lottery's buy/claim functions.
+// Per-wallet stakes: stored under ruggyStakes:<wallet>, so a connected
+// wallet's stakes are its own and clear from view when it disconnects.
+// Absolution stakes also land here so the Pool page reflects them.
+function stakeWalletKey() {
+    const w = (window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey)
+        ? window.ruggyWallet.publicKey.toString() : null;
+    return 'ruggyStakes:' + (w || 'guest');
+}
+function getStakes() {
+    try { return JSON.parse(localStorage.getItem(stakeWalletKey()) || '[]'); } catch (_) { return []; }
+}
+function saveStakes(stakes) {
+    localStorage.setItem(stakeWalletKey(), JSON.stringify(stakes));
+}
+
 async function stakeRuggy() {
     const amountInput = document.getElementById('stake-amount');
     const amount = amountInput ? parseFloat(amountInput.value) : 0;
@@ -472,14 +517,15 @@ async function stakeRuggy() {
     const multiplier = parseFloat(document.getElementById('stake-multiplier')?.value) || 3.0;
     const label = days >= 9999 ? 'Permanent' : (days >= 365 ? '1 Year' : days + ' Days');
 
-    if (days >= 9999 && !(await showConfirm("Permanent staking locks your $RUGGY <strong>forever</strong> with no early unstake. Continue?", { okText: 'Lock Forever', danger: true }))) {
-        return;
-    }
+    // Confirmation for ALL stakes (permanent gets the stronger danger variant)
+    const confirmed = days >= 9999
+        ? await showConfirm("Permanent staking locks your $RUGGY <strong>forever</strong> with no early unstake. Continue?", { okText: 'Lock Forever', danger: true })
+        : await showConfirm(`Stake <strong>${amount.toLocaleString()} $RUGGY</strong> for <strong>${label}</strong> at <strong>${multiplier}x</strong>?`, { okText: 'Confirm Stake' });
+    if (!confirmed) return;
 
-    let stakes = [];
-    try { stakes = JSON.parse(localStorage.getItem('ruggyStakes') || '[]'); } catch (_) {}
+    const stakes = getStakes();
     stakes.push({ amount, days, multiplier, label, date: new Date().toISOString() });
-    localStorage.setItem('ruggyStakes', JSON.stringify(stakes));
+    saveStakes(stakes);
 
     if (amountInput) amountInput.value = '';
     renderActiveStakes();
@@ -490,20 +536,27 @@ function renderActiveStakes() {
     const box = DOM.get('active-stakes');
     if (!box) return;
 
-    let stakes = [];
-    try { stakes = JSON.parse(localStorage.getItem('ruggyStakes') || '[]'); } catch (_) {}
+    // Stakes are wallet-scoped: show nothing (and a hint) when disconnected.
+    const connected = !!(window.ruggyWallet && window.ruggyWallet.connected);
+    if (!connected) {
+        box.innerHTML = '<span style="color:#6b7280;">Connect your wallet to view your stakes.</span>';
+        return;
+    }
 
+    const stakes = getStakes();
     if (!stakes.length) {
         box.innerHTML = '<span style="color:#6b7280;">No active stakes yet.</span>';
         return;
     }
 
-    box.innerHTML = stakes.map(s => `
+    box.innerHTML = stakes.map(s => {
+        const tag = s.absolution ? ' <span style="color:#f59e0b;">(Absolution)</span>' : '';
+        return `
         <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#0a2a14; border-radius:6px; margin-bottom:6px;">
-            <span>${Number(s.amount).toLocaleString()} $RUGGY</span>
+            <span>${Number(s.amount).toLocaleString()} $RUGGY${tag}</span>
             <span style="color:#86efac;">${s.label} \u2022 ${s.multiplier}x</span>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 window.addEventListener('load', renderActiveStakes);
 
@@ -659,9 +712,10 @@ function clearWalletState() {
 function refreshWalletUI() {
     if (typeof updateConnectWalletButton === 'function') updateConnectWalletButton();
     if (typeof updateHomeWalletDisplays === 'function') updateHomeWalletDisplays();
-    // Re-render the ticket tables so a wallet's previously-earned tickets
-    // appear the moment it connects/verifies (and clear on disconnect).
+    // Re-render wallet-scoped views so a wallet's tickets AND stakes appear
+    // the moment it connects/verifies — and clear from view on disconnect.
     if (typeof renderTicketTables === 'function') renderTicketTables();
+    if (typeof renderActiveStakes === 'function') renderActiveStakes();
 }
 
 // Attach connect/disconnect/accountChanged listeners once per provider.
@@ -1345,7 +1399,7 @@ async function calculateAbsolutionStake() {
     if (warning) warning.style.display = stillOwed > 0 ? 'block' : 'none';
 }
 
-function submitAbsolutionStake() {
+async function submitAbsolutionStake() {
     const usdValue = parseFloat(document.getElementById('rugged-amount').value);
     const breakdown = document.getElementById('absolution-stake-breakdown');
 
@@ -1354,31 +1408,57 @@ function submitAbsolutionStake() {
         return;
     }
 
+    if (!window.ruggyWallet || !window.ruggyWallet.connected) {
+        showToast("Connect your wallet first to absolve.", "error");
+        if (typeof showWalletModal === 'function') showWalletModal();
+        return;
+    }
+
     const pct = (CONFIG.metrics && CONFIG.metrics.absolutionStakePct) || 20;
     const days = (CONFIG.metrics && CONFIG.metrics.absolutionLockDays) || 3;
     const required = usdValue * (pct / 100);
     const stillOwed = Math.max(0, required - absolutionStakedAmount);
 
-    if (stillOwed > 0) {
-        const stakeNow = stillOwed;
-        absolutionStakedAmount += stakeNow;
-
-        showToast(`Staking $${stakeNow.toFixed(2)} worth of $RUGGY for ${days} days...`, "info");
-
-        calculateAbsolutionStake();
-
-        if (absolutionStakedAmount >= required) {
-            setTimeout(() => {
-                showToast("Full stake confirmed on-chain", "success", "You have been removed from Ruggy's Wall. Ruggy is watching... behave.");
-                breakdown.innerHTML = `
-                    <p style="color: #22c55e; margin: 0; font-weight: bold; text-align:center;">
-                        ✅ You are now absolved. Your stake is active.
-                    </p>
-                `;
-            }, 800);
-        }
-    } else {
+    if (stillOwed <= 0) {
         showToast("✅ You have already staked enough. Forgiveness processed.", "success");
+        return;
+    }
+
+    if (!(await showConfirm(
+        `Stake <strong>$${stillOwed.toFixed(2)}</strong> worth of $RUGGY, locked for <strong>${days} days</strong>, to absolve your Locked Ban?`,
+        { okText: 'Confirm Absolution Stake' }))) {
+        return;
+    }
+
+    const stakeNow = stillOwed;
+    absolutionStakedAmount += stakeNow;
+
+    // Record the absolution stake into the Pool's stake list so the Stake
+    // page reflects it. Uses a 1x multiplier (absolution, not yield).
+    const stakes = getStakes();
+    stakes.push({
+        amount: Math.round(stakeNow),
+        days,
+        multiplier: 1,
+        label: days >= 9999 ? 'Permanent' : days + ' Days',
+        date: new Date().toISOString(),
+        absolution: true
+    });
+    saveStakes(stakes);
+    if (typeof renderActiveStakes === 'function') renderActiveStakes();
+
+    showToast(`Staking $${stakeNow.toFixed(2)} worth of $RUGGY for ${days} days...`, "info");
+    calculateAbsolutionStake();
+
+    if (absolutionStakedAmount >= required) {
+        setTimeout(() => {
+            showToast("Full stake confirmed", "success", "You've been removed from Ruggy's Wall and your absolution stake now shows on the Pool page. Ruggy is watching... behave.");
+            breakdown.innerHTML = `
+                <p style="color: #22c55e; margin: 0; font-weight: bold; text-align:center;">
+                    ✅ You are now absolved. Your ${days}-day stake is active and visible on the Pool page.
+                </p>
+            `;
+        }, 800);
     }
 }
 
@@ -1422,7 +1502,7 @@ const UI_ACTION_WHITELIST = new Set([
     'startLiveTracking', 'scanWalletForWall', 'scanWalletForHall',
     'runAutomatedWallScan', 'runAutomatedHallScan', 'startMoneyRain',
     'exportSiteConfig', 'resetSiteData', 'toggleLpLockView',
-    'buyDailyTicket', 'buyWeeklyTicket'
+    'buyDailyTicket', 'buyWeeklyTicket', 'enterFreeTickets'
 ]);
 
 // Delegated input events (admin split sliders)
