@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v14 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=14">
+    <!-- ASSET VERSION v15 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=15">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,13 +41,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=14"></script>
-    <script defer src="02-banner-video.js?v=14"></script>
-    <script defer src="03-rewards-helpers.js?v=14"></script>
-    <script defer src="04-pages-admin.js?v=14"></script>
-    <script defer src="05-text-emoji.js?v=14"></script>
-    <script defer src="06-final-wiring.js?v=14"></script>
-    <script defer src="07-chain.js?v=14"></script>
+    <script defer src="01-core.js?v=15"></script>
+    <script defer src="02-banner-video.js?v=15"></script>
+    <script defer src="03-rewards-helpers.js?v=15"></script>
+    <script defer src="04-pages-admin.js?v=15"></script>
+    <script defer src="05-text-emoji.js?v=15"></script>
+    <script defer src="06-final-wiring.js?v=15"></script>
+    <script defer src="07-chain.js?v=15"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -1706,130 +1706,58 @@
             <div id="dev-panel" class="section">
                 <h4 style="color:#22c55e; margin-bottom:16px; text-align:center; font-size:17px;">Developer Settings</h4>
 
-                <!-- Test 404 Button -->
-                <div class="x248">
-                    <button data-action="navigate" data-page="error-404" 
-                            class="x249">
-                        🧪 TEST 404 ERROR PAGE
-                    </button>
-                </div>
-                
-                <!-- Token CA -->
-                <div style="margin-bottom:18px;">
-                    <label style="font-size:13px; display:block; margin-bottom:6px; color:#d1d5db;">Token CA (Mint)</label>
-                    <input id="dev-ca" type="text" style="width:100%; padding:11px; border-radius:8px; border:2px solid #6b21a8; background:#111827; color:white; font-size:14px;">
-                </div>
+                <details class="admin-section" open>
+                    <summary>💰 Token, Wallets &amp; Splits</summary>
+                    <div class="admin-section-body">
+                        <label class="label-sm">Token CA (Mint)</label>
+                        <input id="dev-ca" type="text" class="dev-input" placeholder="Token mint address">
 
-                <!-- Reward Distribution Splits -->
-                <div style="margin-bottom:22px; padding:16px; background:#1f2937; border-radius:10px;">
-                    <h5 style="color:#f59e0b; margin-bottom:12px; font-size:14px;">Reward Distribution Splits</h5>
-                    
-                    <div class="mb10">
-                        <label class="label-sm">Liquidity (Burn) <span id="liq-percent">40</span>%</label>
-                        <input id="dev-liq-percent" type="range" min="0" max="100" step="1" value="40" class="w-full" data-input-action="updateSplitPercentages">
-                    </div>
-                    
-                    <div class="mb10">
-                        <label class="label-sm">Anti-Rug (1M+) <span id="antirug-percent">20</span>%</label>
-                        <input id="dev-antirug-percent" type="range" min="0" max="100" step="1" value="20" class="w-full" data-input-action="updateSplitPercentages">
-                    </div>
-                    
-                    <div class="mb10">
-                        <label class="label-sm">Community (500k+) <span id="community-percent">30</span>%</label>
-                        <input id="dev-community-percent" type="range" min="0" max="100" step="1" value="30" class="w-full" data-input-action="updateSplitPercentages">
-                    </div>
-                    
-                    <div class="mb10">
-                        <label class="label-sm">MDR Fund <span id="creator-percent">10</span>%</label>
-                        <input id="dev-creator-percent" type="range" min="0" max="100" step="1" value="10" class="w-full" data-input-action="updateSplitPercentages">
-                    </div>
-                    
-                    <div style="font-size:12px; color:#9ca3af; margin-top:8px;">
-                        Total: <span id="split-total">100</span>% 
-                        <span id="split-warning" style="color:#ef4444; display:none;">(Must = 100%)</span>
-                    </div>
-                </div>
+                        <h5 class="u3">Reward Distribution Splits</h5>
+                        <div class="mb10">
+                            <label class="label-sm">Liquidity (Burn) <span id="liq-percent">40</span>%</label>
+                            <input id="dev-liq-percent" type="range" min="0" max="100" step="1" value="40" class="w-full" data-input-action="updateSplitPercentages">
+                        </div>
+                        <div class="mb10">
+                            <label class="label-sm">Anti-Rug (1M+) <span id="antirug-percent">20</span>%</label>
+                            <input id="dev-antirug-percent" type="range" min="0" max="100" step="1" value="20" class="w-full" data-input-action="updateSplitPercentages">
+                        </div>
+                        <div class="mb10">
+                            <label class="label-sm">Community (500k+) <span id="community-percent">30</span>%</label>
+                            <input id="dev-community-percent" type="range" min="0" max="100" step="1" value="30" class="w-full" data-input-action="updateSplitPercentages">
+                        </div>
+                        <div class="mb10">
+                            <label class="label-sm">MDR Fund <span id="creator-percent">10</span>%</label>
+                            <input id="dev-creator-percent" type="range" min="0" max="100" step="1" value="10" class="w-full" data-input-action="updateSplitPercentages">
+                        </div>
+                        <div style="font-size:12px; color:#9ca3af; margin-top:8px;">
+                            Total: <span id="split-total">100</span>%
+                            <span id="split-warning" style="color:#ef4444; display:none;">(Must = 100%)</span>
+                        </div>
 
-                <div class="u29">
-                    <h5 class="u3">Wallet Addresses</h5>
-                    
-                    <div class="mb12">
+                        <h5 class="u3">Wallet Addresses</h5>
                         <label class="label-xs">Burn Wallet (for buyback burns)</label>
-                        <input id="dev-burn-wallet" type="text" placeholder="Enter Burn Wallet Address" 
-                               class="dev-input">
-                    </div>
-                    
-                    <div class="mb12">
-                        <label class="label-xs">MDR (Marketing Development & Research Wallet)</label>
-                        <input id="dev-creator-wallet" type="text" placeholder="Enter MDR Wallet Address" 
-                               class="dev-input">
-                    </div>
+                        <input id="dev-burn-wallet" type="text" placeholder="Enter Burn Wallet Address" class="dev-input">
+                        <label class="label-xs">MDR (Marketing, Development &amp; Research) Wallet</label>
+                        <input id="dev-creator-wallet" type="text" placeholder="Enter MDR Wallet Address" class="dev-input">
 
-                    <div class="mb12">
+                        <h5 class="u3">Social Links</h5>
                         <label class="label-xs">X (Twitter) Link</label>
-                        <input id="dev-x-link" type="text" placeholder="https://x.com/yourhandle" 
-                               class="dev-input">
-                    </div>
-                    <div class="mb12">
+                        <input id="dev-x-link" type="text" placeholder="https://x.com/yourhandle" class="dev-input">
                         <label class="label-xs">Telegram Link</label>
-                        <input id="dev-telegram-link" type="text" placeholder="https://t.me/yourgroup" 
-                               class="dev-input">
-                    </div>
-                    <div class="mb12">
+                        <input id="dev-telegram-link" type="text" placeholder="https://t.me/yourgroup" class="dev-input">
                         <label class="label-xs">Dexscreener Link</label>
-                        <input id="dev-dexscreener-link" type="text" placeholder="https://dexscreener.com/solana/..." 
-                               class="dev-input">
-                    </div>
-                    <div class="mb12">
+                        <input id="dev-dexscreener-link" type="text" placeholder="https://dexscreener.com/solana/..." class="dev-input">
                         <label class="label-xs">Pump.fun Link</label>
-                        <input id="dev-pumpfun-link" type="text" placeholder="https://pump.fun/..." 
-                               class="dev-input">
-                    </div>
-                    
-                    <div>
-                        <label class="label-xs">Dev Wallet</label>
+                        <input id="dev-pumpfun-link" type="text" placeholder="https://pump.fun/..." class="dev-input">
+
+                        <h5 class="u3">Dev Wallet</h5>
                         <button id="connect-dev-wallet-home-btn" data-action="connectDevWalletForHome" class="buy-button" style="padding:8px 14px; font-size:12px; background: linear-gradient(to right, #a855f7, #7c3aed);">
                             Connect Dev Wallet
                         </button>
                         <div id="dev-wallet-display" style="margin-top:6px; font-size:11px; color:#9ca3af; font-family: monospace; word-break: break-all;"></div>
                     </div>
-                </div>
-                
-                <div style="border-top: 1px solid #6b21a8; padding-top: 15px; margin-top: 10px;">
-                    <h4 class="u3">Reward Distribution</h4>
-                    
-                    <div class="mb12">
-                        <label class="label-xs">Distribution Interval (minutes)</label>
-                        <input id="dev-interval" type="number" value="30" class="dev-input">
-                    </div>
-                    
-                    <button id="reset-timer-btn" data-action="resetDistributionTimer" class="buy-button" style="background: #4b5563; color: #d1d5db; margin-bottom: 8px; font-size:12px; border: 1px solid #6b7280;"
-                            title="Restarts the live countdown using the interval above">
-                        ⏱ Apply Interval &amp; Restart Timer
-                    </button>
-                    <button id="test-money-rain-btn" data-action="startMoneyRain" class="buy-button" style="background: #14532d; color: #bbf7d0; margin-bottom: 8px; font-size:12px; border: 1px solid #22c55e;"
-                            title="Preview the 1-minute money rain that plays when the timer hits 00:00">
-                        💵 Test Money Rain
-                    </button>
-                    
-                    <button id="trigger-distribution-btn" data-action="triggerDistribution" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); margin-bottom: 8px;">
-                        🚀 Trigger Reward Distribution
-                    </button>
-                    
-                    <button id="pause-rewards-btn" data-action="toggleRewardsPause" class="buy-button" style="background: #ef4444; margin-top: 4px;">
-                        ⏸ Pause Rewards
-                    </button>
-                </div>
+                </details>
 
-                <div class="u29">
-                    <h5 class="u3">Top 5 Bagworkers</h5>
-                    <input id="dev-bagworker-1" type="text" placeholder="Bagworker 1" class="dev-input-sm">
-                    <input id="dev-bagworker-2" type="text" placeholder="Bagworker 2" class="dev-input-sm">
-                    <input id="dev-bagworker-3" type="text" placeholder="Bagworker 3" class="dev-input-sm">
-                    <input id="dev-bagworker-4" type="text" placeholder="Bagworker 4" class="dev-input-sm">
-                    <input id="dev-bagworker-5" type="text" placeholder="Bagworker 5" style="width:100%; padding:8px; border-radius:6px; border:1px solid #6b21a8; background:#111827; color:white; font-size:13px;">
-                </div>
-                
                 <details class="admin-section">
                     <summary>📊 Rules &amp; Metrics</summary>
                     <div class="admin-section-body">
@@ -1843,6 +1771,17 @@
                         <input id="m-community-threshold" type="number" min="0" class="dev-input" placeholder="500000">
                         <label class="label-sm">Anti-Rug group: tokens required</label>
                         <input id="m-antirug-threshold" type="number" min="0" class="dev-input" placeholder="1000000">
+                        <label class="label-sm">Distribution Interval (minutes)</label>
+                        <input id="dev-interval" type="number" value="30" class="dev-input">
+                        <button id="reset-timer-btn" data-action="resetDistributionTimer" class="buy-button admin-tool-btn" style="background:#4b5563; color:#d1d5db; border:1px solid #6b7280;" title="Restarts the live countdown using the interval above">
+                            ⏱ Apply Interval &amp; Restart Timer
+                        </button>
+                        <button id="trigger-distribution-btn" data-action="triggerDistribution" class="buy-button admin-tool-btn" style="background: linear-gradient(to right, #22c55e, #16a34a);">
+                            🚀 Trigger Reward Distribution
+                        </button>
+                        <button id="pause-rewards-btn" data-action="toggleRewardsPause" class="buy-button admin-tool-btn" style="background:#ef4444;">
+                            ⏸ Pause Rewards
+                        </button>
 
                         <h5 class="u3">Take Profit &amp; Bans</h5>
                         <label class="label-sm">Take-profit unlocks at ROI (%)</label>
@@ -1937,6 +1876,13 @@
                         <input id="content-hero-sub" type="text" class="dev-input" placeholder="The Ultimate Anti-Rug Mascot">
                         <label class="label-sm">Lottery Jackpot Display</label>
                         <input id="content-jackpot" type="text" class="dev-input" placeholder="$124,850">
+
+                        <h5 class="u3">Top 5 Bagworkers (Hall of Fame)</h5>
+                        <input id="dev-bagworker-1" type="text" placeholder="Bagworker 1" class="dev-input-sm">
+                        <input id="dev-bagworker-2" type="text" placeholder="Bagworker 2" class="dev-input-sm">
+                        <input id="dev-bagworker-3" type="text" placeholder="Bagworker 3" class="dev-input-sm">
+                        <input id="dev-bagworker-4" type="text" placeholder="Bagworker 4" class="dev-input-sm">
+                        <input id="dev-bagworker-5" type="text" placeholder="Bagworker 5" class="dev-input-sm">
                     </div>
                 </details>
 
@@ -1979,6 +1925,11 @@
                 <details class="admin-section">
                     <summary>🧰 Maintenance</summary>
                     <div class="admin-section-body">
+                        <h5 class="u3" style="margin-top:0;">Test &amp; Preview</h5>
+                        <button data-action="startMoneyRain" class="buy-button admin-tool-btn" style="background:#14532d; color:#bbf7d0; border:1px solid #22c55e;" title="Preview the money rain that plays when the timer hits 00:00">💵 Test Money Rain</button>
+                        <button data-action="navigate" data-page="error-404" class="buy-button admin-tool-btn" style="background:#3f1f1f; color:#fca5a5; border:1px solid #ef4444;">🧪 Test 404 Error Page</button>
+
+                        <h5 class="u3">Backup &amp; Reset</h5>
                         <p class="muted-sm" style="margin: 0 0 10px;">Settings live in <em>this browser's</em> storage. Export to back up or move them to another device.</p>
                         <button data-action="exportSiteConfig" class="buy-button admin-tool-btn">⬇ Export Settings (JSON)</button>
                         <label class="buy-button admin-tool-btn" style="display:block; text-align:center; cursor:pointer;">
