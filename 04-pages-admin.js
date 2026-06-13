@@ -87,7 +87,12 @@ function loadConfig() {
         postLockAntiRug: 30,
         postLockCreator: 10,
         dailyTicketPrice: 3,
-        weeklyTicketPrice: 6
+        weeklyTicketPrice: 6,
+        consolationHigherPct: 20,   // % to the higher number-match tier
+        consolationLowerPct: 10,    // % to the lower number-match tier
+        consolationHigherMatch: 3,  // "match N numbers" for the higher tier
+        consolationLowerMatch: 2,   // "match N numbers" for the lower tier
+        lotteryWallet: ''           // dedicated lottery wallet (set in admin / from chain)
     }, CONFIG.metrics || {});
 
     // Chain connection (admin panel > ⛓ Chain)
@@ -1260,7 +1265,6 @@ function populateDevPanel() {
     set('content-hero-title', c.heroTitle);
     set('content-hero-sub', c.heroSub);
     set('content-jackpot', c.jackpotText);
-    set('content-ticket-price', c.ticketPrice);
 
     // Rules & Metrics
     const mv = CONFIG.metrics || {};
@@ -1284,8 +1288,6 @@ function populateDevPanel() {
     set('m-free-ticket-hours', mv.freeTicketCooldownHours);
     set('m-mini-draw', mv.miniDrawLabel);
     set('m-big-draw', mv.bigDrawLabel);
-    set('m-lotto-main', mv.lottoMainPct);
-    set('m-lotto-daily', mv.lottoDailyPct);
     set('m-lotto-mdr', mv.lottoMdrPct);
     set('m-lotto-burn', mv.lottoBurnPct);
     set('m-daily-max', mv.dailyMaxOfWeeklyPct);
@@ -1295,6 +1297,11 @@ function populateDevPanel() {
     set('m-postlock-creator', mv.postLockCreator);
     set('m-daily-ticket-price', mv.dailyTicketPrice);
     set('m-weekly-ticket-price', mv.weeklyTicketPrice);
+    set('m-consol-higher-pct', mv.consolationHigherPct);
+    set('m-consol-lower-pct', mv.consolationLowerPct);
+    set('m-consol-higher-match', mv.consolationHigherMatch);
+    set('m-consol-lower-match', mv.consolationLowerMatch);
+    set('m-lottery-wallet', mv.lotteryWallet);
 
     // Chain
     const ch = CONFIG.chain || {};
@@ -1412,7 +1419,6 @@ function saveDeveloperSettings() {
     CONFIG.content.heroTitle = getAdminInputValue('content-hero-title') || 'RUGGY';
     CONFIG.content.heroSub = getAdminInputValue('content-hero-sub') || 'The Ultimate Anti-Rug Mascot';
     CONFIG.content.jackpotText = getAdminInputValue('content-jackpot') || '$124,850';
-    CONFIG.content.ticketPrice = getAdminInputNumber('content-ticket-price', 3);
 
     // Appearance & Effects
     CONFIG.ui = CONFIG.ui || {};
@@ -1447,8 +1453,6 @@ function saveDeveloperSettings() {
     mm.freeTicketCooldownHours = getAdminInputNumber('m-free-ticket-hours', 24);
     mm.miniDrawLabel = getAdminInputValue('m-mini-draw') || 'Today • 8:00 PM UTC';
     mm.bigDrawLabel = getAdminInputValue('m-big-draw') || 'Sunday • 8:00 PM UTC';
-    mm.lottoMainPct = getAdminInputNumber('m-lotto-main', 80);
-    mm.lottoDailyPct = getAdminInputNumber('m-lotto-daily', 10);
     mm.lottoMdrPct = getAdminInputNumber('m-lotto-mdr', 10);
     mm.lottoBurnPct = getAdminInputNumber('m-lotto-burn', 10);
     mm.dailyMaxOfWeeklyPct = getAdminInputNumber('m-daily-max', 50);
@@ -1458,6 +1462,11 @@ function saveDeveloperSettings() {
     mm.postLockCreator = getAdminInputNumber('m-postlock-creator', 10);
     mm.dailyTicketPrice = parseFloat(document.getElementById('m-daily-ticket-price')?.value) || 3;
     mm.weeklyTicketPrice = parseFloat(document.getElementById('m-weekly-ticket-price')?.value) || 6;
+    mm.consolationHigherPct = getAdminInputNumber('m-consol-higher-pct', 20);
+    mm.consolationLowerPct = getAdminInputNumber('m-consol-lower-pct', 10);
+    mm.consolationHigherMatch = getAdminInputNumber('m-consol-higher-match', 3);
+    mm.consolationLowerMatch = getAdminInputNumber('m-consol-lower-match', 2);
+    mm.lotteryWallet = getAdminInputValue('m-lottery-wallet');
 
     // Chain
     CONFIG.chain = CONFIG.chain || {};
@@ -1471,6 +1480,14 @@ function saveDeveloperSettings() {
     if (splitTotal !== 100) {
         showToast("Splits don't total 100%", "error",
             `Your four fee splits add to ${splitTotal}%. The site will display them as entered — adjust so they total 100%.`);
+    }
+
+    // Lottery allocation sanity: consolation + MDR + burn must leave room for Main
+    const consol = (mm.consolationHigherPct || 0) + (mm.consolationLowerPct || 0);
+    const nonMain = consol + (mm.lottoMdrPct || 0) + (mm.lottoBurnPct || 0);
+    if (nonMain > 100) {
+        showToast("Lottery allocation over 100%", "error",
+            `Consolation + MDR + Burn = ${nonMain}%, leaving nothing for the Main Prize Pool. Lower them so they total under 100%.`);
     }
 
     saveConfig();
@@ -1846,7 +1863,20 @@ function metricsView() {
         postLockAntiRug: m.postLockAntiRug,
         postLockCreator: m.postLockCreator,
         dailyTicketPrice: m.dailyTicketPrice,
-        weeklyTicketPrice: m.weeklyTicketPrice
+        weeklyTicketPrice: m.weeklyTicketPrice,
+        consolationHigherPct: m.consolationHigherPct,
+        consolationLowerPct: m.consolationLowerPct,
+        consolationHigherMatch: m.consolationHigherMatch,
+        consolationLowerMatch: m.consolationLowerMatch,
+        consolationTotalPct: (Number(m.consolationHigherPct) || 0) + (Number(m.consolationLowerPct) || 0),
+        // Main pool is the remainder so the allocation always sums to 100%:
+        // 100 - consolation - MDR - burn
+        mainPoolPct: Math.max(0, 100
+            - ((Number(m.consolationHigherPct) || 0) + (Number(m.consolationLowerPct) || 0))
+            - (Number(m.lottoMdrPct) || 0)
+            - (Number(m.lottoBurnPct) || 0)),
+        lotteryWallet: m.lotteryWallet,
+        lotteryWalletShort: m.lotteryWallet ? (m.lotteryWallet.slice(0, 4) + '…' + m.lotteryWallet.slice(-4)) : 'Not set'
     };
 }
 window.metricsView = metricsView;
@@ -1915,10 +1945,19 @@ function applySiteSettings() {
     const jackpot = document.getElementById('lotto-jackpot-display');
     if (jackpot && content.jackpotText) jackpot.textContent = content.jackpotText;
 
-    const price = Number(content.ticketPrice) || 3;
+    const price = Number(CONFIG.metrics?.dailyTicketPrice) || Number(content.ticketPrice) || 3;
     RUGGY_SETTINGS.lottery.ticketPriceUsd = price;
     const priceDisplay = document.getElementById('lotto-ticket-price-display');
     if (priceDisplay) priceDisplay.textContent = '$' + price + ' USD';
+
+    // Lottery wallet display in the prize breakdown
+    const lwAddr = document.getElementById('lottery-wallet-addr');
+    if (lwAddr) {
+        const w = CONFIG.metrics?.lotteryWallet;
+        lwAddr.textContent = w ? (w.slice(0, 4) + '…' + w.slice(-4)) : 'Not set';
+    }
+    const lwTotal = document.getElementById('lottery-wallet-total');
+    if (lwTotal && CONFIG.content?.jackpotText) lwTotal.textContent = CONFIG.content.jackpotText;
 
     // --- Appearance ---
     document.body.classList.remove('neon-soft', 'neon-max');
