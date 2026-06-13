@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v12 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=12">
+    <!-- ASSET VERSION v14 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=14">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,13 +41,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=12"></script>
-    <script defer src="02-banner-video.js?v=12"></script>
-    <script defer src="03-rewards-helpers.js?v=12"></script>
-    <script defer src="04-pages-admin.js?v=12"></script>
-    <script defer src="05-text-emoji.js?v=12"></script>
-    <script defer src="06-final-wiring.js?v=12"></script>
-    <script defer src="07-chain.js?v=12"></script>
+    <script defer src="01-core.js?v=14"></script>
+    <script defer src="02-banner-video.js?v=14"></script>
+    <script defer src="03-rewards-helpers.js?v=14"></script>
+    <script defer src="04-pages-admin.js?v=14"></script>
+    <script defer src="05-text-emoji.js?v=14"></script>
+    <script defer src="06-final-wiring.js?v=14"></script>
+    <script defer src="07-chain.js?v=14"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -1548,7 +1548,7 @@
                         <strong id="lotto-total-cost">$15.00</strong>
                     </div>
                     <div class="muted-12">
-                        <span data-m="lottoMainPct" data-fmt="pct">80%</span> Prize Pool • <span data-m="lottoMdrPct" data-fmt="pct">10%</span> MDR • <span data-m="lottoBurnPct" data-fmt="pct">10%</span> Burn
+                        <span data-m="mainPoolPct" data-fmt="pct">50%</span> Prize Pool • <span data-m="consolationTotalPct" data-fmt="pct">30%</span> Consolation • <span data-m="lottoMdrPct" data-fmt="pct">10%</span> MDR • <span data-m="lottoBurnPct" data-fmt="pct">10%</span> Burn
                     </div>
                 </div>
 
@@ -1617,44 +1617,51 @@
             <!-- Prize Breakdown -->
             <div class="card">
                 <h3 style="color: #fbbf24; margin-bottom: 18px;">Prize Pool Breakdown</h3>
-                
+
+                <!-- Dedicated lottery wallet (funds the pool; live on-chain) -->
+                <div style="background:#0b1220; border:1px solid #fbbf24; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <span class="text-14"><strong class="gold">🎰 Lottery Wallet</strong><br><span class="muted-sm" id="lottery-wallet-addr"><span data-m="lotteryWalletShort" data-fmt="raw">Not set</span></span></span>
+                    <span class="gold" style="font-weight:bold; font-size:18px;" id="lottery-wallet-total">$124,850</span>
+                </div>
+
+                <p class="muted-sm" style="margin:0 0 10px;">How the lottery wallet is allocated each draw:</p>
                 <div style="display: grid; gap: 12px; font-size: 15px;">
                     <div class="u28">
-                        <span><strong class="gold"><span data-m="lottoMainPct" data-fmt="pct">80%</span></strong> → <span class="gold">Main Prize Pool</span></span>
-                        <span class="gold" style="font-weight: bold;">$99,880</span>
+                        <span><strong class="gold"><span data-m="mainPoolPct" data-fmt="pct">50%</span></strong> → <span class="gold">Main Prize Pool</span></span>
+                        <span class="gold" style="font-weight: bold;">Match all numbers</span>
                     </div>
                     <div class="u28">
-                        <span><strong style="color:#22c55e;"><span data-m="dailyMaxOfWeeklyPct" data-fmt="pct">50%</span></strong> → <span style="color:#22c55e;">Daily Lottery Prize Pool</span></span>
-                        <span style="color: #22c55e; font-weight: bold;">max of weekly</span>
-                    </div>
-                    <div class="u28">
-                        <span><strong style="color:#3b82f6;">20%</strong> → <span style="color:#3b82f6;">Consolation Pool</span></span>
+                        <span><strong style="color:#3b82f6;"><span data-m="consolationTotalPct" data-fmt="pct">30%</span></strong> → <span style="color:#3b82f6;">Consolation Pool</span></span>
                         <span style="color: #3b82f6; font-weight: bold;">Active • all draws</span>
                     </div>
                     <div class="u28">
-                        <span><strong><span data-m="lottoMdrPct" data-fmt="pct">10%</span></strong> → MDR Fund</span>
-                        <span style="color: #a855f7;">$12,485</span>
+                        <span><strong style="color:#a855f7;"><span data-m="lottoMdrPct" data-fmt="pct">10%</span></strong> → <span style="color:#a855f7;">MDR Fund</span></span>
+                        <span style="color: #a855f7;">Marketing &amp; Dev</span>
                     </div>
-                    <div class="row-between">
-                        <span><strong><span data-m="lottoBurnPct" data-fmt="pct">10%</span></strong> → Permanent Burn Wallet</span>
-                        <span class="u106">$12,485</span>
+                    <div class="u28" style="border-bottom:1px solid #374151; padding-bottom:10px;">
+                        <span><strong style="color:#f87171;"><span data-m="lottoBurnPct" data-fmt="pct">10%</span></strong> → <span style="color:#f87171;">Permanent Burn</span></span>
+                        <span style="color:#f87171;">Removed forever</span>
+                    </div>
+                    <div class="row-between" style="font-size:14px;">
+                        <span class="muted-sm">Total allocation</span>
+                        <strong style="color:#22c55e;">100%</strong>
                     </div>
                 </div>
                 <div style="margin-top:14px; padding-top:12px; border-top:1px solid #374151; font-size:13.5px; color:#d1d5db; line-height:1.6;">
-                    <p style="margin:0 0 6px;"><strong class="gold">All fees flow into the Weekly lottery pool.</strong> The Weekly pool <strong>rolls over</strong> if it isn't fully won, growing larger each draw.</p>
-                    <p style="margin:0;">The <strong class="green">Daily lottery's maximum payout is <span data-m="dailyMaxOfWeeklyPct" data-fmt="pct">50%</span> of the current Weekly pool</strong> — so daily winners take a share while the big Weekly prize keeps building.</p>
+                    <p style="margin:0 0 6px;"><strong class="gold">Unwon prize money rolls over.</strong> If the Main Prize Pool isn't won, it carries into the next draw and grows.</p>
+                    <p style="margin:0;"><strong class="green">Daily draws pay at most <span data-m="dailyMaxOfWeeklyPct" data-fmt="pct">50%</span> of the Main Prize Pool</strong> — daily winners take a capped share while the big Weekly jackpot keeps building.</p>
                 </div>
             </div>
 
             <!-- Consolation Pool -->
             <div class="card" style="border: 3px solid #3b82f6;">
-                <h3 class="u13">Consolation Pool (20%)</h3>
+                <h3 class="u13">Consolation Pool (<span data-m="consolationTotalPct" data-fmt="pct">30%</span>)</h3>
                 <p class="text-15">
-                    If you match <strong>2 or 3 numbers</strong>, you still win from the <strong>20% Consolation Pool</strong>!
+                    If you match <strong><span data-m="consolationLowerMatch" data-fmt="raw">2</span> or <span data-m="consolationHigherMatch" data-fmt="raw">3</span> numbers</strong>, you still win from the <strong><span data-m="consolationTotalPct" data-fmt="pct">30%</span> Consolation Pool</strong>!
                 </p>
                 <div style="margin-top: 15px; font-size: 14px; color: #9ca3af;">
-                    • Match 3 numbers = Bigger consolation share<br>
-                    • Match 2 numbers = Smaller consolation share<br>
+                    • <strong class="green"><span data-m="consolationHigherPct" data-fmt="pct">20%</span></strong> goes to <strong>match <span data-m="consolationHigherMatch" data-fmt="raw">3</span> numbers</strong> (the larger matches)<br>
+                    • <strong class="gold"><span data-m="consolationLowerPct" data-fmt="pct">10%</span></strong> goes to <strong>match <span data-m="consolationLowerMatch" data-fmt="raw">2</span> numbers</strong> (the lower matches)<br>
                     • This pool rolls over if not fully claimed
                 </div>
             </div>
@@ -1877,17 +1884,28 @@
                         <label class="label-sm">Next Big Draw label</label>
                         <input id="m-big-draw" type="text" class="dev-input" placeholder="Sunday • 8:00 PM UTC">
 
-                        <h5 class="u3">Lottery Fee Breakdown (% of weekly pool)</h5>
-                        <label class="label-sm">Main Prize Pool %</label>
-                        <input id="m-lotto-main" type="number" min="0" max="100" class="dev-input" placeholder="80">
-                        <label class="label-sm">Daily Lottery Wallet %</label>
-                        <input id="m-lotto-daily" type="number" min="0" max="100" class="dev-input" placeholder="10">
+                        <h5 class="u3">Lottery Wallet Allocation</h5>
+                        <p class="muted-sm" style="margin:0 0 8px;">Main Prize Pool is auto-calculated as the remainder (100% − Consolation − MDR − Burn), so the allocation always totals 100%.</p>
                         <label class="label-sm">MDR Fund %</label>
                         <input id="m-lotto-mdr" type="number" min="0" max="100" class="dev-input" placeholder="10">
                         <label class="label-sm">Permanent Burn %</label>
                         <input id="m-lotto-burn" type="number" min="0" max="100" class="dev-input" placeholder="10">
-                        <label class="label-sm">Daily max winnings (% of weekly pool)</label>
+                        <label class="label-sm">Daily max winnings (% of Main Prize Pool)</label>
                         <input id="m-daily-max" type="number" min="0" max="100" class="dev-input" placeholder="50">
+
+                        <h5 class="u3">Consolation Pool</h5>
+                        <label class="label-sm">Higher-match tier % (larger matches)</label>
+                        <input id="m-consol-higher-pct" type="number" min="0" max="100" class="dev-input" placeholder="20">
+                        <label class="label-sm">Higher tier: match how many numbers?</label>
+                        <input id="m-consol-higher-match" type="number" min="1" max="10" class="dev-input" placeholder="3">
+                        <label class="label-sm">Lower-match tier % (lower matches)</label>
+                        <input id="m-consol-lower-pct" type="number" min="0" max="100" class="dev-input" placeholder="10">
+                        <label class="label-sm">Lower tier: match how many numbers?</label>
+                        <input id="m-consol-lower-match" type="number" min="1" max="10" class="dev-input" placeholder="2">
+
+                        <h5 class="u3">Lottery Wallet & Ticket Prices</h5>
+                        <label class="label-sm">Dedicated Lottery Wallet address</label>
+                        <input id="m-lottery-wallet" type="text" class="dev-input" placeholder="Lottery wallet pubkey">
                         <label class="label-sm">Daily ticket price (USD)</label>
                         <input id="m-daily-ticket-price" type="number" min="0" step="0.01" class="dev-input" placeholder="3">
                         <label class="label-sm">Weekly ticket price (USD)</label>
@@ -1919,8 +1937,6 @@
                         <input id="content-hero-sub" type="text" class="dev-input" placeholder="The Ultimate Anti-Rug Mascot">
                         <label class="label-sm">Lottery Jackpot Display</label>
                         <input id="content-jackpot" type="text" class="dev-input" placeholder="$124,850">
-                        <label class="label-sm">Lottery Ticket Price (USD)</label>
-                        <input id="content-ticket-price" type="number" min="1" class="dev-input" placeholder="3">
                     </div>
                 </details>
 
