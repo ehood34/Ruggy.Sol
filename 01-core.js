@@ -90,12 +90,14 @@ function attachCriticalEventListeners() {
     // Hamburger menu button
     const hamburgerBtn = document.getElementById('mobile-menu-btn');
     if (hamburgerBtn) {
-        hamburgerBtn.addEventListener('click', function() {
-            if (typeof toggleMobileMenu === 'function') {
-                toggleMobileMenu();
-            } else {
-                console.error('toggleMobileMenu is not defined yet');
-            }
+        hamburgerBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // Explicit open/close based on current state (no blind toggle that
+            // a stray event could flip the wrong way).
+            const menu = document.getElementById('mobile-menu');
+            const isOpen = menu && menu.style.display === 'flex';
+            if (isOpen) { if (typeof closeMobileMenu === 'function') closeMobileMenu(); }
+            else { if (typeof openMobileMenu === 'function') openMobileMenu(); }
         });
     }
 
@@ -1557,34 +1559,25 @@ function showToast(message, type = 'success', detail = '') {
 window.showToast = showToast;
 
 // ==================== MOBILE HAMBURGER MENU ====================
+function openMobileMenu() {
+    const menu = document.getElementById('mobile-menu');
+    if (!menu) return;
+    const btn = document.getElementById('mobile-menu-btn');
+    const nav = document.querySelector('nav');
+    const navHeight = nav ? nav.getBoundingClientRect().height : 70;
+    menu.style.paddingTop = (navHeight + 12) + 'px';
+    menu.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+}
+window.openMobileMenu = openMobileMenu;
+
+// Kept for backward compatibility / any external callers.
 function toggleMobileMenu() {
     const menu = document.getElementById('mobile-menu');
     if (!menu) return;
-
-    const isHidden = menu.style.display === 'none' || menu.style.display === '';
-
-    const btn = document.getElementById('mobile-menu-btn');
-    if (isHidden) {
-        // Start the menu card just below the fixed navigation bar,
-        // measured live so it adapts to whatever height the nav has.
-        const nav = document.querySelector('nav');
-        const navHeight = nav ? nav.getBoundingClientRect().height : 70;
-        menu.style.paddingTop = (navHeight + 12) + 'px';
-
-        menu.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-        if (btn) btn.setAttribute('aria-expanded', 'true');
-        // Move focus into the menu for keyboard/screen-reader users
-        const firstLink = menu.querySelector('.nav-link, button');
-        if (firstLink) setTimeout(() => firstLink.focus(), 50);
-    } else {
-        menu.style.display = 'none';
-        document.body.style.overflow = '';
-        if (btn) {
-            btn.setAttribute('aria-expanded', 'false');
-            btn.focus(); // return focus to the trigger
-        }
-    }
+    const isOpen = menu.style.display === 'flex';
+    if (isOpen) closeMobileMenu(); else openMobileMenu();
 }
 
 // Expose toggleMobileMenu globally
