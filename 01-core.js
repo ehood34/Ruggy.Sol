@@ -1079,7 +1079,9 @@ function initWalletState() {
             publicKey: null,
             connected: false,
             provider: null,
-            name: null
+            name: null,
+            currentWallet: null,
+            walletKey: null
         };
     }
 
@@ -1139,9 +1141,12 @@ async function tryAutoReconnect() {
 
 async function connectWallet(preferredWallet = null, forcePrompt = true) {
     const btn = document.getElementById('connect-btn');
-    const originalText = btn ? btn.innerHTML : '';
+    // Restore the button to whatever the TRUE current state is, rather than a
+    // captured snapshot — this avoids leaving a stale "Connecting…" or old
+    // address if a connect attempt fails or is cancelled.
     const resetBtn = () => {
-        resetBtn();
+        if (btn) btn.disabled = false;
+        if (typeof updateConnectWalletButton === 'function') updateConnectWalletButton();
     };
 
     // Show loading state
