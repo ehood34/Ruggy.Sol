@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v5 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=5">
+    <!-- ASSET VERSION v6 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=6">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,13 +41,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=5"></script>
-    <script defer src="02-banner-video.js?v=5"></script>
-    <script defer src="03-rewards-helpers.js?v=5"></script>
-    <script defer src="04-pages-admin.js?v=5"></script>
-    <script defer src="05-text-emoji.js?v=5"></script>
-    <script defer src="06-final-wiring.js?v=5"></script>
-    <script defer src="07-chain.js?v=5"></script>
+    <script defer src="01-core.js?v=6"></script>
+    <script defer src="02-banner-video.js?v=6"></script>
+    <script defer src="03-rewards-helpers.js?v=6"></script>
+    <script defer src="04-pages-admin.js?v=6"></script>
+    <script defer src="05-text-emoji.js?v=6"></script>
+    <script defer src="06-final-wiring.js?v=6"></script>
+    <script defer src="07-chain.js?v=6"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -1004,7 +1004,7 @@
             <h3 class="u20">🤖 Automated Hall Monitoring</h3>
             
             <div class="u21">
-                <input id="hall-monitor-input" type="text" placeholder="Enter wallet to check holdings..." 
+                <input id="hall-monitor-input" type="text" placeholder="Connected wallet auto-checks, or enter an address..." 
                        class="u22">
                 
                 <button data-action="scanWalletForHall" class="buy-button u23">
@@ -1138,8 +1138,9 @@
                        class="u22">
                 
                 <button data-action="scanWalletForWall" class="buy-button u23">
-                    Scan Wallet
+                    Check My Wallet
                 </button>
+                <div id="wall-scan-result" style="margin-top: 15px; padding: 15px; background: #1f2937; border-radius: 10px; display: none;"></div>
                 
                 <button data-action="runAutomatedWallScan" class="buy-button" style="width: auto; padding: 12px 24px; background: linear-gradient(to right, #ef4444, #b91c1c);">
                     Run Automated Scan
@@ -1570,20 +1571,37 @@
             <div class="card" style="border: 3px solid #22c55e;">
                 <h3 style="color: #22c55e; margin-bottom: 15px; text-align: center;">🎁 Daily Free Ticket</h3>
                 
-                <p style="font-size: 15px; text-align: center; margin-bottom: 20px;">
+                <p style="font-size: 15px; text-align: center; margin-bottom: 8px;">
                     Stake $RUGGY in the <strong>Pool</strong> and earn <strong>1 free lottery ticket every day</strong> you remain staked.
+                </p>
+                <p style="font-size: 13px; text-align: center; margin-bottom: 18px;">
+                    <strong class="gold">⚠ Free tickets are for the DAILY draw only</strong> — they cannot be used in the Weekly lottery.
                 </p>
 
                 <div style="background: #052e16; padding: 16px; border-radius: 12px; text-align: center; margin-bottom: 15px;">
-                    <div class="u25">Your Current Streak</div>
-                    <div class="u26">12 Days</div>
-                    <div style="font-size: 14px; color: #86efac;">= 12 Free Tickets Earned</div>
+                    <div class="u25">Free Tickets Available</div>
+                    <div id="free-tickets-available" class="u26">0</div>
+                    <div style="font-size: 14px; color: #86efac;">Earned & held by your wallet</div>
                 </div>
 
                 <button data-action="claimDailyFreeTicket" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a);">
                     Claim Your Free Ticket
                 </button>
                 <p class="muted-sm" style="text-align:center; margin:8px 0 0;">One free ticket every <span data-m="freeTicketCooldownHours" data-fmt="num">24</span> hours of holding</p>
+
+                <!-- Enter free tickets into the daily draw (max 5) -->
+                <div style="margin-top:16px; border-top:1px solid #374151; padding-top:14px;">
+                    <label style="font-size:13px; display:block; margin-bottom:8px; text-align:center;">
+                        Enter free tickets into the <strong>Daily draw</strong> (max 5)
+                    </label>
+                    <div style="display:flex; gap:10px; align-items:center; justify-content:center;">
+                        <input id="free-ticket-enter-amount" type="number" value="1" min="1" max="5"
+                               style="width:90px; padding:10px; border-radius:8px; border:1px solid #22c55e; background:#0b1220; color:white; text-align:center;">
+                        <button data-action="enterFreeTickets" class="buy-button" style="flex:1; max-width:200px; background:linear-gradient(to right,#16a34a,#15803d);">
+                            Enter Into Daily Draw
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Prize Breakdown -->
