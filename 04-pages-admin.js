@@ -825,13 +825,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation(); // don't let the tap reach the backdrop/close handlers
+            // Close the menu FIRST (idempotent, no toggle race), then navigate.
+            if (typeof closeMobileMenu === 'function') closeMobileMenu();
             if (link.dataset.page) navigateTo(link.dataset.page);
-            // Close the mobile menu after navigating (it stayed open before,
-            // covering the page you just navigated to).
-            const menu = document.getElementById('mobile-menu');
-            if (menu && menu.style.display === 'flex' && typeof toggleMobileMenu === 'function') {
-                toggleMobileMenu();
-            }
         });
     });
 
