@@ -1901,3 +1901,30 @@ select:focus-visible {
         min-height: 44px;
     }
 }
+
+/* ============================================
+   VERY SMALL SCREENS (iPhone SE, older Android, <=360px):
+   extra breathing room so cards/buttons don't feel cramped.
+   ============================================ */
+@media (max-width: 360px) {
+    .card,
+    .explore-card {
+        padding: 18px 16px !important;
+        margin-bottom: 18px;
+    }
+    .card h3,
+    .explore-card h3 {
+        font-size: 15.5px !important;
+        margin-bottom: 10px !important;
+    }
+    .buy-button,
+    .wallet-option,
+    .lock-option {
+        padding: 14px 16px !important;
+        font-size: 14px !important;
+        min-height: 48px; /* stronger tap target on tiny screens */
+    }
+    #lock-period-options {
+        gap: 10px !important;
+    }
+}
