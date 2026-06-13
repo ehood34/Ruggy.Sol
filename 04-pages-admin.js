@@ -173,6 +173,11 @@ function navigateTo(page) {
             }
         }, 600);
     }
+
+    // Rewards/Pool pages show the live staking-eligibility notice
+    if (page === 'rewards' || page === 'pool') {
+        if (typeof renderStakeNotice === 'function') renderStakeNotice();
+    }
 }
 
 let liveTrackingInterval = null;
@@ -628,67 +633,81 @@ async function checkRewardsEligibility() {
     const addrEl = document.getElementById('wallet-address');
     if (addrEl) addrEl.textContent = walletAddress.slice(0,4) + "..." + walletAddress.slice(-4);
 
-    const randomBalance = Math.floor(Math.random() * 1200000) + 2500;
-    const percentOfSupply = (randomBalance / 1000000000) * 100;
+    // Eligibility is now based on STAKED amount, not holdings.
+    const e = getStakeEligibility();
+    const staked = e.staked;
+    const communityReq = e.communityReq;
+    const antiRugReq = e.antiRugReq;
+    const fmt = (n) => Number(n).toLocaleString();
 
     const balEl = document.getElementById('wallet-balance');
-    if (balEl) balEl.textContent = randomBalance.toLocaleString() + " $RUGGY";
+    if (balEl) balEl.textContent = fmt(staked) + " $RUGGY staked";
     const supEl = document.getElementById('supply-percentage');
-    if (supEl) supEl.textContent = percentOfSupply.toFixed(3) + "%";
+    if (supEl) supEl.textContent = (staked > 0 ? ((staked / 1000000000) * 100).toFixed(3) : '0.000') + "% of supply";
 
     eligibilityMsg.style.display = 'block';
 
-    const bannedEntry = bannedWallets.find(b => b.wallet.toLowerCase() === walletAddress.toLowerCase());
-
-    if (bannedEntry) {
-        eligibilityMsg.style.borderLeft = '5px solid #ef4444';
-        eligibilityMsg.style.background = '#3f1f1f';
-
-        if (bannedEntry.type === "Locked") {
+    if (e.banned) {
+        eligibilityMsg.style.borderLeft = '5px solid ' + (e.banned.type === 'Locked' ? '#ef4444' : '#fbbf24');
+        eligibilityMsg.style.background = e.banned.type === 'Locked' ? '#3f1f1f' : '#3f2a1f';
+        if (e.banned.type === "Locked") {
             eligibilityMsg.innerHTML = `
-                <strong style="color:#ef4444; font-size:15px;">🚫 PERMANENTLY BANNED</strong><br><br>
-                You are on Ruggy's Wall of Shame.<br>
-                <strong>You can still buy $RUGGY</strong>, but Ruggy doesn't want to share rewards with you anymore.<br><br>
-                <span style="color:#f87171;">Reason: ${bannedEntry.reason}</span>
+                <strong style="color:#ef4444; font-size:15px;">🚫 LOCKED BAN</strong><br><br>
+                You are on Ruggy's Wall. <strong>Banned wallets do not receive rewards and cannot participate in the Lottery.</strong><br>
+                You can still buy $RUGGY, but you must clear your ban on the <strong>Absolution</strong> page first.<br><br>
+                <span style="color:#f87171;">Reason: ${escapeHTML(e.banned.reason)}</span>
             `;
         } else {
             eligibilityMsg.innerHTML = `
                 <strong style="color:#fbbf24; font-size:15px;">⚠️ TEMPORARILY BANNED</strong><br><br>
-                You are currently holding too much supply.<br>
-                Reduce your holdings below <strong>3%</strong> of total supply to become eligible again.<br><br>
-                <span style="color:#f87171;">Reason: ${bannedEntry.reason}</span>
+                <strong>Banned wallets do not receive rewards and cannot participate in the Lottery.</strong><br>
+                Reduce your holdings below <strong><span data-m="overholdPct" data-fmt="pct">3%</span></strong> of supply <em>and</em> meet the stake requirement to requalify.<br><br>
+                <span style="color:#f87171;">Reason: ${escapeHTML(e.banned.reason)}</span>
             `;
         }
+        applyMetricsToNode(eligibilityMsg);
         return;
     }
 
-    if (randomBalance >= 1000000) {
+    if (e.antiRug) {
         eligibilityMsg.style.borderLeft = '5px solid #22c55e';
         eligibilityMsg.style.background = '#052e16';
         eligibilityMsg.innerHTML = `
             <strong style="color:#22c55e;">✅ Fully Eligible for Anti-Rug Rewards!</strong><br><br>
-            You hold <strong>${randomBalance.toLocaleString()}</strong> $RUGGY.<br>
-            You qualify for <strong>Community (30%)</strong> + <strong>Anti-Rug (20%)</strong> = <strong>50% total</strong> of fees.
+            You are <strong>staking ${fmt(staked)}</strong> $RUGGY.<br>
+            You qualify for <strong>Community</strong> + <strong>Anti-Rug</strong> rewards = the full reward tier.
         `;
-    } else if (randomBalance >= 500000) {
+    } else if (e.community) {
         eligibilityMsg.style.borderLeft = '5px solid #eab308';
         eligibilityMsg.style.background = '#3f2a1f';
         eligibilityMsg.innerHTML = `
             <strong style="color:#fbbf24;">✅ Eligible for Community Rewards</strong><br><br>
-            You hold <strong>${randomBalance.toLocaleString()}</strong> $RUGGY.<br>
-            You qualify for <strong>Community rewards (30% of fees)</strong>.<br>
-            Hold <strong>1,000,000+</strong> to also unlock Anti-Rug rewards (20%).
+            You are <strong>staking ${fmt(staked)}</strong> $RUGGY.<br>
+            Stake <strong>${fmt(e.toAntiRug)}</strong> more (total ${fmt(antiRugReq)}) to also unlock <strong>Anti-Rug</strong> rewards.
         `;
     } else {
         eligibilityMsg.style.borderLeft = '5px solid #ef4444';
         eligibilityMsg.style.background = '#3f1f1f';
         eligibilityMsg.innerHTML = `
-            <strong style="color:#f87171;">❌ Not Eligible Yet</strong><br><br>
-            You currently hold <strong>${randomBalance.toLocaleString()}</strong> $RUGGY.<br>
-            You need at least <strong>500,000</strong> $RUGGY to qualify for Community rewards.<br>
-            Hold <strong>1,000,000+</strong> for full Anti-Rug rewards.
+            <strong style="color:#f87171;">❌ Not Staking Enough Yet</strong><br><br>
+            You are <strong>staking ${fmt(staked)}</strong> $RUGGY.<br>
+            <strong>Not having enough staked disqualifies you from receiving rewards</strong> until you reach the required stake.<br>
+            Stake at least <strong>${fmt(communityReq)}</strong> for Community rewards, or <strong>${fmt(antiRugReq)}</strong> for full Anti-Rug rewards.<br>
+            <a data-action="navigate" data-page="pool" style="color:#60a5fa; cursor:pointer; text-decoration:underline;">Go to the Pool page to stake →</a>
         `;
     }
+}
+
+// Re-bind any data-m spans that were injected via innerHTML
+function applyMetricsToNode(node) {
+    if (!node || typeof metricsView !== 'function') return;
+    const view = metricsView();
+    node.querySelectorAll('[data-m]').forEach((el) => {
+        const k = el.dataset.m;
+        if (view[k] === undefined || view[k] === null) return;
+        const f = el.dataset.fmt || 'raw';
+        el.textContent = f === 'pct' ? view[k] + '%' : f === 'usd' ? '$' + Number(view[k]).toLocaleString() : f === 'num' ? Number(view[k]).toLocaleString() : view[k];
+    });
 }
 
 async function connectDevWalletForHome() {
