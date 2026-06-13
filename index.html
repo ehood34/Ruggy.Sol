@@ -32,22 +32,22 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v23 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=23">
+    <!-- ASSET VERSION v24 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=24">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
-    <!-- Chart.js for Tokenomics Pie Chart -->
-    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js is loaded ON DEMAND (only when the Tokenomics page opens),
+         not on every page — see ensureChartJsLoaded() in 04-pages-admin.js. -->
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=23"></script>
-    <script defer src="02-banner-video.js?v=23"></script>
-    <script defer src="03-rewards-helpers.js?v=23"></script>
-    <script defer src="04-pages-admin.js?v=23"></script>
-    <script defer src="05-text-emoji.js?v=23"></script>
-    <script defer src="06-final-wiring.js?v=23"></script>
-    <script defer src="07-chain.js?v=23"></script>
+    <script defer src="01-core.js?v=24"></script>
+    <script defer src="02-banner-video.js?v=24"></script>
+    <script defer src="03-rewards-helpers.js?v=24"></script>
+    <script defer src="04-pages-admin.js?v=24"></script>
+    <script defer src="05-text-emoji.js?v=24"></script>
+    <script defer src="06-final-wiring.js?v=24"></script>
+    <script defer src="07-chain.js?v=24"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -66,7 +66,7 @@
                     <div data-action="navigate" data-page="home" 
                          class="hover-scale" style="--scale: 1.03; display: flex; align-items: center; gap: 8px; flex-shrink: 0; cursor: pointer;"
                          title="Go to Homepage">
-                        <img decoding="async" fetchpriority="high" width="48" height="48" src="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" 
+                        <img alt="" decoding="async" fetchpriority="high" width="48" height="48" src="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" 
                              id="logo" style="width: 34px; height: 34px; border-radius: 9999px; border: 3px solid #ff00ff; object-fit: cover;">
                         <!-- Multi-colored glowing RUGGY logo -->
                         <h1 style="margin: 0; font-size: 22px; letter-spacing: 3.5px; font-weight: 800; display: flex; align-items: center; gap: 6px;">
@@ -110,7 +110,7 @@
                         </div>
 
                         <div style="text-align: center; margin-top: 5px;">
-                            <span id="nav-timer" class="timer" 
+                            <span id="nav-timer" class="timer" role="timer" aria-label="Time until next reward distribution" 
                                   style="font-size: 14px; font-weight: bold; color: #f59e0b; text-shadow: 0 1px 3px rgba(0,0,0,0.6);">
                                 15:00
                             </span>
@@ -157,7 +157,7 @@
 
                     <!-- Connect Wallet Button -->
                     <div class="u101">
-                        <button id="connect-btn" data-action="connect-toggle"
+                        <button id="connect-btn" data-action="connect-toggle" aria-label="Connect or disconnect wallet"
                                 class="x212">
                             CONNECT WALLET
                         </button>
@@ -181,10 +181,9 @@
             </div>
 
             <!-- Mobile Hamburger Button -->
-            <button id="mobile-menu-btn"
-                    
+            <button id="mobile-menu-btn" aria-label="Open navigation menu" aria-haspopup="true" aria-expanded="false" aria-controls="mobile-menu"
                     class="x213">
-                ☰
+                <span aria-hidden="true">☰</span>
             </button>
 
         </div>
@@ -195,16 +194,16 @@
          All positioning is done with real CSS below. The overlay is fixed and
          sits ABOVE the nav (z-index 100000> nav's 50); the card is pushed
          below the nav via a dynamic padding-top set in toggleMobileMenu(). -->
-    <div id="mobile-menu"
+    <div id="mobile-menu" role="dialog" aria-modal="true" aria-label="Navigation menu"
          class="x214">
         
         <div id="mobile-menu-card" class="x215">
             
             <!-- Close Button -->
             <div style="display: flex; justify-content: flex-end; padding: 18px 22px 8px 22px;">
-                <button id="mobile-menu-close-btn" 
+                <button id="mobile-menu-close-btn" aria-label="Close navigation menu"
                         class="x216">
-                    ✕
+                    <span aria-hidden="true">✕</span>
                 </button>
             </div>
 
@@ -361,7 +360,7 @@
                 <div class="x225">
                     
                     <div data-action="navigate" data-page="tokenomics" class="card btn-bare">
-                        <img decoding="async" width="400" height="260" src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" 
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" 
                              class="tile-img-sm" loading="lazy">
                         <div class="pad-card">
                             <h3 style="margin: 0 0 8px 0; color: #9ca3af; line-height: 1.25;">Tokenomics</h3>
@@ -370,7 +369,7 @@
                     </div>
 
                     <div data-action="navigate" data-page="lore" class="card btn-bare">
-                        <img decoding="async" width="400" height="260" src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" 
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" 
                              class="tile-img-sm" loading="lazy">
                         <div class="pad-card">
                             <h3 style="margin: 0 0 8px 0; color: #c084fc;">The Lore of Ruggy</h3>
@@ -379,7 +378,7 @@
                     </div>
 
                     <div data-action="navigate" data-page="rewards" class="card btn-bare">
-                        <img decoding="async" width="400" height="260" src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" 
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" 
                              class="tile-img-sm" loading="lazy">
                         <div class="pad-card">
                             <h3 style="margin: 0 0 8px 0; color: #22c55e;">Rewards</h3>
@@ -388,7 +387,7 @@
                     </div>
 
                     <div data-action="navigate" data-page="gallery" class="card btn-bare">
-                        <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" 
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" 
                              class="tile-img-sm">
                         <div class="pad-card">
                             <h3 style="margin: 0 0 8px 0; color: #ff00ff;">Gallery</h3>
@@ -397,7 +396,7 @@
                     </div>
 
                     <div data-action="navigate" data-page="hall" class="card btn-bare">
-                        <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" 
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" 
                              class="tile-img-sm">
                         <div class="pad-card">
                             <h3 style="margin: 0 0 8px 0; color: #f59e0b;">Ruggy's Hall</h3>
@@ -406,7 +405,7 @@
                     </div>
 
                     <div data-action="navigate" data-page="wall" class="card u7">
-                        <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" 
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" 
                              style="width: 100%; height: 160px; object-fit: cover; object-position: center 40%;">
                         <div class="pad-card">
                             <h3 style="margin: 0 0 8px 0; color: #ef4444;">Ruggy's Wall</h3>
@@ -415,7 +414,7 @@
                     </div>
 
                     <div data-action="navigate" data-page="pool" class="card btn-bare">
-                        <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" 
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" 
                              class="tile-img-sm">
                         <div class="pad-card">
                             <h3 style="margin: 0 0 8px 0; color: #3b82f6;">Ruggy's Pool</h3>
@@ -424,7 +423,7 @@
                     </div>
 
                     <div data-action="navigate" data-page="absolution" class="card btn-bare">
-                        <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" 
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" 
                              style="width: 100%; height: 160px; object-fit: cover; object-position: center;">
                         <div class="pad-card">
                             <h3 style="margin: 0 0 8px 0; color: white; line-height: 1.25;">Absolution</h3>
@@ -434,7 +433,7 @@
 
                     <!-- Ruggy's Lottery -->
                     <div data-action="navigate" data-page="lotto" class="card u7">
-                        <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/LdFxTN9p/IMG-4431.jpg" 
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/LdFxTN9p/IMG-4431.jpg" 
                              style="width: 100%; height: 160px; object-fit: cover; object-position: center 30%;">
                         <div class="pad-card">
                             <h3 class="lotto-animated-title" style="margin: 0 0 8px 0; line-height: 1.25; font-size: 18px; font-weight: 900;">Ruggy's Lottery</h3>
@@ -451,7 +450,7 @@
     <section id="tokenomics" class="section page-wrap">
         
         <div class="center-mb30">
-            <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" 
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" 
                  class="feature-img">
         </div>
 
@@ -584,7 +583,7 @@
     <section id="rewards" class="section" style="padding-top: 110px; padding-bottom: 80px; max-width: 1000px; margin: 0 auto;">
         
         <div class="center-mb30">
-            <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" 
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" 
                  class="feature-img" loading="lazy">
         </div>
 
@@ -783,7 +782,7 @@
     <section id="lore" class="section u17">
         
         <div class="center-mb30">
-            <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" 
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" 
                  class="feature-img" loading="lazy">
         </div>
 
@@ -839,7 +838,7 @@
     <section id="gallery" class="section u18">
         
         <div class="center-mb25">
-            <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" 
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" 
                  class="u19" loading="lazy">
         </div>
 
@@ -852,7 +851,7 @@
             
             <!-- Ruggy Official -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" data-image-title="Ruggy Official">
-                <img src="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" 
+                <img alt="" src="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Ruggy Official</p>
@@ -861,7 +860,7 @@
 
             <!-- Art Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" data-image-title="Art Ruggy">
-                <img src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" 
+                <img alt="" src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Art Ruggy</p>
@@ -870,7 +869,7 @@
 
             <!-- Rave Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/Y4WL0Vpn/grok-image-b3877eea-5cd9-418f-8b5e-79766062d1dc.jpg" data-image-title="Rave Ruggy">
-                <img src="https://i.ibb.co/Y4WL0Vpn/grok-image-b3877eea-5cd9-418f-8b5e-79766062d1dc.jpg" 
+                <img alt="" src="https://i.ibb.co/Y4WL0Vpn/grok-image-b3877eea-5cd9-418f-8b5e-79766062d1dc.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Rave Ruggy</p>
@@ -879,7 +878,7 @@
 
             <!-- Gatsby Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/yB5mNQqJ/grok-image-e72d4a15-2ae7-4ef7-bffa-515fc78d7c53.jpg" data-image-title="Gatsby Ruggy">
-                <img src="https://i.ibb.co/yB5mNQqJ/grok-image-e72d4a15-2ae7-4ef7-bffa-515fc78d7c53.jpg" 
+                <img alt="" src="https://i.ibb.co/yB5mNQqJ/grok-image-e72d4a15-2ae7-4ef7-bffa-515fc78d7c53.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Gatsby Ruggy</p>
@@ -888,7 +887,7 @@
 
             <!-- Lambo Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" data-image-title="Lambo Ruggy">
-                <img src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" 
+                <img alt="" src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Lambo Ruggy</p>
@@ -897,7 +896,7 @@
 
             <!-- Moon Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" data-image-title="Moon Ruggy">
-                <img src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" 
+                <img alt="" src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Moon Ruggy</p>
@@ -906,7 +905,7 @@
 
             <!-- Beach Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/RGnK0zkw/grok-image-c7fd6f1b-f185-4e12-ad61-bab9055e6eee.jpg" data-image-title="Beach Ruggy">
-                <img src="https://i.ibb.co/RGnK0zkw/grok-image-c7fd6f1b-f185-4e12-ad61-bab9055e6eee.jpg" 
+                <img alt="" src="https://i.ibb.co/RGnK0zkw/grok-image-c7fd6f1b-f185-4e12-ad61-bab9055e6eee.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Beach Ruggy</p>
@@ -915,7 +914,7 @@
 
             <!-- Whale Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/MkvR5XRp/grok-image-8b3b620e-e992-4865-9a66-eb50d2537d5d.jpg" data-image-title="Whale Ruggy">
-                <img src="https://i.ibb.co/MkvR5XRp/grok-image-8b3b620e-e992-4865-9a66-eb50d2537d5d.jpg" 
+                <img alt="" src="https://i.ibb.co/MkvR5XRp/grok-image-8b3b620e-e992-4865-9a66-eb50d2537d5d.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Whale Ruggy</p>
@@ -924,7 +923,7 @@
 
             <!-- Golden Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" data-image-title="Golden Ruggy">
-                <img src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" 
+                <img alt="" src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Golden Ruggy</p>
@@ -933,7 +932,7 @@
 
             <!-- Bookworm Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" data-image-title="Bookworm Ruggy">
-                <img src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" 
+                <img alt="" src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Bookworm Ruggy</p>
@@ -942,7 +941,7 @@
 
             <!-- Banned Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" data-image-title="Banned Ruggy">
-                <img src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" 
+                <img alt="" src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Banned Ruggy</p>
@@ -951,7 +950,7 @@
 
             <!-- Pool Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" data-image-title="Pool Ruggy">
-                <img src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" 
+                <img alt="" src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Pool Ruggy</p>
@@ -960,7 +959,7 @@
 
             <!-- Absolution Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" data-image-title="Absolution Ruggy">
-                <img src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" 
+                <img alt="" src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Absolution Ruggy</p>
@@ -969,7 +968,7 @@
 
             <!-- 404 Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/Pv7VzDWW/IMG-4430.jpg" data-image-title="404 Ruggy">
-                <img src="https://i.ibb.co/Pv7VzDWW/IMG-4430.jpg" 
+                <img alt="" src="https://i.ibb.co/Pv7VzDWW/IMG-4430.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">404 Ruggy</p>
@@ -978,7 +977,7 @@
 
             <!-- Lotto Ruggy -->
             <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/LdFxTN9p/IMG-4431.jpg" data-image-title="Lotto Ruggy">
-                <img src="https://i.ibb.co/LdFxTN9p/IMG-4431.jpg" 
+                <img alt="" src="https://i.ibb.co/LdFxTN9p/IMG-4431.jpg" 
                      class="tile-img" loading="lazy" decoding="async">
                 <div class="tile-caption">
                     <p class="tile-title">Lotto Ruggy</p>
@@ -997,7 +996,7 @@
     <section id="hall" class="section u18">
         
         <div class="center-mb25">
-            <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" 
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" 
                  class="u19">
         </div>
 
@@ -1098,7 +1097,7 @@
     <section id="wall" class="section page-wrap">
         
         <div class="center-mb30">
-            <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" 
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" 
                  class="feature-img" loading="lazy">
         </div>
 
@@ -1218,7 +1217,7 @@
     <section id="pool" class="section page-wrap">
         
         <div class="center-mb30">
-            <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" 
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" 
                  style="max-width: 100%; height: 320px; object-fit: cover; border-radius: 16px; border: 3px solid #6b21a8;">
         </div>
 
@@ -1386,7 +1385,7 @@
     <section id="absolution" class="section u17">
         
         <div class="center-mb30">
-            <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" 
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" 
                  class="feature-img">
         </div>
 
@@ -1689,7 +1688,7 @@
     </section>
 
     <!-- ADMIN PANEL - Left Sidebar (Appears above everything) -->
-    <div id="developer-modal" 
+    <div id="developer-modal" role="dialog" aria-modal="true" aria-label="Admin developer settings" 
          class="x245">
         
         <!-- Close Button -->
@@ -1960,16 +1959,16 @@
     <!-- Smart Text Wrapping Logic -->
 
     <!-- Image Zoom Modal -->
-    <div id="image-modal" class="modal section" >
+    <div id="image-modal" class="modal section" role="dialog" aria-modal="true" aria-label="Image viewer">
         <div class="modal-content" style="max-width: 90%; max-height: 90vh; background: #111827; border: 2px solid #6b21a8; padding: 20px; text-align: center;">
-            <img decoding="async" id="modal-image" style="max-width: 100%; max-height: 75vh; border-radius: 12px; object-fit: contain;">
+            <img alt="" decoding="async" id="modal-image" style="max-width: 100%; max-height: 75vh; border-radius: 12px; object-fit: contain;">
             <p id="modal-image-title" style="margin-top: 15px; font-size: 18px; color: #f3e8ff;"></p>
             <button id="close-image-modal-btn" data-action="closeImageModal" class="buy-button" style="max-width: 200px; margin-top: 15px; background: #374151;">Close</button>
         </div>
     </div>
 
     <!-- Wallet Selection Modal -->
-    <div id="wallet-modal" class="modal section" >
+    <div id="wallet-modal" class="modal section" role="dialog" aria-modal="true" aria-label="Select a wallet to connect">
         <div class="modal-content" style="max-width: 460px; border: 3px solid #a855f7; box-shadow: 0 0 50px rgba(168, 85, 247, 0.4);">
             <h3 class="u24">Connect Wallet</h3>
             <p id="wallet-modal-mobile-hint" style="display:none; font-size:12.5px; color:#c4b5fd; text-align:center; margin:-6px 0 12px; line-height:1.5;">
@@ -2045,7 +2044,7 @@
     </button>
 
     <!-- ==================== TOAST NOTIFICATION CONTAINER ==================== -->
-    <div id="toast-container" 
+    <div id="toast-container" role="status" aria-live="polite" aria-atomic="false" 
          class="x251">
     </div>
 
