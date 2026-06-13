@@ -154,21 +154,9 @@ function navigateTo(page) {
     });
 
     if (page === 'tokenomics') {
-        // More aggressive trigger for the chart
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                if (typeof initTokenomicsChart === 'function') {
-                    initTokenomicsChart();
-                }
-            }, 120);
-
-            // Extra safety net
-            setTimeout(() => {
-                if (typeof initTokenomicsChart === 'function') {
-                    initTokenomicsChart();
-                }
-            }, 650);
-        });
+        // init self-heals (retries until Chart.js + layout are ready), so one
+        // call on activation is enough. The section observer is a backstop.
+        if (typeof initTokenomicsChart === 'function') initTokenomicsChart();
     }
 
     if (page === 'lotto') {
@@ -533,26 +521,17 @@ if (typeof document !== 'undefined' && !window.__ruggyVisHandler) {
 }
 
 // Force start timer reliably on page load
+// One entry point. startSimpleTimer self-heals (retries until its DOM elements
+// exist) and is idempotent (clears any prior interval first), so a single call
+// once the DOM is ready is sufficient — no staggered setTimeout nets needed.
 function forceStartDistributionTimer() {
-    // Always force a clean 30-minute start on every page load
-    if (typeof startSimpleTimer === 'function') {
-        startSimpleTimer();
-    }
+    if (typeof startSimpleTimer === 'function') startSimpleTimer();
 }
-
-// Multiple reliable entry points
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(forceStartDistributionTimer, 120);
-    });
+    document.addEventListener('DOMContentLoaded', forceStartDistributionTimer);
 } else {
-    setTimeout(forceStartDistributionTimer, 120);
+    forceStartDistributionTimer();
 }
-
-// Final safety net
-window.addEventListener('load', () => {
-    setTimeout(forceStartDistributionTimer, 300);
-});
 
 function updateSplitPercentages() {
     const liq = parseInt(document.getElementById('dev-liq-percent').value) || 0;
@@ -846,22 +825,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const minutes = CONFIG.distributionIntervalMinutes || 30;
         CONFIG.nextDistributionTime = new Date(now + (minutes * 60 * 1000)).toISOString();
 
-        // Start the countdown reliably
-        setTimeout(() => {
-            if (typeof startSimpleTimer === 'function') {
-                startSimpleTimer();
-            }
-        }, 150);
+        // Start the countdown (self-healing + idempotent, no delay needed)
+        if (typeof startSimpleTimer === 'function') startSimpleTimer();
     })();
-
-    // Extra safety net: Start timer again after everything is fully loaded
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            if (typeof startSimpleTimer === 'function' && !window.rewardTimerInterval) {
-                startSimpleTimer();
-            }
-        }, 800);
-    });
 
     updateHomeWalletDisplays();
     navigateTo('home');
@@ -1544,13 +1510,12 @@ function saveDeveloperSettings() {
     showToast('Settings saved successfully!', 'success');
 
     // Refresh chart if user is on Tokenomics page
-    setTimeout(() => {
-        const tokenomicsSection = document.getElementById('tokenomics');
-        if (tokenomicsSection && tokenomicsSection.classList.contains('active')) {
-            initTokenomicsChart();
-            setTimeout(() => initTokenomicsChart(), 800);
-        }
-    }, 400);
+    // applyMetrics already live-updates the chart's data if it exists; only a
+    // full re-init is needed if the user is viewing Tokenomics when they save.
+    const tokenomicsSection = document.getElementById('tokenomics');
+    if (tokenomicsSection && tokenomicsSection.classList.contains('active')) {
+        if (typeof initTokenomicsChart === 'function') initTokenomicsChart();
+    }
 }
 
 // ==================== TOKENOMICS CHART ====================
