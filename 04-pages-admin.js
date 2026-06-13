@@ -71,7 +71,20 @@ function loadConfig() {
         lotteryDailyTime: '8:00 PM UTC',
         lotteryWeeklyDay: 'Sunday',
         lotteryWeeklyTime: '8:00 PM UTC',
-        freeTicketCooldownHours: 24
+        freeTicketCooldownHours: 24,
+        // Lottery draw schedule labels (shown under the jackpot)
+        miniDrawLabel: 'Today • 8:00 PM UTC',
+        bigDrawLabel: 'Sunday • 8:00 PM UTC',
+        // Lottery fee breakdown (% of the weekly pool)
+        lottoMainPct: 80,
+        lottoMdrPct: 10,
+        lottoBurnPct: 10,
+        dailyMaxOfWeeklyPct: 50,   // daily lottery max winnings = 50% of weekly pool
+        // Post-50%-LP-lock distribution (when burns stop, fees redirect)
+        postLockLiquidity: 0,
+        postLockCommunity: 60,
+        postLockAntiRug: 30,
+        postLockCreator: 10
     }, CONFIG.metrics || {});
 
     // Chain connection (admin panel > ⛓ Chain)
@@ -579,17 +592,26 @@ async function checkRewardsEligibility() {
 
     if (caDisplay) caDisplay.textContent = CONFIG.tokenMint;
 
-    if (!window.solana) {
-        showToast("Please install a Solana wallet (Phantom recommended).", "error");
-        return;
-    }
+    // Use the already-connected wallet if present; otherwise prompt to connect.
+    let walletAddress = null;
+    const existing = (window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey)
+        ? window.ruggyWallet.publicKey.toString() : null;
 
-    let walletAddress;
-    try {
-        const resp = await window.solana.connect();
-        walletAddress = resp.publicKey.toString();
-    } catch (err) {
-        showToast("Wallet connection failed or was rejected.", "error");
+    if (existing) {
+        walletAddress = existing;
+    } else if (window.solana) {
+        showToast("Connect your wallet to check eligibility", "info");
+        try {
+            const resp = await window.solana.connect();
+            walletAddress = resp.publicKey.toString();
+        } catch (err) {
+            showToast("Wallet connection was cancelled.", "error",
+                "Connect your wallet to see your reward eligibility.");
+            return;
+        }
+    } else {
+        showToast("No Solana wallet found", "error",
+            "Install Phantom, Solflare, or Backpack, then tap Check Eligibility again.");
         return;
     }
 
@@ -1170,6 +1192,16 @@ function populateDevPanel() {
     set('m-lotto-weekly-day', mv.lotteryWeeklyDay);
     set('m-lotto-weekly-time', mv.lotteryWeeklyTime);
     set('m-free-ticket-hours', mv.freeTicketCooldownHours);
+    set('m-mini-draw', mv.miniDrawLabel);
+    set('m-big-draw', mv.bigDrawLabel);
+    set('m-lotto-main', mv.lottoMainPct);
+    set('m-lotto-mdr', mv.lottoMdrPct);
+    set('m-lotto-burn', mv.lottoBurnPct);
+    set('m-daily-max', mv.dailyMaxOfWeeklyPct);
+    set('m-postlock-liq', mv.postLockLiquidity);
+    set('m-postlock-community', mv.postLockCommunity);
+    set('m-postlock-antirug', mv.postLockAntiRug);
+    set('m-postlock-creator', mv.postLockCreator);
 
     // Chain
     const ch = CONFIG.chain || {};
@@ -1320,6 +1352,16 @@ function saveDeveloperSettings() {
     mm.lotteryWeeklyDay = getAdminInputValue('m-lotto-weekly-day') || 'Sunday';
     mm.lotteryWeeklyTime = getAdminInputValue('m-lotto-weekly-time') || '8:00 PM UTC';
     mm.freeTicketCooldownHours = getAdminInputNumber('m-free-ticket-hours', 24);
+    mm.miniDrawLabel = getAdminInputValue('m-mini-draw') || 'Today • 8:00 PM UTC';
+    mm.bigDrawLabel = getAdminInputValue('m-big-draw') || 'Sunday • 8:00 PM UTC';
+    mm.lottoMainPct = getAdminInputNumber('m-lotto-main', 80);
+    mm.lottoMdrPct = getAdminInputNumber('m-lotto-mdr', 10);
+    mm.lottoBurnPct = getAdminInputNumber('m-lotto-burn', 10);
+    mm.dailyMaxOfWeeklyPct = getAdminInputNumber('m-daily-max', 50);
+    mm.postLockLiquidity = getAdminInputNumber('m-postlock-liq', 0);
+    mm.postLockCommunity = getAdminInputNumber('m-postlock-community', 60);
+    mm.postLockAntiRug = getAdminInputNumber('m-postlock-antirug', 30);
+    mm.postLockCreator = getAdminInputNumber('m-postlock-creator', 10);
 
     // Chain
     CONFIG.chain = CONFIG.chain || {};
@@ -1339,6 +1381,8 @@ function saveDeveloperSettings() {
     applySiteSettings();
     if (typeof applyChainSettings === 'function') applyChainSettings();
     updateHomeWalletDisplays();
+    // If the chart is showing the post-lock view, rebuild it with new splits
+    if (window.lpLockView && typeof initTokenomicsChart === 'function') initTokenomicsChart();
 
     // A changed interval applies to the live countdown immediately
     if (intervalChanged) {
@@ -1418,7 +1462,8 @@ const TokenomicsChart = {
     window.feePieChart = null;
         }
     
-        // Load distribution splits
+        // Load distribution splits. In LP-locked view, burns have stopped and
+        // fees redirect — use the post-lock split set from CONFIG.metrics.
         let splits = { liquidity: 40, antiRug: 20, community: 30, creator: 10 };
         try {
     const saved = localStorage.getItem('ruggyConfig');
@@ -1429,6 +1474,13 @@ const TokenomicsChart = {
         }
     }
         } catch (e) {}
+        if (window.lpLockView && CONFIG.metrics) {
+    const mm = CONFIG.metrics;
+    splits = {
+        liquidity: mm.postLockLiquidity, antiRug: mm.postLockAntiRug,
+        community: mm.postLockCommunity, creator: mm.postLockCreator
+    };
+        }
     
         const labels = [
     `Liquidity & Burns (${splits.liquidity}%)`,
@@ -1546,7 +1598,12 @@ function showPieExplanation(index) {
     const content = document.getElementById('pie-explanation-content');
     if (!explanationBox || !content) return;
 
-    const s = CONFIG.distributionSplits || { liquidity: 40, antiRug: 20, community: 30, creator: 10 };
+    let s = CONFIG.distributionSplits || { liquidity: 40, antiRug: 20, community: 30, creator: 10 };
+    if (window.lpLockView && CONFIG.metrics) {
+        const mm = CONFIG.metrics;
+        s = { liquidity: mm.postLockLiquidity, antiRug: mm.postLockAntiRug,
+              community: mm.postLockCommunity, creator: mm.postLockCreator };
+    }
     const v = metricsView();
     const explanations = [
         {
@@ -1579,6 +1636,27 @@ function showPieExplanation(index) {
     explanationBox.style.display = 'block';
     explanationBox.style.borderLeftColor = exp.color;
 }
+
+// Toggle between normal and post-50%-LP-lock fee distribution on the chart.
+function toggleLpLockView() {
+    window.lpLockView = !window.lpLockView;
+    const btn = document.getElementById('lp-lock-toggle');
+    const note = document.getElementById('lp-lock-note');
+    if (btn) {
+        btn.textContent = window.lpLockView
+            ? '🔒 Show Normal Distribution'
+            : '🔓 Show 50% LP Locked Distribution';
+        btn.style.borderColor = window.lpLockView ? '#fbbf24' : '#22c55e';
+        btn.style.color = window.lpLockView ? '#fde68a' : '#86efac';
+    }
+    if (note) note.style.display = window.lpLockView ? 'block' : 'none';
+    // rebuild the chart with the chosen split set
+    if (typeof initTokenomicsChart === 'function') initTokenomicsChart();
+    // clear any open slice explanation (percentages changed)
+    const exp = document.getElementById('pie-explanation');
+    if (exp) exp.style.display = 'none';
+}
+window.toggleLpLockView = toggleLpLockView;
 
 loadBannedWall();
 
@@ -1618,9 +1696,20 @@ function metricsView() {
         lotteryDailyTime: m.lotteryDailyTime,
         lotteryWeeklyDay: m.lotteryWeeklyDay,
         lotteryWeeklyTime: m.lotteryWeeklyTime,
-        freeTicketCooldownHours: m.freeTicketCooldownHours
+        freeTicketCooldownHours: m.freeTicketCooldownHours,
+        miniDrawLabel: m.miniDrawLabel,
+        bigDrawLabel: m.bigDrawLabel,
+        lottoMainPct: m.lottoMainPct,
+        lottoMdrPct: m.lottoMdrPct,
+        lottoBurnPct: m.lottoBurnPct,
+        dailyMaxOfWeeklyPct: m.dailyMaxOfWeeklyPct,
+        postLockLiquidity: m.postLockLiquidity,
+        postLockCommunity: m.postLockCommunity,
+        postLockAntiRug: m.postLockAntiRug,
+        postLockCreator: m.postLockCreator
     };
 }
+window.metricsView = metricsView;
 
 function applyMetrics() {
     const view = metricsView();
@@ -1644,7 +1733,12 @@ function applyMetrics() {
         const chart = window.feePieChart;
         const ds = chart?.data?.datasets?.[0];
         if (ds && typeof chart.update === 'function' && CONFIG.distributionSplits) {
-            const s = CONFIG.distributionSplits;
+            let s = CONFIG.distributionSplits;
+            if (window.lpLockView && CONFIG.metrics) {
+                const mm = CONFIG.metrics;
+                s = { liquidity: mm.postLockLiquidity, antiRug: mm.postLockAntiRug,
+                      community: mm.postLockCommunity, creator: mm.postLockCreator };
+            }
             // slice order matches initTokenomicsChart: liquidity, community, antiRug, creator
             ds.data = [s.liquidity, s.community, s.antiRug, s.creator];
             chart.data.labels = [
