@@ -1805,3 +1805,34 @@ body.no-breathe .section h2, body.no-breathe .section-title {
     #stake-donut-wrap { flex-direction: column !important; gap: 16px !important; }
     #stake-donut-legend { flex-basis: 100% !important; width: 100%; max-width: 280px; }
 }
+
+/* ============================================
+   ACCESSIBILITY: visible keyboard focus.
+   :focus-visible only shows for keyboard nav (not mouse clicks),
+   so it adds a clear focus ring for a11y without changing the
+   look for mouse users or disturbing the neon aesthetic.
+   ============================================ */
+:focus-visible {
+    outline: 3px solid #22d3ee !important;
+    outline-offset: 2px !important;
+    border-radius: 4px;
+}
+.nav-link:focus-visible,
+.buy-button:focus-visible,
+.wallet-option:focus-visible,
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 3px solid #22d3ee !important;
+    outline-offset: 2px !important;
+}
+/* Remove the default ring ONLY when focus came from a pointer */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+/* Section focus (set programmatically on navigation) shouldn't show a ring */
+.section:focus,
+.section:focus-visible {
+    outline: none !important;
+}
