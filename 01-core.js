@@ -1857,7 +1857,7 @@ document.addEventListener('click', function(e) {
     try {
     switch (action) {
         case 'navigate':
-            if (typeof navigateTo === 'function') navigateTo(el.dataset.page);
+            if (typeof window.navigateTo === 'function') window.navigateTo(el.dataset.page);
             break;
         case 'open-image':
             openImageModal(el.dataset.imageSrc, el.dataset.imageTitle);
