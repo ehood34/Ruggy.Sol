@@ -1731,3 +1731,26 @@ body.no-breathe h1.neon-text, body.no-breathe h2.neon-text,
 body.no-breathe .section h2, body.no-breathe .section-title {
     animation: none !important;
 }
+
+/* ===== MOBILE: absolution & inline input+button rows ===== */
+@media (max-width: 600px) {
+    /* The "Dollar Value You Rugged" row: stack input above its button */
+    #absolution .mb15 > div[style*="display: flex"],
+    #absolution div[style*="display: flex"][style*="flex-wrap: wrap"] {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    /* Inputs and buttons in those rows go full width, no min-width squeeze */
+    .x240 {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+    #absolution .buy-button {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+    /* Lottery daily/weekly buy buttons: stack on very narrow screens */
+    #lotto .mb20 > div[style*="display: flex"][style*="flex-wrap: wrap"] {
+        flex-direction: column !important;
+    }
+}
