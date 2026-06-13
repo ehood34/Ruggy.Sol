@@ -56,7 +56,7 @@ function loadConfig() {
     // [data-m] spans, and the JS rules read them too — change once, updates
     // everywhere. Splits + thresholds reuse their existing CONFIG fields.
     CONFIG.metrics = Object.assign({
-        holderShutoff: 500,            // auto-distribution stops after N holders
+        holderShutoff: 500,            // auto-distribution stops after N STAKERS (key name kept for saved-config compat)
         distributionEnabled: true,     // manual master shutoff
         roiTakeProfit: 200,            // % ROI that opens the take-profit window
         roiSafeSellPct: 50,            // % you may take in that window
@@ -77,6 +77,7 @@ function loadConfig() {
         bigDrawLabel: 'Sunday • 8:00 PM UTC',
         // Lottery fee breakdown (% of the weekly pool)
         lottoMainPct: 80,
+        lottoDailyPct: 10,
         lottoMdrPct: 10,
         lottoBurnPct: 10,
         dailyMaxOfWeeklyPct: 50,   // daily lottery max winnings = 50% of weekly pool
@@ -856,7 +857,8 @@ function initRuggyHall() {
         holdersPool.push({
             wallet: "0x" + Math.random().toString(16).substr(2, 8) + "..." + Math.random().toString(16).substr(2, 4),
             balance: Math.random() * 12 + 0.05,
-            daysHeld: Math.floor(Math.random() * 220) + 3
+            daysHeld: Math.floor(Math.random() * 220) + 3,
+            staked: Math.random() * 8 + 0.1   // millions of $RUGGY locked
         });
     }
 
@@ -879,7 +881,7 @@ function initRuggyHall() {
     }
 
     const longestHolders = [...holdersPool]
-        .sort((a, b) => b.daysHeld - a.daysHeld)
+        .sort((a, b) => b.staked - a.staked)
         .slice(0, (CONFIG.metrics?.hallLongestShown) || 12);
 
     const longestBody = document.getElementById('longest-holders-table');
@@ -890,7 +892,7 @@ function initRuggyHall() {
             row.innerHTML = `
                 <td>${index + 1}</td>
                 <td>${holder.wallet}</td>
-                <td>${holder.daysHeld} days</td>
+                <td>🔒 ${holder.staked.toFixed(2)}M</td>
             `;
             longestBody.appendChild(row);
         });
@@ -923,17 +925,19 @@ async function scanWalletForHall() {
 
     // Membership thresholds (top-holder = top 1% balance proxy; longest = 90+ days)
     const isTopHolder = balance >= 1000000;
-    const isLongHolder = days >= 90;
+    const stakedEst = (typeof getStakedTotal === 'function' && connected) ? getStakedTotal() : (h % 900000);
+    const isTopStaker = stakedEst >= ((CONFIG.airdropThreshold) || 500000);
     let verdict, color;
-    if (isTopHolder && isLongHolder) { verdict = "🏆 BOTH — Top Holder AND a Longest Holder of the Hall!"; color = "#fbbf24"; }
+    if (isTopHolder && isTopStaker) { verdict = "🏆 BOTH — Top Holder AND a 🔒 Top Staker of the Hall!"; color = "#fbbf24"; }
     else if (isTopHolder) { verdict = "💎 TOP HOLDER — you're in the Hall's top holders."; color = "#22c55e"; }
-    else if (isLongHolder) { verdict = "⏳ LONGEST HOLDER — you've held long enough for the Hall."; color = "#60a5fa"; }
-    else { verdict = "Not in the Hall yet — keep holding to climb the ranks."; color = "#9ca3af"; }
+    else if (isTopStaker) { verdict = "🔒 TOP STAKER — you're staking enough for the Hall."; color = "#60a5fa"; }
+    else { verdict = "Not in the Hall yet — hold and stake more to climb the ranks."; color = "#9ca3af"; }
 
     resultDiv.innerHTML = `
         <h4 style="color: #f59e0b; margin-bottom: 12px;">${connected ? 'Your Hall Standing' : 'Wallet Check Result'}</h4>
         <p><strong>Wallet:</strong> ${escapeHTML(wallet.slice(0, 6) + '…' + wallet.slice(-6))}</p>
         <p><strong>Token Amount:</strong> ${balance.toLocaleString()} $RUGGY</p>
+        <p><strong>Staked:</strong> 🔒 ${stakedEst.toLocaleString()} $RUGGY</p>
         <p><strong>Days Held:</strong> ${days} days</p>
         <p style="margin-top: 10px; font-weight:bold; color: ${color};">${verdict}</p>
     `;
@@ -941,14 +945,14 @@ async function scanWalletForHall() {
 }
 
 function runAutomatedHallScan() {
-    showToast("Hall scan complete", "success", "Top holders and longest holders have been refreshed.");
+    showToast("Hall scan complete", "success", "Top holders and top stakers have been refreshed.");
     initRuggyHall();
     
     const resultDiv = document.getElementById('hall-scan-result');
     if (resultDiv) {
         resultDiv.innerHTML = `
             <h4 style="color: #22c55e; margin-bottom: 12px;">Automated Scan Complete</h4>
-            <p>New top holders and longest holders have been updated in the tables above.</p>
+            <p>New top holders and top stakers have been updated in the tables above.</p>
         `;
         resultDiv.style.display = 'block';
     }
@@ -1281,6 +1285,7 @@ function populateDevPanel() {
     set('m-mini-draw', mv.miniDrawLabel);
     set('m-big-draw', mv.bigDrawLabel);
     set('m-lotto-main', mv.lottoMainPct);
+    set('m-lotto-daily', mv.lottoDailyPct);
     set('m-lotto-mdr', mv.lottoMdrPct);
     set('m-lotto-burn', mv.lottoBurnPct);
     set('m-daily-max', mv.dailyMaxOfWeeklyPct);
@@ -1443,6 +1448,7 @@ function saveDeveloperSettings() {
     mm.miniDrawLabel = getAdminInputValue('m-mini-draw') || 'Today • 8:00 PM UTC';
     mm.bigDrawLabel = getAdminInputValue('m-big-draw') || 'Sunday • 8:00 PM UTC';
     mm.lottoMainPct = getAdminInputNumber('m-lotto-main', 80);
+    mm.lottoDailyPct = getAdminInputNumber('m-lotto-daily', 10);
     mm.lottoMdrPct = getAdminInputNumber('m-lotto-mdr', 10);
     mm.lottoBurnPct = getAdminInputNumber('m-lotto-burn', 10);
     mm.dailyMaxOfWeeklyPct = getAdminInputNumber('m-daily-max', 50);
@@ -1699,12 +1705,12 @@ function showPieExplanation(index) {
         },
         {
             title: `👥 Community (${s.community}%)`,
-            text: `Rewards sent to holders with <strong>${Number(v.communityThreshold).toLocaleString()}+</strong> $RUGGY. This portion supports the broader community of dedicated holders.`,
+            text: `Rewards sent to stakers with <strong>${Number(v.communityThreshold).toLocaleString()}+</strong> $RUGGY staked. This portion supports the broader community of dedicated stakers.`,
             color: "#fbbf24"
         },
         {
             title: `🛡 Anti-Rug Vault (${s.antiRug}%)`,
-            text: `Insurance vault for holders with <strong>${Number(v.antiRugThreshold).toLocaleString()}+</strong> $RUGGY. Protects loyal holders against catastrophic dumps.`,
+            text: `Insurance vault for stakers with <strong>${Number(v.antiRugThreshold).toLocaleString()}+</strong> $RUGGY staked. Protects loyal stakers against catastrophic dumps.`,
             color: "#22c55e"
         },
         {
@@ -1815,8 +1821,17 @@ function metricsView() {
         miniDrawLabel: m.miniDrawLabel,
         bigDrawLabel: m.bigDrawLabel,
         lottoMainPct: m.lottoMainPct,
+        lottoDailyPct: m.lottoDailyPct,
         lottoMdrPct: m.lottoMdrPct,
         lottoBurnPct: m.lottoBurnPct,
+        freeTicketCooldownDisplay: (() => {
+            const h = Number(m.freeTicketCooldownHours) || 24;
+            if (h % 24 === 0) {
+                const d = h / 24;
+                return d === 1 ? 'day' : d + ' days';
+            }
+            return h + ' hours';
+        })(),
         dailyMaxOfWeeklyPct: m.dailyMaxOfWeeklyPct,
         postLockLiquidity: m.postLockLiquidity,
         postLockCommunity: m.postLockCommunity,
