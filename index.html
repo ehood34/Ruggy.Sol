@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v9 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=9">
+    <!-- ASSET VERSION v11 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=11">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,13 +41,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=9"></script>
-    <script defer src="02-banner-video.js?v=9"></script>
-    <script defer src="03-rewards-helpers.js?v=9"></script>
-    <script defer src="04-pages-admin.js?v=9"></script>
-    <script defer src="05-text-emoji.js?v=9"></script>
-    <script defer src="06-final-wiring.js?v=9"></script>
-    <script defer src="07-chain.js?v=9"></script>
+    <script defer src="01-core.js?v=11"></script>
+    <script defer src="02-banner-video.js?v=11"></script>
+    <script defer src="03-rewards-helpers.js?v=11"></script>
+    <script defer src="04-pages-admin.js?v=11"></script>
+    <script defer src="05-text-emoji.js?v=11"></script>
+    <script defer src="06-final-wiring.js?v=11"></script>
+    <script defer src="07-chain.js?v=11"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -662,8 +662,9 @@
                 
                 <div>
                     <strong class="green">How to Get Off the Wall</strong><br>
-                    • Temporary Ban → Sell until you hold under <span data-m="overholdPct" data-fmt="pct">3%</span>.<br>
-                    • Permanent Ban → Unfortunately, Ruggy does not forgive <span data-m="lockedBanSellPct" data-fmt="pct">30%</span>+ sells.<br>
+                    • Temporary Ban (over-holding) → Sell until you hold under <span data-m="overholdPct" data-fmt="pct">3%</span> of supply.<br>
+                    • Temporary Ban (under-staked) → Stake at least <span data-m="communityThreshold" data-fmt="num">500,000</span> $RUGGY to requalify for rewards.<br>
+                    • Permanent Ban → Selling <span data-m="lockedBanSellPct" data-fmt="pct">30%</span> or more in one transaction is a Locked Ban; you must Absolve yourself.<br>
                     • <strong class="u103">Locked Ban accounts cannot participate in the Lottery</strong> until absolved.
                 </div>
             </div>
@@ -1123,14 +1124,16 @@
                 
                 <div>
                     <strong class="gold">Temporary Ban (Yellow)</strong><br>
-                    You currently hold <strong>more than 3%</strong> of the total $RUGGY supply. 
-                    This is seen as hoarding/control. Sell down below <span data-m="overholdPct" data-fmt="pct">3%</span> to become eligible again.
+                    You currently hold <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total $RUGGY supply. 
+                    This is seen as hoarding/control. Sell down below <span data-m="overholdPct" data-fmt="pct">3%</span> to become eligible again.<br>
+                    <strong class="gold">Or you're not staking enough</strong> — below <span data-m="communityThreshold" data-fmt="num">500,000</span> staked disqualifies you from rewards until you reach the required stake.<br>
+                    <strong>Banned wallets don't receive rewards or participate in the Lottery.</strong>
                 </div>
                 
                 <div>
                     <strong class="green">How to Get Off the Wall</strong><br>
-                    • If you are on Temporary Ban → Sell tokens until you hold under 3%.<br>
-                    • If you are on Locked Ban → You must Absolve yourself at the Ruggy Absolution page.
+                    • Temporary Ban → Sell until you hold under <span data-m="overholdPct" data-fmt="pct">3%</span> of supply, or stake at least <span data-m="communityThreshold" data-fmt="num">500,000</span> $RUGGY.<br>
+                    • Locked Ban → Selling <span data-m="lockedBanSellPct" data-fmt="pct">30%</span>+ in one transaction; you must Absolve yourself at the Ruggy Absolution page.
                 </div>
             </div>
         </div>
@@ -1533,7 +1536,7 @@
                         <button data-action="buyDailyTicket" class="buy-button" style="flex:1; min-width:140px; background: linear-gradient(to right,#22c55e,#16a34a);">
                             🎟 Buy Daily (<span data-m="dailyTicketPrice" data-fmt="usd">$3</span>)
                         </button>
-                        <button data-action="buyWeeklyTicket" class="buy-button" style="flex:1; min-width:140px; background: linear-gradient(to right,#a855f7,#7c3aed);">
+                        <button data-action="buyWeeklyTicket" class="buy-button" style="flex:1; min-width:140px; background: linear-gradient(to right,#fbbf24,#d97706); color:#1f2937;">
                             🎫 Buy Weekly (<span data-m="weeklyTicketPrice" data-fmt="usd">$6</span>)
                         </button>
                     </div>
@@ -1545,7 +1548,7 @@
                         <strong id="lotto-total-cost">$15.00</strong>
                     </div>
                     <div class="muted-12">
-                        <span data-m="lottoMainPct" data-fmt="pct">80%</span> Prize Pool • <span data-m="lottoDailyPct" data-fmt="pct">10%</span> Daily Wallet • <span data-m="lottoMdrPct" data-fmt="pct">10%</span> MDR • <span data-m="lottoBurnPct" data-fmt="pct">10%</span> Burn
+                        <span data-m="lottoMainPct" data-fmt="pct">80%</span> Prize Pool • <span data-m="lottoMdrPct" data-fmt="pct">10%</span> MDR • <span data-m="lottoBurnPct" data-fmt="pct">10%</span> Burn
                     </div>
                 </div>
 
@@ -1617,12 +1620,16 @@
                 
                 <div style="display: grid; gap: 12px; font-size: 15px;">
                     <div class="u28">
-                        <span><strong><span data-m="lottoMainPct" data-fmt="pct">80%</span></strong> → Main Prize Pool</span>
-                        <span style="color: #22c55e; font-weight: bold;">$99,880</span>
+                        <span><strong class="gold"><span data-m="lottoMainPct" data-fmt="pct">80%</span></strong> → <span class="gold">Main Prize Pool</span></span>
+                        <span class="gold" style="font-weight: bold;">$99,880</span>
                     </div>
                     <div class="u28">
-                        <span><strong style="color:#60a5fa;"><span data-m="lottoDailyPct" data-fmt="pct">10%</span></strong> → <span style="color:#60a5fa;">Daily Lottery Wallet</span></span>
-                        <span style="color: #60a5fa; font-weight: bold;">$12,485</span>
+                        <span><strong style="color:#22c55e;"><span data-m="dailyMaxOfWeeklyPct" data-fmt="pct">50%</span></strong> → <span style="color:#22c55e;">Daily Lottery Prize Pool</span></span>
+                        <span style="color: #22c55e; font-weight: bold;">max of weekly</span>
+                    </div>
+                    <div class="u28">
+                        <span><strong style="color:#3b82f6;">20%</strong> → <span style="color:#3b82f6;">Consolation Pool</span></span>
+                        <span style="color: #3b82f6; font-weight: bold;">Active • all draws</span>
                     </div>
                     <div class="u28">
                         <span><strong><span data-m="lottoMdrPct" data-fmt="pct">10%</span></strong> → MDR Fund</span>
