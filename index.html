@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v24 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=24">
+    <!-- ASSET VERSION v25 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=25">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,18 +41,21 @@
          not on every page — see ensureChartJsLoaded() in 04-pages-admin.js. -->
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=24"></script>
-    <script defer src="02-banner-video.js?v=24"></script>
-    <script defer src="03-rewards-helpers.js?v=24"></script>
-    <script defer src="04-pages-admin.js?v=24"></script>
-    <script defer src="05-text-emoji.js?v=24"></script>
-    <script defer src="06-final-wiring.js?v=24"></script>
-    <script defer src="07-chain.js?v=24"></script>
+    <script defer src="01-core.js?v=25"></script>
+    <script defer src="02-banner-video.js?v=25"></script>
+    <script defer src="03-rewards-helpers.js?v=25"></script>
+    <script defer src="04-pages-admin.js?v=25"></script>
+    <script defer src="05-text-emoji.js?v=25"></script>
+    <script defer src="06-final-wiring.js?v=25"></script>
+    <script defer src="07-chain.js?v=25"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
 </head>
 <body>
+
+    <!-- Skip link: first thing keyboard/screen-reader users reach -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
 
     <!-- Navbar -->
     <nav class="x201">
@@ -278,6 +281,7 @@
     </div>
 
     <!-- HOME -->
+    <main id="main-content" tabindex="-1">
     <section id="home" class="section active" style="padding-top: 0; padding-bottom: 60px;">
 
         <!-- Banner with MP4 Video -->
@@ -1310,7 +1314,7 @@
 
                 <div style="margin-bottom: 16px;">
                     <label style="font-size: 13px; display: block; margin-bottom: 6px;">Amount to Stake</label>
-                    <input id="stake-amount" type="number" placeholder="Enter amount of $RUGGY" 
+                    <input aria-label="Amount of RUGGY to stake" id="stake-amount" type="number" placeholder="Enter amount of $RUGGY" 
                            class="x237">
                 </div>
 
@@ -1435,7 +1439,7 @@
                 <div class="mb15">
                     <label class="muted-12">Dollar Value You Rugged (USD)</label>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <input id="rugged-amount" type="number" placeholder="e.g. 12500" 
+                        <input aria-label="Dollar value you were rugged" id="rugged-amount" type="number" placeholder="e.g. 12500" 
                                class="x240">
                         <button data-action="calculateAbsolutionStake" class="buy-button" style="background: #22c55e; flex: 1; min-width: 160px;">
                             Calculate Requirement
@@ -1614,7 +1618,7 @@
                         Enter free tickets into the <strong>Daily draw</strong> (max 5)
                     </label>
                     <div style="display:flex; gap:10px; align-items:center; justify-content:center;">
-                        <input id="free-ticket-enter-amount" type="number" value="1" min="1" max="5"
+                        <input aria-label="Number of free tickets to enter" id="free-ticket-enter-amount" type="number" value="1" min="1" max="5"
                                style="width:90px; padding:10px; border-radius:8px; border:1px solid #22c55e; background:#0b1220; color:white; text-align:center;">
                         <button data-action="enterFreeTickets" class="buy-button" style="flex:1; max-width:200px; background:linear-gradient(to right,#16a34a,#15803d);">
                             Enter Into Daily Draw
@@ -1966,6 +1970,8 @@
             <button id="close-image-modal-btn" data-action="closeImageModal" class="buy-button" style="max-width: 200px; margin-top: 15px; background: #374151;">Close</button>
         </div>
     </div>
+
+    </main>
 
     <!-- Wallet Selection Modal -->
     <div id="wallet-modal" class="modal section" role="dialog" aria-modal="true" aria-label="Select a wallet to connect">
