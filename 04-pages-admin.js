@@ -169,8 +169,11 @@ function navigateTo(page) {
     }
 
     document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-        if (link.dataset.page === page) link.classList.add('active');
+        const isActive = link.dataset.page === page;
+        link.classList.toggle('active', isActive);
+        // A11y: tell screen readers which nav item is the current page
+        if (isActive) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
     });
 
     if (page === 'tokenomics') {
