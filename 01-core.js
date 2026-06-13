@@ -805,54 +805,102 @@ function renderStakeDonut() {
         </svg>`;
     legend.innerHTML = legendRows.join('');
 
-    // ---- Interactivity: click a wedge (or its legend row) to pop it out ----
-    const svgEl = document.getElementById('stake-donut-svgel');
-    if (svgEl && !svgBox.dataset.wired) {
-        // Use delegation on the container so it survives re-renders.
-        const toggleSlice = (key) => {
-            const path = svgBox.querySelector(`path[data-slice="${key}"]`);
-            if (!path) return;
-            const a0 = parseFloat(path.dataset.a0), a1 = parseFloat(path.dataset.a1);
-            const mid = (a0 + a1) / 2;
-            const isOut = path.dataset.exploded === '1';
-            // reset all others
+    // ---- Interactivity: click a wedge OR its legend row to pop the slice out;
+    //      click anywhere off the donut/legend to reset. Listeners live on the
+    //      shared parent (#stake-donut-wrap) so legend clicks are caught too. ----
+    const resetAll = () => {
+        svgBox.querySelectorAll('path[data-slice]').forEach(p => {
+            p.style.transform = ''; p.dataset.exploded = '0'; p.style.opacity = '1'; p.style.filter = '';
+        });
+        if (legend) legend.querySelectorAll('[data-legend]').forEach(r => { r.style.background = ''; });
+    };
+    const highlightLegend = (key) => {
+        if (!legend) return;
+        legend.querySelectorAll('[data-legend]').forEach(r => {
+            r.style.background = (key && r.dataset.legend === key) ? 'rgba(255,255,255,0.08)' : '';
+        });
+    };
+    const toggleSlice = (key) => {
+        const path = svgBox.querySelector(`path[data-slice="${key}"]`);
+        if (!path) return;
+        const a0 = parseFloat(path.dataset.a0), a1 = parseFloat(path.dataset.a1);
+        const mid = (a0 + a1) / 2;
+        const isOut = path.dataset.exploded === '1';
+        resetAll();
+        if (!isOut) {
+            const dx = Math.cos(mid) * 16, dy = Math.sin(mid) * 16;
+            path.style.transform = `translate(${dx}px, ${dy}px)`;
+            path.dataset.exploded = '1';
             svgBox.querySelectorAll('path[data-slice]').forEach(p => {
-                p.style.transform = '';
-                p.dataset.exploded = '0';
-                p.style.opacity = '1';
+                if (p !== path) p.style.opacity = '0.5';
             });
-            if (!isOut) {
-                const dx = Math.cos(mid) * 14, dy = Math.sin(mid) * 14;
-                path.style.transform = `translate(${dx}px, ${dy}px)`;
-                path.dataset.exploded = '1';
-                // dim the others slightly to emphasize the selected slice
-                svgBox.querySelectorAll('path[data-slice]').forEach(p => {
-                    if (p !== path) p.style.opacity = '0.55';
-                });
-            }
-        };
-        svgBox.addEventListener('click', (e) => {
+            highlightLegend(key); // emphasize the matching legend row
+        }
+    };
+
+    if (wrap && !wrap.dataset.wired) {
+        // Clicks on EITHER the wheel or the legend (both inside #stake-donut-wrap)
+        wrap.addEventListener('click', (e) => {
             const path = e.target.closest('path[data-slice]');
             const row = e.target.closest('[data-legend]');
-            if (path) toggleSlice(path.dataset.slice);
-            else if (row) toggleSlice(row.dataset.legend);
+            if (path) { e.stopPropagation(); toggleSlice(path.dataset.slice); }
+            else if (row) { e.stopPropagation(); toggleSlice(row.dataset.legend); }
         });
-        // hover lift on wedges
-        svgBox.addEventListener('mouseover', (e) => {
+        // hover lift on wedges + matching legend row
+        wrap.addEventListener('mouseover', (e) => {
             const path = e.target.closest('path[data-slice]');
             if (path && path.dataset.exploded !== '1') path.style.filter = 'brightness(1.15)';
+            const row = e.target.closest('[data-legend]');
+            if (row) {
+                const p = svgBox.querySelector(`path[data-slice="${row.dataset.legend}"]`);
+                if (p && p.dataset.exploded !== '1') p.style.filter = 'brightness(1.15)';
+            }
         });
-        svgBox.addEventListener('mouseout', (e) => {
+        wrap.addEventListener('mouseout', (e) => {
             const path = e.target.closest('path[data-slice]');
-            if (path) path.style.filter = '';
+            if (path && path.dataset.exploded !== '1') path.style.filter = '';
+            const row = e.target.closest('[data-legend]');
+            if (row) {
+                const p = svgBox.querySelector(`path[data-slice="${row.dataset.legend}"]`);
+                if (p && p.dataset.exploded !== '1') p.style.filter = '';
+            }
         });
-        // keyboard activation
-        svgBox.addEventListener('keydown', (e) => {
+        // keyboard activation on focused wedges
+        wrap.addEventListener('keydown', (e) => {
             if (e.key !== 'Enter' && e.key !== ' ') return;
             const path = e.target.closest('path[data-slice]');
             if (path) { e.preventDefault(); toggleSlice(path.dataset.slice); }
+            if (e.key === 'Escape') resetAll();
         });
-        svgBox.dataset.wired = '1';
+        // Click anywhere OUTSIDE the donut + legend resets to normal state.
+        // Attached once at document level; guarded so it isn't stacked.
+        if (!window.__stakeDonutOutsideClick) {
+            window.__stakeDonutOutsideClick = true;
+            document.addEventListener('click', (e) => {
+                const w = document.getElementById('stake-donut-wrap');
+                if (!w) return;
+                // If the click was not inside the donut wrap, reset all slices.
+                if (!e.target.closest('#stake-donut-wrap')) {
+                    w.querySelectorAll('path[data-slice]').forEach(p => {
+                        p.style.transform = ''; p.dataset.exploded = '0'; p.style.opacity = '1'; p.style.filter = '';
+                    });
+                    const lg = document.getElementById('stake-donut-legend');
+                    if (lg) lg.querySelectorAll('[data-legend]').forEach(r => { r.style.background = ''; });
+                }
+            });
+            // Escape key anywhere also resets
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                const w = document.getElementById('stake-donut-wrap');
+                if (!w) return;
+                w.querySelectorAll('path[data-slice]').forEach(p => {
+                    p.style.transform = ''; p.dataset.exploded = '0'; p.style.opacity = '1'; p.style.filter = '';
+                });
+                const lg = document.getElementById('stake-donut-legend');
+                if (lg) lg.querySelectorAll('[data-legend]').forEach(r => { r.style.background = ''; });
+            });
+        }
+        wrap.dataset.wired = '1';
     }
 }
 window.renderStakeDonut = renderStakeDonut;
