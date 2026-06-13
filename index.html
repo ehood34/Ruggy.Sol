@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v4 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=4">
+    <!-- ASSET VERSION v5 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=5">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,13 +41,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=4"></script>
-    <script defer src="02-banner-video.js?v=4"></script>
-    <script defer src="03-rewards-helpers.js?v=4"></script>
-    <script defer src="04-pages-admin.js?v=4"></script>
-    <script defer src="05-text-emoji.js?v=4"></script>
-    <script defer src="06-final-wiring.js?v=4"></script>
-    <script defer src="07-chain.js?v=4"></script>
+    <script defer src="01-core.js?v=5"></script>
+    <script defer src="02-banner-video.js?v=5"></script>
+    <script defer src="03-rewards-helpers.js?v=5"></script>
+    <script defer src="04-pages-admin.js?v=5"></script>
+    <script defer src="05-text-emoji.js?v=5"></script>
+    <script defer src="06-final-wiring.js?v=5"></script>
+    <script defer src="07-chain.js?v=5"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -509,7 +509,7 @@
                             <span class="x230"></span>
                             <span class="text-14"><strong>Burn Wallet</strong><br><span class="muted-125">Buybacks & Burns</span></span>
                         </div>
-                        <span style="font-weight: bold; color: #ef4444; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span data-m="liquidityPct" data-fmt="pct">40%</span></span>
+                        <span style="font-weight: bold; color: #ef4444; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span id="fee-bd-liquidity" data-m="liquidityPct" data-fmt="pct">40%</span></span>
                     </div>
                     
                     <div class="row-head">
@@ -517,7 +517,7 @@
                             <span class="x231"></span>
                             <span class="text-14"><strong>Community</strong><br><span class="muted-125">500k+ holders</span></span>
                         </div>
-                        <span style="font-weight: bold; color: #fbbf24; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span data-m="communityPct" data-fmt="pct">30%</span></span>
+                        <span style="font-weight: bold; color: #fbbf24; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span id="fee-bd-community" data-m="communityPct" data-fmt="pct">30%</span></span>
                     </div>
                     
                     <div class="row-head">
@@ -525,7 +525,7 @@
                             <span class="x232"></span>
                             <span class="text-14"><strong>Anti-Rug</strong><br><span class="muted-125">1M+ holders</span></span>
                         </div>
-                        <span style="font-weight: bold; color: #22c55e; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span data-m="antiRugPct" data-fmt="pct">20%</span></span>
+                        <span style="font-weight: bold; color: #22c55e; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span id="fee-bd-antirug" data-m="antiRugPct" data-fmt="pct">20%</span></span>
                     </div>
                     
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -533,7 +533,7 @@
                             <span class="x233"></span>
                             <span class="text-14"><strong>MDR Fund</strong><br><span class="muted-125">Marketing, Development & Research</span></span>
                         </div>
-                        <span style="font-weight: bold; color: #a855f7; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span data-m="creatorPct" data-fmt="pct">10%</span></span>
+                        <span style="font-weight: bold; color: #a855f7; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span id="fee-bd-creator" data-m="creatorPct" data-fmt="pct">10%</span></span>
                     </div>
                 </div>
             </div>
@@ -1519,11 +1519,14 @@
 
                 <div class="mb20">
                     <label style="font-size: 14px; display: block; margin-bottom: 8px;">Number of Tickets</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input id="lotto-ticket-amount" type="number" value="5" min="1" max="100" 
-                               class="x243">
-                        <button data-action="buyLottoTickets" class="buy-button x244" >
-                            Buy Tickets
+                    <input id="lotto-ticket-amount" type="number" value="5" min="1" max="100"
+                           class="x243" style="width:100%; margin-bottom:10px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button data-action="buyDailyTicket" class="buy-button" style="flex:1; min-width:140px; background: linear-gradient(to right,#22c55e,#16a34a);">
+                            🎟 Buy Daily (<span data-m="dailyTicketPrice" data-fmt="usd">$3</span>)
+                        </button>
+                        <button data-action="buyWeeklyTicket" class="buy-button" style="flex:1; min-width:140px; background: linear-gradient(to right,#a855f7,#7c3aed);">
+                            🎫 Buy Weekly (<span data-m="weeklyTicketPrice" data-fmt="usd">$6</span>)
                         </button>
                     </div>
                 </div>
@@ -1535,6 +1538,30 @@
                     </div>
                     <div class="muted-12">
                         80% goes to Prize Pool • 10% MDR • 10% Permanent Burn
+                    </div>
+                </div>
+
+                <!-- My Tickets: daily vs weekly + prior free tickets -->
+                <div style="margin-top:18px; border-top:1px solid #374151; padding-top:16px;">
+                    <h4 style="color:#fbbf24; margin:0 0 6px; text-align:center;">🎟 My Tickets</h4>
+                    <p id="tickets-wallet-status" class="muted-sm" style="text-align:center; margin:0 0 14px;">Connect your wallet to save and verify your tickets</p>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                        <div style="background:#052e16; border:1px solid #22c55e; border-radius:10px; padding:14px; text-align:center;">
+                            <div class="muted-sm">Daily Tickets</div>
+                            <div id="tickets-daily-count" style="font-size:30px; font-weight:bold; color:#22c55e;">0</div>
+                            <div id="tickets-daily-value" class="muted-sm">$0</div>
+                        </div>
+                        <div style="background:#1e1233; border:1px solid #a855f7; border-radius:10px; padding:14px; text-align:center;">
+                            <div class="muted-sm">Weekly Tickets</div>
+                            <div id="tickets-weekly-count" style="font-size:30px; font-weight:bold; color:#c084fc;">0</div>
+                            <div id="tickets-weekly-value" class="muted-sm">$0</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px; background:#0b1220; border:1px solid #374151; border-radius:10px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+                        <span class="text-14"><strong>🎁 Previously Earned Free Tickets</strong><br><span class="muted-sm">Kept even if settings change</span></span>
+                        <span id="tickets-free-count" style="font-size:24px; font-weight:bold; color:#86efac;">0</span>
                     </div>
                 </div>
             </div>
@@ -1823,6 +1850,10 @@
                         <input id="m-lotto-burn" type="number" min="0" max="100" class="dev-input" placeholder="10">
                         <label class="label-sm">Daily max winnings (% of weekly pool)</label>
                         <input id="m-daily-max" type="number" min="0" max="100" class="dev-input" placeholder="50">
+                        <label class="label-sm">Daily ticket price (USD)</label>
+                        <input id="m-daily-ticket-price" type="number" min="0" step="0.01" class="dev-input" placeholder="3">
+                        <label class="label-sm">Weekly ticket price (USD)</label>
+                        <input id="m-weekly-ticket-price" type="number" min="0" step="0.01" class="dev-input" placeholder="6">
                     </div>
                 </details>
 
