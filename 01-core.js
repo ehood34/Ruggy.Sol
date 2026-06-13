@@ -320,34 +320,60 @@ function startLottoSolPriceUpdates() {
 // and user flows. The global functions below are thin compatibility
 // aliases for the delegated data-action system.
 const Lottery = {
-    STORAGE_KEY: 'ruggyLottoTickets',
     FREE_CLAIM_KEY: 'lastFreeLottoTicket',
 
-    get ticketPrice() { return RUGGY_SETTINGS.lottery.ticketPriceUsd; },
+    // Per-wallet ticket ledger lives under ruggyTickets:<wallet>, so changing
+    // settings never wipes a holder's previously-earned tickets. A connected,
+    // verified wallet keeps its daily + weekly + free balances permanently.
+    _wallet() {
+        return (window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey)
+            ? window.ruggyWallet.publicKey.toString() : null;
+    },
+    _key(w) { return 'ruggyTickets:' + (w || 'guest'); },
 
-    getTickets() {
-        return parseInt(localStorage.getItem(this.STORAGE_KEY) || '0', 10);
+    ledger(w) {
+        w = w || this._wallet();
+        try {
+            const raw = localStorage.getItem(this._key(w));
+            if (raw) return Object.assign({ daily: 0, weekly: 0, free: 0 }, JSON.parse(raw));
+        } catch (_) {}
+        return { daily: 0, weekly: 0, free: 0 };
+    },
+    saveLedger(l, w) {
+        w = w || this._wallet();
+        localStorage.setItem(this._key(w), JSON.stringify(l));
     },
 
-    addTickets(n) {
-        localStorage.setItem(this.STORAGE_KEY, this.getTickets() + n);
+    priceFor(kind) {
+        const m = (typeof CONFIG !== 'undefined' && CONFIG.metrics) || {};
+        if (kind === 'weekly') return Number(m.weeklyTicketPrice) || (RUGGY_SETTINGS.lottery.ticketPriceUsd * 2);
+        return Number(m.dailyTicketPrice) || RUGGY_SETTINGS.lottery.ticketPriceUsd;
     },
 
-    async buyTickets() {
+    // Total tickets across types (legacy callers + the cost preview)
+    get ticketPrice() { return this.priceFor('daily'); },
+
+    async buy(kind) {
+        kind = (kind === 'weekly') ? 'weekly' : 'daily';
         const amountInput = document.getElementById('lotto-ticket-amount');
-        if (!amountInput) return;
+        const amount = parseInt(amountInput?.value, 10) || 1;
+        const price = this.priceFor(kind);
+        const totalCost = amount * price;
 
-        const amount = parseInt(amountInput.value, 10) || 1;
-        const totalCost = amount * this.ticketPrice;
-
-        if (await showConfirm(`Buy <strong>${amount} tickets</strong> for <strong>$${totalCost}</strong>?`, { okText: 'Buy Tickets' })) {
-            this.addTickets(amount);
-            showToast(`Purchased ${amount} Lottery Tickets!`, "success", "Your tickets have been added to the next draw. Good luck!");
+        const label = kind === 'weekly' ? 'Weekly' : 'Daily';
+        if (await showConfirm(
+            `Buy <strong>${amount} ${label} ticket${amount === 1 ? '' : 's'}</strong> for <strong>$${totalCost.toLocaleString()}</strong>?`,
+            { okText: `Buy ${label} Tickets` })) {
+            const l = this.ledger();
+            l[kind] += amount;
+            this.saveLedger(l);
+            renderTicketTables();
+            showToast(`Purchased ${amount} ${label} ticket${amount === 1 ? '' : 's'}!`, "success",
+                this._wallet() ? "Saved to your connected wallet." : "Connect a wallet to keep these permanently.");
         }
     },
 
     claimFreeTicket() {
-        // Cooldown is admin-configurable (Rules & Metrics > free ticket hold time)
         const hours = (typeof CONFIG !== 'undefined' && CONFIG.metrics?.freeTicketCooldownHours) || 24;
         const last = parseInt(localStorage.getItem(this.FREE_CLAIM_KEY), 10) || 0;
         const remaining = last + hours * 3600 * 1000 - Date.now();
@@ -357,13 +383,45 @@ const Lottery = {
             return;
         }
         localStorage.setItem(this.FREE_CLAIM_KEY, String(Date.now()));
-        this.addTickets(1);
-        showToast("🎁 Free Ticket Claimed!", "success", "+1 Free Lottery Ticket added to your account. Good luck in the next draw!");
+        const l = this.ledger();
+        l.free += 1;
+        l.daily += 1; // a free ticket enters the daily draw
+        this.saveLedger(l);
+        renderTicketTables();
+        showToast("🎁 Free Ticket Claimed!", "success", "+1 Free ticket added (enters the Daily draw). Good luck!");
     }
 };
 
+// Render the daily/weekly ticket tables + prior free-ticket count for the
+// connected wallet. Recomputes the free-ticket *value* from current admin
+// settings while preserving the COUNT a wallet already earned.
+function renderTicketTables() {
+    const l = Lottery.ledger();
+    const w = Lottery._wallet();
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('tickets-daily-count', l.daily);
+    set('tickets-weekly-count', l.weekly);
+    set('tickets-free-count', l.free);
+
+    const dailyPrice = Lottery.priceFor('daily');
+    const weeklyPrice = Lottery.priceFor('weekly');
+    set('tickets-daily-value', '$' + (l.daily * dailyPrice).toLocaleString());
+    set('tickets-weekly-value', '$' + (l.weekly * weeklyPrice).toLocaleString());
+
+    const status = document.getElementById('tickets-wallet-status');
+    if (status) {
+        status.textContent = w
+            ? ('Connected: ' + w.slice(0, 4) + '…' + w.slice(-4) + ' — tickets saved to this wallet')
+            : 'Connect your wallet to save and verify your tickets';
+    }
+}
+window.renderTicketTables = renderTicketTables;
+
 // Compatibility aliases (data-action whitelist + legacy call sites)
-async function buyLottoTickets() { return Lottery.buyTickets(); }
+async function buyLottoTickets() { return Lottery.buy('daily'); }
+async function buyDailyTicket() { return Lottery.buy('daily'); }
+async function buyWeeklyTicket() { return Lottery.buy('weekly'); }
 function claimDailyFreeTicket() { return Lottery.claimFreeTicket(); }
 
 // Update total cost when changing ticket amount
@@ -601,6 +659,9 @@ function clearWalletState() {
 function refreshWalletUI() {
     if (typeof updateConnectWalletButton === 'function') updateConnectWalletButton();
     if (typeof updateHomeWalletDisplays === 'function') updateHomeWalletDisplays();
+    // Re-render the ticket tables so a wallet's previously-earned tickets
+    // appear the moment it connects/verifies (and clear on disconnect).
+    if (typeof renderTicketTables === 'function') renderTicketTables();
 }
 
 // Attach connect/disconnect/accountChanged listeners once per provider.
@@ -1360,7 +1421,8 @@ const UI_ACTION_WHITELIST = new Set([
     'triggerDistribution', 'toggleRewardsPause', 'connectDevWalletForHome',
     'startLiveTracking', 'scanWalletForWall', 'scanWalletForHall',
     'runAutomatedWallScan', 'runAutomatedHallScan', 'startMoneyRain',
-    'exportSiteConfig', 'resetSiteData', 'toggleLpLockView'
+    'exportSiteConfig', 'resetSiteData', 'toggleLpLockView',
+    'buyDailyTicket', 'buyWeeklyTicket'
 ]);
 
 // Delegated input events (admin split sliders)
