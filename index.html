@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v20 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=20">
+    <!-- ASSET VERSION v22 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=22">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,13 +41,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=20"></script>
-    <script defer src="02-banner-video.js?v=20"></script>
-    <script defer src="03-rewards-helpers.js?v=20"></script>
-    <script defer src="04-pages-admin.js?v=20"></script>
-    <script defer src="05-text-emoji.js?v=20"></script>
-    <script defer src="06-final-wiring.js?v=20"></script>
-    <script defer src="07-chain.js?v=20"></script>
+    <script defer src="01-core.js?v=22"></script>
+    <script defer src="02-banner-video.js?v=22"></script>
+    <script defer src="03-rewards-helpers.js?v=22"></script>
+    <script defer src="04-pages-admin.js?v=22"></script>
+    <script defer src="05-text-emoji.js?v=22"></script>
+    <script defer src="06-final-wiring.js?v=22"></script>
+    <script defer src="07-chain.js?v=22"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -1972,6 +1972,9 @@
     <div id="wallet-modal" class="modal section" >
         <div class="modal-content" style="max-width: 460px; border: 3px solid #a855f7; box-shadow: 0 0 50px rgba(168, 85, 247, 0.4);">
             <h3 class="u24">Connect Wallet</h3>
+            <p id="wallet-modal-mobile-hint" style="display:none; font-size:12.5px; color:#c4b5fd; text-align:center; margin:-6px 0 12px; line-height:1.5;">
+                📱 On mobile? Tap your wallet below — we'll open it in the wallet's app so you can approve, then bring you right back.
+            </p>
             
             <div style="display: grid; gap: 10px;">
                 <button id="select-phantom-btn" data-action="select-wallet" data-wallet="phantom" class="wallet-option u30">
