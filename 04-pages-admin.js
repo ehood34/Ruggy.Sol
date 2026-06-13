@@ -1626,18 +1626,26 @@ const TokenomicsChart = {
     if (loading) loading.style.display = 'none';
     
     
-    // Setup resize observer (once) - with debounce + requestAnimationFrame to prevent loop warnings on mobile
+    // Resize observer (once). The old version observed the container and
+    // called chart.resize() on every fire — but resizing a height:auto
+    // canvas changes the container's HEIGHT, which re-fires the observer,
+    // which resizes again... a feedback loop that shows up as the card
+    // "vibrating". Fix: only react to WIDTH changes (height is derived from
+    // aspectRatio, so width is the only real input), and ignore fires where
+    // the width hasn't actually changed.
     if (!window.chartResizeObserver) {
+        let lastWidth = 0;
         let resizeTimeout;
-        window.chartResizeObserver = new ResizeObserver(() => {
+        window.chartResizeObserver = new ResizeObserver((entries) => {
+            const w = Math.round(entries[0].contentRect.width);
+            if (w === lastWidth) return;   // height-only change -> ignore (breaks the loop)
+            lastWidth = w;
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                requestAnimationFrame(() => {
-                    if (window.feePieChart && typeof window.feePieChart.resize === 'function') {
-                        window.feePieChart.resize();
-                    }
-                });
-            }, 80);
+                if (window.feePieChart && typeof window.feePieChart.resize === 'function') {
+                    window.feePieChart.resize();
+                }
+            }, 120);
         });
         window.chartResizeObserver.observe(container);
     }
