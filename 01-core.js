@@ -532,8 +532,85 @@ async function stakeRuggy() {
     showToast(`Staked ${amount.toLocaleString()} $RUGGY for ${label} (${multiplier}x)`, "success");
 }
 
+// Total $RUGGY currently staked by the connected wallet (sum of stake list).
+function getStakedTotal() {
+    return getStakes().reduce((sum, s) => sum + (Number(s.amount) || 0), 0);
+}
+
+// Single source of truth for staking-based reward eligibility. Reads the
+// connected wallet's staked total against the admin thresholds and the Wall.
+function getStakeEligibility() {
+    const connected = !!(window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey);
+    const wallet = connected ? window.ruggyWallet.publicKey.toString() : null;
+    const staked = connected ? getStakedTotal() : 0;
+    const communityReq = (CONFIG.airdropThreshold) || 500000;
+    const antiRugReq = (CONFIG.antiRugThreshold) || 1000000;
+
+    let banned = null;
+    if (wallet && typeof bannedWallets !== 'undefined') {
+        banned = bannedWallets.find(b => b.wallet.toLowerCase() === wallet.toLowerCase()) || null;
+    }
+
+    const community = staked >= communityReq;
+    const antiRug = staked >= antiRugReq;
+    const tier = banned ? 'banned' : (antiRug ? 'antiRug' : (community ? 'community' : 'none'));
+    return {
+        connected, wallet, staked, communityReq, antiRugReq,
+        community, antiRug, banned, tier,
+        // how much more they must stake to reach the next tier
+        toCommunity: Math.max(0, communityReq - staked),
+        toAntiRug: Math.max(0, antiRugReq - staked)
+    };
+}
+window.getStakeEligibility = getStakeEligibility;
+window.getStakedTotal = getStakedTotal;
+
+// Lightweight banner shown on the Rewards/Pool pages when the connected
+// wallet isn't staking enough (or is banned). Re-renders on connect,
+// stake, absolve, and disconnect via refreshWalletUI/renderActiveStakes.
+function renderStakeNotice() {
+    const els = [
+        document.getElementById('stake-eligibility-notice'),
+        document.getElementById('stake-eligibility-notice-pool')
+    ].filter(Boolean);
+    if (!els.length) return;
+    const e = getStakeEligibility();
+
+    const set = (html, border, bg) => els.forEach(el => {
+        el.style.display = e.connected ? 'block' : 'none';
+        if (!e.connected) return;
+        el.innerHTML = html; el.style.borderLeft = '5px solid ' + border; el.style.background = bg;
+    });
+    if (!e.connected) { els.forEach(el => el.style.display = 'none'); return; }
+
+    const fmt = (n) => Number(n).toLocaleString();
+    if (e.banned) {
+        const locked = e.banned.type === 'Locked';
+        set(`<strong style="color:${locked ? '#ef4444' : '#fbbf24'};">${locked ? '🚫 Locked Ban' : '⚠️ Temporary Ban'}</strong> —
+            banned wallets <strong>do not receive rewards</strong> and <strong>cannot participate in the Lottery</strong>.
+            ${locked ? 'Visit the <strong>Absolution</strong> page to clear it.' : 'Reduce your holdings and meet the stake requirement to requalify.'}`,
+            locked ? '#ef4444' : '#fbbf24', locked ? '#3f1f1f' : '#3f2a1f');
+        return;
+    }
+    if (e.tier === 'antiRug') {
+        set(`<strong style="color:#22c55e;">✅ Fully staked & eligible</strong> — you're staking <strong>${fmt(e.staked)}</strong> $RUGGY and qualify for <strong>Community + Anti-Rug</strong> rewards.`,
+            '#22c55e', '#052e16');
+    } else if (e.tier === 'community') {
+        set(`<strong style="color:#fbbf24;">✅ Community eligible</strong> — staking <strong>${fmt(e.staked)}</strong> $RUGGY.
+            Stake <strong>${fmt(e.toAntiRug)}</strong> more to unlock <strong>Anti-Rug</strong> rewards too.`,
+            '#eab308', '#3f2a1f');
+    } else {
+        set(`<strong style="color:#f87171;">❌ Not staking enough for rewards</strong> — you're staking <strong>${fmt(e.staked)}</strong> $RUGGY.
+            <strong>Not having enough staked disqualifies you from receiving rewards</strong> until you reach the required stake.
+            Stake <strong>${fmt(e.toCommunity)}</strong> more to start earning Community rewards.`,
+            '#ef4444', '#3f1f1f');
+    }
+}
+window.renderStakeNotice = renderStakeNotice;
+
 function renderActiveStakes() {
     const box = DOM.get('active-stakes');
+    renderStakeNotice();
     if (!box) return;
 
     // Stakes are wallet-scoped: show nothing (and a hint) when disconnected.
@@ -716,7 +793,33 @@ function refreshWalletUI() {
     // the moment it connects/verifies — and clear from view on disconnect.
     if (typeof renderTicketTables === 'function') renderTicketTables();
     if (typeof renderActiveStakes === 'function') renderActiveStakes();
+    if (typeof maybeNudgeStake === 'function') maybeNudgeStake();
 }
+
+// One-time-per-connection nudge: if the connected wallet isn't staking
+// enough (or is banned), actively tell them via a toast. Tracked per wallet
+// so we don't nag on every UI refresh.
+let __lastNudgedWallet = null;
+function maybeNudgeStake() {
+    if (typeof getStakeEligibility !== 'function' || typeof showToast !== 'function') return;
+    const e = getStakeEligibility();
+    if (!e.connected) { __lastNudgedWallet = null; return; }
+    if (__lastNudgedWallet === e.wallet) return; // already nudged this wallet
+    __lastNudgedWallet = e.wallet;
+
+    const fmt = (n) => Number(n).toLocaleString();
+    if (e.banned) {
+        showToast(e.banned.type === 'Locked' ? "Your wallet is on Locked Ban" : "Your wallet is temporarily banned",
+            "error", "Banned wallets don't receive rewards or play the Lottery. Visit Absolution to clear it.");
+    } else if (e.tier === 'none') {
+        showToast("You're not staking enough for rewards", "error",
+            `Stake ${fmt(e.toCommunity)} more $RUGGY to start earning. Not having enough staked disqualifies you from rewards.`);
+    } else if (e.tier === 'community') {
+        showToast("Staking enough for Community rewards", "success",
+            `Stake ${fmt(e.toAntiRug)} more to unlock Anti-Rug rewards too.`);
+    }
+}
+window.maybeNudgeStake = maybeNudgeStake;
 
 // Attach connect/disconnect/accountChanged listeners once per provider.
 const __listenedProviders = new WeakSet();
