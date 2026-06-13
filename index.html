@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v7 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=7">
+    <!-- ASSET VERSION v9 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=9">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,13 +41,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=7"></script>
-    <script defer src="02-banner-video.js?v=7"></script>
-    <script defer src="03-rewards-helpers.js?v=7"></script>
-    <script defer src="04-pages-admin.js?v=7"></script>
-    <script defer src="05-text-emoji.js?v=7"></script>
-    <script defer src="06-final-wiring.js?v=7"></script>
-    <script defer src="07-chain.js?v=7"></script>
+    <script defer src="01-core.js?v=9"></script>
+    <script defer src="02-banner-video.js?v=9"></script>
+    <script defer src="03-rewards-helpers.js?v=9"></script>
+    <script defer src="04-pages-admin.js?v=9"></script>
+    <script defer src="05-text-emoji.js?v=9"></script>
+    <script defer src="06-final-wiring.js?v=9"></script>
+    <script defer src="07-chain.js?v=9"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -401,7 +401,7 @@
                              class="tile-img-sm">
                         <div class="pad-card">
                             <h3 style="margin: 0 0 8px 0; color: #f59e0b;">Ruggy's Hall</h3>
-                            <p class="muted-sm-flat">Top holders & biggest bagworkers</p>
+                            <p class="muted-sm-flat">Top holders, 🔒 top stakers & biggest bagworkers</p>
                         </div>
                     </div>
 
@@ -489,7 +489,7 @@
                             🔓 Show 50% LP Locked Distribution
                         </button>
                         <p id="lp-lock-note" style="display:none; margin:10px 0 0; font-size:13px; color:#86efac; line-height:1.5;">
-                            <strong>Post-Lock mode:</strong> once 50% of the LP is permanently locked, burns stop and those fees redirect to holders. Click slices to learn more.
+                            <strong>Post-Lock mode:</strong> once 50% of the LP is permanently locked, burns stop and those fees redirect to stakers. Click slices to learn more.
                         </p>
                     </div>
 
@@ -544,14 +544,14 @@
                     <h3 class="u9">📡 Distribution Mode</h3>
                     <p style="font-size: 13px; line-height: 1.6; margin: 0;">
                         <strong>Automatic Sending:</strong> Rewards are sent automatically to qualified wallets when the timer ends.<br><br>
-                        <strong>After <span data-m="holderShutoff" data-fmt="num">500</span> holders:</strong> Automatic distribution stops, but rewards are <strong>still sent to the community vault every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes</strong>. They accumulate in the vault for approved wallets to <strong>claim whenever they like</strong> by connecting their wallet on this site.
+                        <strong>After <span data-m="holderShutoff" data-fmt="num">500</span> stakers:</strong> Automatic distribution stops, but rewards are <strong>still sent to the community vault every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes</strong>. They accumulate in the vault for approved <strong>stakers</strong> to <strong>claim whenever they like</strong> by connecting their wallet on this site.
                     </p>
                 </div>
 
                 <div class="card" style="margin-bottom: 22px; border: 2px solid #22c55e;">
-                    <h3 class="green-mb15">💰 Take Profit Rules – For True Holders</h3>
+                    <h3 class="green-mb15">💰 Take Profit Rules – For True Stakers</h3>
                     <div class="text-15">
-                        <p><strong>True holders deserve their reward.</strong></p>
+                        <p><strong>True stakers deserve their reward.</strong></p>
                         <p>After every <strong><span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI</strong>, you can safely take up to <strong><span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> of your Ruggy with no ban risk.</p>
                         <p>If you sell more than <span data-m="roiSafeSellPct" data-fmt="pct">50%</span> in that window → <strong>Locked Ban</strong>.</p>
                         <p class="gold">This only applies to your first sell after <span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI. After using it, your counter resets.</p>
@@ -604,10 +604,10 @@
         </div>
 
         <div class="card" style="max-width: 820px; margin: 0 auto 35px; border: 2px solid #22c55e;">
-            <h3 style="color: #22c55e; margin-bottom: 16px;">💰 Take Profit Rules – For True Holders</h3>
+            <h3 style="color: #22c55e; margin-bottom: 16px;">💰 Take Profit Rules – For True Stakers</h3>
             
             <div class="fs15">
-                <p><strong>True holders deserve their reward.</strong></p>
+                <p><strong>True stakers deserve their reward.</strong></p>
                 <p>After every <strong><span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI</strong>, you are allowed to take up to <strong><span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> of your Ruggy with <strong>no ban consequence</strong>.</p>
                 <p>If you sell <strong>more than <span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> during this window, you will be placed on <strong>Locked Ban</strong>.</p>
                 <p class="gold"><strong>Important:</strong> This Take Profit window only applies to your <strong>first sell</strong> after reaching <span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI. Once used, your ROI counter resets.</p>
@@ -682,7 +682,7 @@
         <div class="card" style="max-width: 700px; margin: 0 auto 35px;">
             <h3 style="margin-bottom: 12px; color: #ff00ff;">Check Your Reward Eligibility</h3>
             <p style="font-size:12px; color:#9ca3af; margin-bottom:8px;">
-                Automatic airdrops continue until <strong><span data-m="holderShutoff" data-fmt="num">500</span> holders</strong>. After that, rewards are still sent to the vault every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes and accumulate for manual claiming.
+                Automatic airdrops continue until <strong><span data-m="holderShutoff" data-fmt="num">500</span> stakers</strong>. After that, rewards are still sent to the vault every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes and accumulate for manual claiming.
             </p>
             
             <div id="rewards-ca-display" data-action="copyTokenCA" title="Click to copy"
@@ -704,11 +704,11 @@
                     <strong id="wallet-address" style="font-family: monospace;"></strong>
                 </div>
                 <div class="u15">
-                    <span class="gray">Balance</span>
+                    <span class="gray">Staked Amount</span>
                     <strong id="wallet-balance" class="green"></strong>
                 </div>
                 <div class="row-between">
-                    <span class="gray">% of Supply</span>
+                    <span class="gray">Staked % of Supply</span>
                     <strong id="supply-percentage" class="gold"></strong>
                 </div>
             </div>
@@ -720,7 +720,7 @@
             <h3 style="color: #22c55e; margin-bottom: 12px; text-align: center;">💰 Claim Directly From Vault</h3>
             
             <p style="text-align: center; font-size: 15px; margin-bottom: 20px; color: #d1fae5;">
-                After <strong><span data-m="holderShutoff" data-fmt="num">500</span>+ holders</strong>, automatic distribution stops.<br>
+                After <strong><span data-m="holderShutoff" data-fmt="num">500</span>+ stakers</strong>, automatic distribution stops.<br>
                 However, rewards are <strong>still sent to the community vault every 30 minutes</strong> and will accumulate.<br>
                 Approved wallets can <strong>claim them whenever they like</strong> by connecting here.
             </p>
@@ -812,7 +812,7 @@
             </p>
             <p>
                 And so, Ruggy created <strong>$RUGGY</strong> — a coin built with powerful <strong>anti-rug mechanics</strong>. 
-                Strong tokenomics. Real rewards for holders. Harsh punishments for those who try to betray the community.
+                Strong tokenomics. Real rewards for stakers. Harsh punishments for those who try to betray the community.
             </p>
             <p>
                 You see, Ruggy is <strong>very emotional</strong>. He’s been alone for so long that when someone finally shows him love, 
@@ -1002,7 +1002,7 @@
 
         <h2 class="page-h2 neon-text">RUGGY'S HALL</h2>
         <p class="u1">
-            Ruggy's Hall of Fame • Honoring the strongest holders and biggest promoters in the community
+            Ruggy's Hall of Fame • Honoring the strongest holders, top stakers, and biggest promoters in the community
         </p>
 
         <div class="card u105" >
@@ -1050,15 +1050,15 @@
             </div>
 
             <div class="card">
-                <h3 style="color: #22c55e; margin-bottom: 20px; text-align: center;">⏳ Longest Holders</h3>
-                <p class="muted-sm" style="text-align:center; margin:-12px 0 14px;">Showing the <span data-m="hallLongestShown" data-fmt="num">12</span> longest-held wallets</p>
+                <h3 style="color: #22c55e; margin-bottom: 20px; text-align: center;">🔒 Top Stakers</h3>
+                <p class="muted-sm" style="text-align:center; margin:-12px 0 14px;">Showing the top <span data-m="hallLongestShown" data-fmt="num">12</span> stakers by amount locked</p>
                 <div class="table-container">
                     <table class="u104">
                         <thead>
                             <tr>
                                 <th>Rank</th>
                                 <th>Wallet</th>
-                                <th>Days Held</th>
+                                <th>Staked</th>
                             </tr>
                         </thead>
                         <tbody id="longest-holders-table">
@@ -1153,7 +1153,7 @@
             </div>
             
             <p style="font-size: 12px; color: #9ca3af; margin: 0;">
-                The system automatically detects violations of the 30% sell rule and 3% holding rule.
+                The system automatically detects violations of the <span data-m="lockedBanSellPct" data-fmt="pct">30%</span> sell rule, the <span data-m="overholdPct" data-fmt="pct">3%</span> holding rule, and the minimum-stake requirement.
             </p>
         </div>
 
@@ -1181,13 +1181,14 @@
                 <div>
                     <h4 class="u11">🔴 Locked Wall</h4>
                     <p class="text-14-flat">
-                        Selling <strong>30% or more</strong> of your holdings in a single transaction.
+                        Selling <strong><span data-m="lockedBanSellPct" data-fmt="pct">30%</span> or more</strong> of your holdings in a single transaction.
                     </p>
                 </div>
                 <div>
                     <h4 class="u12">🟠 Temporary Wall</h4>
                     <p class="text-14-flat">
-                        Holding <strong>more than 3%</strong> of the total token supply.
+                        Holding <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total token supply.<br>
+                        <strong class="gold">Or not staking enough</strong> — below <span data-m="communityThreshold" data-fmt="num">500,000</span> staked disqualifies you from rewards until you reach the required stake.
                     </p>
                 </div>
             </div>
@@ -1200,9 +1201,9 @@
         </div>
 
         <div class="card" style="max-width: 820px; margin: 40px auto 0; border: 2px solid #22c55e;">
-            <h3 class="green-mb15">💰 Take Profit Rules – For True Holders</h3>
+            <h3 class="green-mb15">💰 Take Profit Rules – For True Stakers</h3>
             <div class="text-15">
-                <p><strong>True holders deserve their reward.</strong></p>
+                <p><strong>True stakers deserve their reward.</strong></p>
                 <p>After every <strong><span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI</strong>, you can safely take up to <strong><span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> of your Ruggy with no ban risk.</p>
                 <p>If you sell more than <span data-m="roiSafeSellPct" data-fmt="pct">50%</span> in that window → <strong>Locked Ban</strong>.</p>
                 <p class="gold">This only applies to your first sell after <span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI. After using it, your counter resets.</p>
@@ -1544,7 +1545,7 @@
                         <strong id="lotto-total-cost">$15.00</strong>
                     </div>
                     <div class="muted-12">
-                        80% goes to Prize Pool • 10% MDR • 10% Permanent Burn
+                        <span data-m="lottoMainPct" data-fmt="pct">80%</span> Prize Pool • <span data-m="lottoDailyPct" data-fmt="pct">10%</span> Daily Wallet • <span data-m="lottoMdrPct" data-fmt="pct">10%</span> MDR • <span data-m="lottoBurnPct" data-fmt="pct">10%</span> Burn
                     </div>
                 </div>
 
@@ -1578,7 +1579,7 @@
                 <h3 style="color: #22c55e; margin-bottom: 15px; text-align: center;">🎁 Daily Free Ticket</h3>
                 
                 <p style="font-size: 15px; text-align: center; margin-bottom: 8px;">
-                    Stake $RUGGY in the <strong>Pool</strong> and earn <strong>1 free lottery ticket every day</strong> you remain staked.
+                    Stake $RUGGY in the <strong>Pool</strong> and earn <strong>1 free lottery ticket every <span data-m="freeTicketCooldownDisplay" data-fmt="raw">day</span></strong> you remain staked.
                 </p>
                 <p style="font-size: 13px; text-align: center; margin-bottom: 18px;">
                     <strong class="gold">⚠ Free tickets are for the DAILY draw only</strong> — they cannot be used in the Weekly lottery.
@@ -1593,7 +1594,7 @@
                 <button data-action="claimDailyFreeTicket" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a);">
                     Claim Your Free Ticket
                 </button>
-                <p class="muted-sm" style="text-align:center; margin:8px 0 0;">One free ticket every <span data-m="freeTicketCooldownHours" data-fmt="num">24</span> hours of holding</p>
+                <p class="muted-sm" style="text-align:center; margin:8px 0 0;">One free ticket every <span data-m="freeTicketCooldownDisplay" data-fmt="raw">day</span> of staking</p>
 
                 <!-- Enter free tickets into the daily draw (max 5) -->
                 <div style="margin-top:16px; border-top:1px solid #374151; padding-top:14px;">
@@ -1618,6 +1619,10 @@
                     <div class="u28">
                         <span><strong><span data-m="lottoMainPct" data-fmt="pct">80%</span></strong> → Main Prize Pool</span>
                         <span style="color: #22c55e; font-weight: bold;">$99,880</span>
+                    </div>
+                    <div class="u28">
+                        <span><strong style="color:#60a5fa;"><span data-m="lottoDailyPct" data-fmt="pct">10%</span></strong> → <span style="color:#60a5fa;">Daily Lottery Wallet</span></span>
+                        <span style="color: #60a5fa; font-weight: bold;">$12,485</span>
                     </div>
                     <div class="u28">
                         <span><strong><span data-m="lottoMdrPct" data-fmt="pct">10%</span></strong> → MDR Fund</span>
@@ -1818,7 +1823,7 @@
 
                         <h5 class="u3">Distribution</h5>
                         <label class="admin-check"><input id="m-dist-enabled" type="checkbox" checked> Distributions enabled (manual master switch)</label>
-                        <label class="label-sm">Auto-distribution shutoff (holders)</label>
+                        <label class="label-sm">Auto-distribution shutoff (stakers)</label>
                         <input id="m-holder-shutoff" type="number" min="1" class="dev-input" placeholder="500">
                         <label class="label-sm">Community group: tokens required</label>
                         <input id="m-community-threshold" type="number" min="0" class="dev-input" placeholder="500000">
@@ -1838,7 +1843,7 @@
                         <h5 class="u3">Hall &amp; Wall</h5>
                         <label class="label-sm">Top Holders shown</label>
                         <input id="m-hall-top" type="number" min="1" max="100" class="dev-input" placeholder="12">
-                        <label class="label-sm">Longest Holders shown</label>
+                        <label class="label-sm">Top Stakers shown</label>
                         <input id="m-hall-longest" type="number" min="1" max="100" class="dev-input" placeholder="12">
                         <label class="label-sm">Bagworkers shown</label>
                         <input id="m-hall-bagworkers" type="number" min="1" max="10" class="dev-input" placeholder="5">
@@ -1858,7 +1863,7 @@
                         <input id="m-lotto-weekly-day" type="text" class="dev-input" placeholder="Sunday">
                         <label class="label-sm">Weekly draw time</label>
                         <input id="m-lotto-weekly-time" type="text" class="dev-input" placeholder="8:00 PM UTC">
-                        <label class="label-sm">Free ticket hold time (hours)</label>
+                        <label class="label-sm">Free ticket hold time (hours; 24 = 1 day, shown as days on site)</label>
                         <input id="m-free-ticket-hours" type="number" min="1" class="dev-input" placeholder="24">
                         <label class="label-sm">Next Mini Draw label</label>
                         <input id="m-mini-draw" type="text" class="dev-input" placeholder="Today • 8:00 PM UTC">
@@ -1868,6 +1873,8 @@
                         <h5 class="u3">Lottery Fee Breakdown (% of weekly pool)</h5>
                         <label class="label-sm">Main Prize Pool %</label>
                         <input id="m-lotto-main" type="number" min="0" max="100" class="dev-input" placeholder="80">
+                        <label class="label-sm">Daily Lottery Wallet %</label>
+                        <input id="m-lotto-daily" type="number" min="0" max="100" class="dev-input" placeholder="10">
                         <label class="label-sm">MDR Fund %</label>
                         <input id="m-lotto-mdr" type="number" min="0" max="100" class="dev-input" placeholder="10">
                         <label class="label-sm">Permanent Burn %</label>
