@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v6 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=6">
+    <!-- ASSET VERSION v7 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=7">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,13 +41,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=6"></script>
-    <script defer src="02-banner-video.js?v=6"></script>
-    <script defer src="03-rewards-helpers.js?v=6"></script>
-    <script defer src="04-pages-admin.js?v=6"></script>
-    <script defer src="05-text-emoji.js?v=6"></script>
-    <script defer src="06-final-wiring.js?v=6"></script>
-    <script defer src="07-chain.js?v=6"></script>
+    <script defer src="01-core.js?v=7"></script>
+    <script defer src="02-banner-video.js?v=7"></script>
+    <script defer src="03-rewards-helpers.js?v=7"></script>
+    <script defer src="04-pages-admin.js?v=7"></script>
+    <script defer src="05-text-emoji.js?v=7"></script>
+    <script defer src="06-final-wiring.js?v=7"></script>
+    <script defer src="07-chain.js?v=7"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -515,7 +515,7 @@
                     <div class="row-head">
                         <div class="row-top">
                             <span class="x231"></span>
-                            <span class="text-14"><strong>Community</strong><br><span class="muted-125">500k+ holders</span></span>
+                            <span class="text-14"><strong>Community</strong><br><span class="muted-125"><span data-m="communityThreshold" data-fmt="num">500,000</span>+ staked</span></span>
                         </div>
                         <span style="font-weight: bold; color: #fbbf24; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span id="fee-bd-community" data-m="communityPct" data-fmt="pct">30%</span></span>
                     </div>
@@ -523,7 +523,7 @@
                     <div class="row-head">
                         <div class="row-top">
                             <span class="x232"></span>
-                            <span class="text-14"><strong>Anti-Rug</strong><br><span class="muted-125">1M+ holders</span></span>
+                            <span class="text-14"><strong>Anti-Rug</strong><br><span class="muted-125"><span data-m="antiRugThreshold" data-fmt="num">1,000,000</span>+ staked</span></span>
                         </div>
                         <span style="font-weight: bold; color: #22c55e; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span id="fee-bd-antirug" data-m="antiRugPct" data-fmt="pct">20%</span></span>
                     </div>
@@ -572,7 +572,7 @@
                     <div style="padding: 16px; background: #3f2a1f; border-radius: 12px; border-left: 5px solid #f59e0b;">
                         <h4 class="u12">🟠 Temporary Ban</h4>
                         <p class="text-14-flat">
-                            Holding <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total token supply = <strong>Temporary Ban</strong> from rewards until your holdings drop below <span data-m="overholdPct" data-fmt="pct">3%</span>.
+                            Holding <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total token supply = <strong>Temporary Ban</strong> from rewards until your holdings drop below <span data-m="overholdPct" data-fmt="pct">3%</span>.<br><strong class="gold">Not having enough staked also disqualifies you from rewards</strong> until you reach the required stake amount.<br><strong>Banned wallets don't receive rewards or get to participate in the Lottery.</strong>
                         </p>
                     </div>
                 </div>
@@ -655,7 +655,9 @@
                 <div>
                     <strong class="gold">🟡 Temporary Ban</strong><br>
                     You currently hold <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total supply. 
-                    Sell down below <span data-m="overholdPct" data-fmt="pct">3%</span> to become eligible again.
+                    Sell down below <span data-m="overholdPct" data-fmt="pct">3%</span> to become eligible again.<br>
+                    <strong class="gold">Not having enough staked also disqualifies you from rewards</strong> until you reach the required stake.<br>
+                    <strong>Banned wallets don't receive rewards or participate in the Lottery.</strong>
                 </div>
                 
                 <div>
@@ -671,7 +673,7 @@
             <h4 class="u9">How Claiming Works</h4>
             <ul style="font-size: 14px; line-height: 1.7; color: #e5e7eb; padding-left: 20px;">
                 <li>Connect your wallet on this page</li>
-                <li>Check if you qualify (500k+ for Community or 1M+ for Anti-Rug)</li>
+                <li>Check if you qualify (<span data-m="communityThreshold" data-fmt="num">500,000</span>+ staked for Community or <span data-m="antiRugThreshold" data-fmt="num">1,000,000</span>+ staked for Anti-Rug)</li>
                 <li>Click "Claim from Vault" to receive your rewards directly</li>
                 <li>Works even if automatic airdrops are paused due to high volume</li>
             </ul>
@@ -688,6 +690,9 @@
                 Token CA: <span id="rewards-token-ca">Not set in Dev Panel</span> 📋
             </div>
             
+            <!-- Live notice: updates automatically from the connected wallet's staked amount -->
+            <div id="stake-eligibility-notice" style="display:none; padding:14px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; line-height:1.5; background:#1f2937; border-left:5px solid #6b7280;"></div>
+
             <button data-action="checkRewardsEligibility" class="buy-button" style="margin-bottom: 20px; background: linear-gradient(to right, #3b82f6, #2563eb);">
                 Check Eligibility
             </button>
@@ -758,14 +763,14 @@
         <div style="max-width: 700px; margin: 0 auto 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="card">
                 <h3 style="color: #eab308; margin-bottom: 15px;">Community Airdrops <span style="font-size:12px; color:#fbbf24;">(<span data-m="communityPct" data-fmt="pct">30%</span> of fees)</span></h3>
-                <p style="font-size: 14px;">Hold <strong id="airdrop-threshold-display"><span data-m="communityThreshold" data-fmt="num">500,000</span>+</strong> Ruggy to qualify for Community rewards.<br>
+                <p style="font-size: 14px;"><strong>Stake</strong> <strong id="airdrop-threshold-display"><span data-m="communityThreshold" data-fmt="num">500,000</span>+</strong> Ruggy to qualify for Community rewards.<br>
                 <span class="u16">+30% boost once 50% LP is locked.</span></p>
             </div>
             
             <div class="card" style="border: 2px solid #22c55e;">
                 <h3 class="green-mb15">Anti-Rug Rewards</h3>
                 <p style="font-size: 14px; line-height: 1.6;">
-                    Hold <strong id="antirug-threshold-display"><span data-m="antiRugThreshold" data-fmt="num">1,000,000</span>+</strong> Ruggy to qualify for <strong>both</strong> = <strong><span data-m="bothGroupsPct" data-fmt="pct">50%</span> total</strong> (Community <span data-m="communityPct" data-fmt="pct">30%</span> + Anti-Rug <span data-m="antiRugPct" data-fmt="pct">20%</span>)<br>
+                    <strong>Stake</strong> <strong id="antirug-threshold-display"><span data-m="antiRugThreshold" data-fmt="num">1,000,000</span>+</strong> Ruggy to qualify for <strong>both</strong> = <strong><span data-m="bothGroupsPct" data-fmt="pct">50%</span> total</strong> (Community <span data-m="communityPct" data-fmt="pct">30%</span> + Anti-Rug <span data-m="antiRugPct" data-fmt="pct">20%</span>)<br>
                     <span class="u16">+10% boost once 50% LP is locked.</span>
                 </p>
             </div>
@@ -1354,6 +1359,7 @@
                 </button>
 
                 <div style="margin-top: 25px;">
+                    <div id="stake-eligibility-notice-pool" style="display:none; padding:12px 14px; border-radius:10px; margin-bottom:14px; font-size:13.5px; line-height:1.5; background:#1f2937; border-left:5px solid #6b7280;"></div>
                     <h5 style="color: #86efac; margin-bottom: 10px;">Your Active Stakes</h5>
                     <div id="active-stakes" style="font-size: 13px; color: #d1fae5;">
                     </div>
