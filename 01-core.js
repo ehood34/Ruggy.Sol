@@ -1767,6 +1767,19 @@ document.addEventListener('click', function(e) {
         case 'connect-wallet':
             connectSpecificWallet(el.dataset.wallet);
             break;
+        case 'connect-toggle':
+            // ONE handler owns the connect button. State decided at click time:
+            // connected -> confirm + disconnect; otherwise open the wallet modal.
+            (async () => {
+                if (window.ruggyWallet && window.ruggyWallet.connected) {
+                    if (await showConfirm('Disconnect wallet?', { okText: 'Disconnect', danger: true })) {
+                        disconnectWallet();
+                    }
+                } else if (typeof showWalletModal === 'function') {
+                    showWalletModal();
+                }
+            })();
+            break;
         default:
             if (UI_ACTION_WHITELIST.has(action) && typeof window[action] === 'function') {
                 window[action]();
@@ -1825,32 +1838,15 @@ window.closeWalletModal = function closeWalletModal() {
 };
 
 // Robust event listener attachment for Wallet Modal
+// The connect button is handled by the delegated [data-action="connect-toggle"]
+// dispatcher — no per-element listener, no cloneNode, no onclick juggling.
+// This function now only wires the modal's close button (also idempotent).
 function attachWalletListeners() {
-    const connectBtn = document.getElementById('connect-btn');
-    if (connectBtn) {
-        // Remove any old inline onclick or previous listeners
-        connectBtn.onclick = null;
-        const newBtn = connectBtn.cloneNode(true);
-        connectBtn.parentNode.replaceChild(newBtn, connectBtn);
-        
-        // Attach clean listener
-        newBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            if (typeof window.showWalletModal === 'function') {
-                window.showWalletModal();
-            } else {
-                console.error('[Wallet] showWalletModal is not defined');
-            }
-        });
-    }
-
     const closeBtn = document.getElementById('close-wallet-modal');
-    if (closeBtn) {
-        closeBtn.onclick = null;
-        closeBtn.addEventListener('click', function() {
-            if (typeof window.closeWalletModal === 'function') {
-                window.closeWalletModal();
-            }
+    if (closeBtn && !closeBtn.dataset.bound) {
+        closeBtn.dataset.bound = '1';
+        closeBtn.addEventListener('click', () => {
+            if (typeof window.closeWalletModal === 'function') window.closeWalletModal();
         });
     }
 }
@@ -1893,22 +1889,10 @@ function updateConnectWalletButton() {
         btn.style.borderRadius = '9999px';
         btn.style.fontSize = '13px';
 
-        // Main button click → disconnect with confirmation
-        btn.onclick = async (e) => {
-            e.stopImmediatePropagation();
-            if (await showConfirm('Disconnect wallet?', { okText: 'Disconnect', danger: true })) {
-                disconnectWallet();
-            }
-        };
-
-        // X icon also disconnects
-        const xIcon = btn.querySelector('.disconnect-icon');
-        if (xIcon) {
-            xIcon.onclick = (e) => {
-                e.stopImmediatePropagation();
-                disconnectWallet();
-            };
-        }
+        // Click behavior is owned by the delegated connect-toggle handler.
+        // The X icon shares that behavior (clicking anywhere on the button
+        // when connected triggers the disconnect confirm), so no separate
+        // handler is needed — one code path, no races.
 
     } else {
         // Fully reset to disconnected state
@@ -1920,7 +1904,7 @@ function updateConnectWalletButton() {
         btn.style.borderRadius = '9999px';
         btn.style.fontSize = '13.5px';
         btn.style.fontWeight = '600';
-        btn.onclick = () => showWalletModal();
+        // Click behavior owned by the delegated connect-toggle handler.
     }
 }
 
