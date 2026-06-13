@@ -160,12 +160,15 @@ function navigateTo(page) {
     const label = PAGE_TITLES[page] || 'Ruggy Rewards';
     document.title = page === 'home' ? 'Ruggy Rewards' : label + ' • Ruggy Rewards';
 
-    // A11y: move focus to the newly-activated section so keyboard users land
-    // on the right content instead of staying on the clicked nav link.
+    // Always land at the top of the newly-opened page (mobile especially —
+    // previously pages could appear scrolled to the middle).
+    window.scrollTo(0, 0);
+    // A11y: mark the section focusable and focus WITHOUT scrolling, so screen
+    // readers announce the new page but the viewport stays at the top.
     const active = document.querySelector('.section.active');
     if (active) {
         active.setAttribute('tabindex', '-1');
-        setTimeout(() => { try { active.focus({ preventScroll: true }); } catch (_) {} }, 30);
+        try { active.focus({ preventScroll: true }); } catch (_) {}
     }
 
     document.querySelectorAll('.nav-link').forEach(link => {
