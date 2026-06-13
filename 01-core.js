@@ -654,6 +654,39 @@ const STAKE_DURATION_BUCKETS = [
     { key: 9999, label: 'Permanent', color: '#fbbf24', glow: true  }  // GOLD glow
 ];
 
+// Total $RUGGY supply (1B). Circulating = supply minus everything staked.
+const RUGGY_TOTAL_SUPPLY = 1000000000;
+const CIRCULATING_BUCKET = { label: 'Circulating (Unstaked)', color: '#6b7280', glow: false };
+
+// Aggregate stakes across the WHOLE pool (every wallet that has staked in this
+// browser) plus a representative demo baseline so the wheel reflects pool-wide
+// activity, not just the connected wallet. Returns { [days]: totalAmount }.
+function getPoolStakeTotals() {
+    const totalsByDays = {};
+    const add = (days, amt) => {
+        const d = Number(days) || 0;
+        const a = Number(amt) || 0;
+        if (a > 0) totalsByDays[d] = (totalsByDays[d] || 0) + a;
+    };
+    // 1) Every ruggyStakes:<wallet> entry in localStorage
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (!k || k.indexOf('ruggyStakes:') !== 0) continue;
+            let list = [];
+            try { list = JSON.parse(localStorage.getItem(k) || '[]'); } catch (_) {}
+            for (const s of list) add(s.days, s.amount);
+        }
+    } catch (_) {}
+    // 2) Representative demo pool baseline (until on-chain pool data is wired),
+    //    so the wheel always shows a populated pool. These are POOL-WIDE figures.
+    const demo = (typeof CONFIG !== 'undefined' && CONFIG.demoPoolStakes) || {
+        1: 4200000, 7: 9800000, 30: 18500000, 180: 26000000, 365: 41000000, 9999: 63000000
+    };
+    for (const d in demo) add(d, demo[d]);
+    return totalsByDays;
+}
+
 function renderStakeDonut() {
     const wrap = document.getElementById('stake-donut-wrap');
     const empty = document.getElementById('stake-donut-empty');
@@ -661,17 +694,15 @@ function renderStakeDonut() {
     const legend = document.getElementById('stake-donut-legend');
     if (!wrap || !empty || !svgBox || !legend) return;
 
-    const connected = !!(window.ruggyWallet && window.ruggyWallet.connected);
-    const stakes = (connected && typeof getStakes === 'function') ? getStakes() : [];
-
-    // Sum staked amount per duration bucket
+    // POOL-WIDE: aggregate every wallet's stakes by duration (not just the
+    // connected wallet), then map each duration to its display bucket.
+    const poolByDays = getPoolStakeTotals();
     const totals = {};
-    let grand = 0;
-    for (const s of stakes) {
-        const amt = Number(s.amount) || 0;
+    let totalStaked = 0;
+    for (const dStr in poolByDays) {
+        const amt = poolByDays[dStr];
         if (amt <= 0) continue;
-        // map a stake's days to the nearest defined bucket key
-        const d = Number(s.days);
+        const d = Number(dStr);
         const bucket = STAKE_DURATION_BUCKETS.find(b => b.key === d)
             || (d >= 9999 ? STAKE_DURATION_BUCKETS[6]
             : d >= 365 ? STAKE_DURATION_BUCKETS[5]
@@ -681,15 +712,16 @@ function renderStakeDonut() {
             : d >= 3 ? STAKE_DURATION_BUCKETS[1]
             : STAKE_DURATION_BUCKETS[0]);
         totals[bucket.key] = (totals[bucket.key] || 0) + amt;
-        grand += amt;
+        totalStaked += amt;
     }
+    // Circulating (unstaked) tokens = total supply minus everything staked.
+    const circulating = Math.max(0, RUGGY_TOTAL_SUPPLY - totalStaked);
+    const grand = totalStaked + circulating; // = total supply
 
-    if (!connected || grand <= 0) {
+    if (grand <= 0) {
         wrap.style.display = 'none';
         empty.style.display = 'block';
-        empty.textContent = connected
-            ? 'You have no active stakes yet — stake below to see your breakdown.'
-            : 'Connect your wallet and stake to see your breakdown.';
+        empty.textContent = 'Pool data unavailable.';
         return;
     }
     empty.style.display = 'none';
@@ -745,13 +777,37 @@ function renderStakeDonut() {
         );
     }
 
+    // Circulating (unstaked) slice — rendered last, neutral gray, no glow.
+    if (circulating > 0) {
+        const frac = circulating / grand;
+        const len = frac * circ;
+        arcs.push(
+            `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${CIRCULATING_BUCKET.color}" ` +
+            `stroke-width="${stroke}" stroke-dasharray="${len} ${circ - len}" ` +
+            `stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" ` +
+            `style="transition:stroke-dashoffset .4s ease"></circle>`
+        );
+        offset += len;
+        const pct = (frac * 100).toFixed(frac >= 0.1 ? 0 : 1);
+        const dot = `<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${CIRCULATING_BUCKET.color}"></span>`;
+        legendRows.push(
+            `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <span style="display:flex;align-items:center;gap:8px;">${dot}
+                    <strong style="color:${CIRCULATING_BUCKET.color};">${CIRCULATING_BUCKET.label}</strong>
+                </span>
+                <span style="color:#d1d5db;">${Number(circulating).toLocaleString()} <span class="muted-sm">(${pct}%)</span></span>
+            </div>`
+        );
+    }
+
     svgBox.innerHTML =
         `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Stakes by lock time">
             ${defs}
             <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1f2937" stroke-width="${stroke}"></circle>
             ${arcs.join('')}
-            <text x="${cx}" y="${cy - 6}" text-anchor="middle" fill="#9ca3af" font-size="11">Total Staked</text>
-            <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="#fff" font-size="17" font-weight="bold">${Number(grand).toLocaleString()}</text>
+            <text x="${cx}" y="${cy - 8}" text-anchor="middle" fill="#9ca3af" font-size="10">Staked / Supply</text>
+            <text x="${cx}" y="${cy + 8}" text-anchor="middle" fill="#fff" font-size="15" font-weight="bold">${((totalStaked / grand) * 100).toFixed(1)}%</text>
+            <text x="${cx}" y="${cy + 24}" text-anchor="middle" fill="#9ca3af" font-size="9">${Number(totalStaked).toLocaleString()} staked</text>
         </svg>`;
     legend.innerHTML = legendRows.join('');
 }
