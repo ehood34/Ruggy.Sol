@@ -151,6 +151,9 @@ def merge(index_path: Path, outdir: Path) -> int:
 
     inlined = {'css': 0, 'js': 0}
 
+    # Drop ?v=N cache-busting query strings on LOCAL assets so they resolve on disk
+    html = re.sub(r'(href|src)="(?!https?://)([^"?]+)\?v=\d+"', r'\1="\2"', html)
+
     def css_repl(m):
         href = m.group(1)
         if href.startswith(('http://', 'https://', '//')):
