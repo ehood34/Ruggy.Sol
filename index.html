@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v3 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=3">
+    <!-- ASSET VERSION v4 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=4">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,13 +41,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=3"></script>
-    <script defer src="02-banner-video.js?v=3"></script>
-    <script defer src="03-rewards-helpers.js?v=3"></script>
-    <script defer src="04-pages-admin.js?v=3"></script>
-    <script defer src="05-text-emoji.js?v=3"></script>
-    <script defer src="06-final-wiring.js?v=3"></script>
-    <script defer src="07-chain.js?v=3"></script>
+    <script defer src="01-core.js?v=4"></script>
+    <script defer src="02-banner-video.js?v=4"></script>
+    <script defer src="03-rewards-helpers.js?v=4"></script>
+    <script defer src="04-pages-admin.js?v=4"></script>
+    <script defer src="05-text-emoji.js?v=4"></script>
+    <script defer src="06-final-wiring.js?v=4"></script>
+    <script defer src="07-chain.js?v=4"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -482,6 +482,17 @@
                                 class="x228"></canvas>
                     </div>
                     
+                    <!-- LP-lock toggle: shows post-50%-lock fee redistribution -->
+                    <div style="text-align:center; margin:14px 0 4px;">
+                        <button id="lp-lock-toggle" data-action="toggleLpLockView" class="buy-button"
+                                style="background:#1e293b; border:1px solid #22c55e; color:#86efac; font-size:13px; max-width:280px;">
+                            🔓 Show 50% LP Locked Distribution
+                        </button>
+                        <p id="lp-lock-note" style="display:none; margin:10px 0 0; font-size:13px; color:#86efac; line-height:1.5;">
+                            <strong>Post-Lock mode:</strong> once 50% of the LP is permanently locked, burns stop and those fees redirect to holders. Click slices to learn more.
+                        </p>
+                    </div>
+
                     <!-- Dynamic Explanation -->
                     <div id="pie-explanation" 
                          class="x229">
@@ -678,7 +689,7 @@
             </div>
             
             <button data-action="checkRewardsEligibility" class="buy-button" style="margin-bottom: 20px; background: linear-gradient(to right, #3b82f6, #2563eb);">
-                🔗 Connect Wallet & Check Eligibility
+                Check Eligibility
             </button>
 
             <!-- Populated by checkRewardsEligibility() — hidden until checked -->
@@ -1483,11 +1494,11 @@
             <div style="display: flex; justify-content: center; gap: 40px; margin-top: 20px; flex-wrap: wrap;">
                 <div>
                     <div class="muted-sm">Next Mini Draw</div>
-                    <div class="u27">Today • 8:00 PM UTC</div>
+                    <div class="u27"><span data-m="miniDrawLabel" data-fmt="raw">Today • 8:00 PM UTC</span></div>
                 </div>
                 <div>
                     <div class="muted-sm">Next Big Draw</div>
-                    <div class="u27">Sunday • 8:00 PM UTC</div>
+                    <div class="u27"><span data-m="bigDrawLabel" data-fmt="raw">Sunday • 8:00 PM UTC</span></div>
                 </div>
             </div>
         </div>
@@ -1554,17 +1565,21 @@
                 
                 <div style="display: grid; gap: 12px; font-size: 15px;">
                     <div class="u28">
-                        <span><strong>80%</strong> → Main Prize Pool</span>
+                        <span><strong><span data-m="lottoMainPct" data-fmt="pct">80%</span></strong> → Main Prize Pool</span>
                         <span style="color: #22c55e; font-weight: bold;">$99,880</span>
                     </div>
                     <div class="u28">
-                        <span><strong>10%</strong> → MDR Fund</span>
+                        <span><strong><span data-m="lottoMdrPct" data-fmt="pct">10%</span></strong> → MDR Fund</span>
                         <span style="color: #a855f7;">$12,485</span>
                     </div>
                     <div class="row-between">
-                        <span><strong>10%</strong> → Permanent Burn Wallet</span>
+                        <span><strong><span data-m="lottoBurnPct" data-fmt="pct">10%</span></strong> → Permanent Burn Wallet</span>
                         <span class="u106">$12,485</span>
                     </div>
+                </div>
+                <div style="margin-top:14px; padding-top:12px; border-top:1px solid #374151; font-size:13.5px; color:#d1d5db; line-height:1.6;">
+                    <p style="margin:0 0 6px;"><strong class="gold">All fees flow into the Weekly lottery pool.</strong> The Weekly pool <strong>rolls over</strong> if it isn't fully won, growing larger each draw.</p>
+                    <p style="margin:0;">The <strong class="green">Daily lottery's maximum payout is <span data-m="dailyMaxOfWeeklyPct" data-fmt="pct">50%</span> of the current Weekly pool</strong> — so daily winners take a share while the big Weekly prize keeps building.</p>
                 </div>
             </div>
 
@@ -1794,6 +1809,35 @@
                         <input id="m-lotto-weekly-time" type="text" class="dev-input" placeholder="8:00 PM UTC">
                         <label class="label-sm">Free ticket hold time (hours)</label>
                         <input id="m-free-ticket-hours" type="number" min="1" class="dev-input" placeholder="24">
+                        <label class="label-sm">Next Mini Draw label</label>
+                        <input id="m-mini-draw" type="text" class="dev-input" placeholder="Today • 8:00 PM UTC">
+                        <label class="label-sm">Next Big Draw label</label>
+                        <input id="m-big-draw" type="text" class="dev-input" placeholder="Sunday • 8:00 PM UTC">
+
+                        <h5 class="u3">Lottery Fee Breakdown (% of weekly pool)</h5>
+                        <label class="label-sm">Main Prize Pool %</label>
+                        <input id="m-lotto-main" type="number" min="0" max="100" class="dev-input" placeholder="80">
+                        <label class="label-sm">MDR Fund %</label>
+                        <input id="m-lotto-mdr" type="number" min="0" max="100" class="dev-input" placeholder="10">
+                        <label class="label-sm">Permanent Burn %</label>
+                        <input id="m-lotto-burn" type="number" min="0" max="100" class="dev-input" placeholder="10">
+                        <label class="label-sm">Daily max winnings (% of weekly pool)</label>
+                        <input id="m-daily-max" type="number" min="0" max="100" class="dev-input" placeholder="50">
+                    </div>
+                </details>
+
+                <details class="admin-section">
+                    <summary>🔓 Post-50%-LP-Lock Distribution</summary>
+                    <div class="admin-section-body">
+                        <p class="muted-sm" style="margin:0 0 10px;">Fee split shown by the chart's "Show 50% LP Locked" button — when burns stop and fees redirect. Should total 100%.</p>
+                        <label class="label-sm">Liquidity / Burns %</label>
+                        <input id="m-postlock-liq" type="number" min="0" max="100" class="dev-input" placeholder="0">
+                        <label class="label-sm">Community %</label>
+                        <input id="m-postlock-community" type="number" min="0" max="100" class="dev-input" placeholder="60">
+                        <label class="label-sm">Anti-Rug %</label>
+                        <input id="m-postlock-antirug" type="number" min="0" max="100" class="dev-input" placeholder="30">
+                        <label class="label-sm">MDR Fund %</label>
+                        <input id="m-postlock-creator" type="number" min="0" max="100" class="dev-input" placeholder="10">
                     </div>
                 </details>
 
