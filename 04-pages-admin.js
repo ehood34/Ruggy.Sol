@@ -518,6 +518,20 @@ function startSimpleTimer(retryCount = 0) {
     }, 300);
 }
 
+// When a backgrounded tab becomes visible again, browsers may have throttled
+// the 300ms interval. The countdown is wall-clock based so the NUMBER is always
+// right, but force an immediate restart so the bar/sprite snap to correct without
+// waiting for the next throttled tick.
+if (typeof document !== 'undefined' && !window.__ruggyVisHandler) {
+    window.__ruggyVisHandler = true;
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && typeof startSimpleTimer === 'function'
+            && !(typeof rewardsPaused !== 'undefined' && rewardsPaused)) {
+            startSimpleTimer();
+        }
+    });
+}
+
 // Force start timer reliably on page load
 function forceStartDistributionTimer() {
     // Always force a clean 30-minute start on every page load
@@ -804,6 +818,12 @@ document.addEventListener('DOMContentLoaded', function() {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             if (link.dataset.page) navigateTo(link.dataset.page);
+            // Close the mobile menu after navigating (it stayed open before,
+            // covering the page you just navigated to).
+            const menu = document.getElementById('mobile-menu');
+            if (menu && menu.style.display === 'flex' && typeof toggleMobileMenu === 'function') {
+                toggleMobileMenu();
+            }
         });
     });
 
