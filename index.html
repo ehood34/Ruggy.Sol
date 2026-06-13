@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v15 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=15">
+    <!-- ASSET VERSION v16 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=16">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -41,13 +41,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=15"></script>
-    <script defer src="02-banner-video.js?v=15"></script>
-    <script defer src="03-rewards-helpers.js?v=15"></script>
-    <script defer src="04-pages-admin.js?v=15"></script>
-    <script defer src="05-text-emoji.js?v=15"></script>
-    <script defer src="06-final-wiring.js?v=15"></script>
-    <script defer src="07-chain.js?v=15"></script>
+    <script defer src="01-core.js?v=16"></script>
+    <script defer src="02-banner-video.js?v=16"></script>
+    <script defer src="03-rewards-helpers.js?v=16"></script>
+    <script defer src="04-pages-admin.js?v=16"></script>
+    <script defer src="05-text-emoji.js?v=16"></script>
+    <script defer src="06-final-wiring.js?v=16"></script>
+    <script defer src="07-chain.js?v=16"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -1253,6 +1253,16 @@
                 <strong>Burns = Permanent Staking in Liquidity Pool:</strong> When tokens are burned, they are permanently removed from circulation and added to the liquidity pool. <strong>Once 50% of LP is locked, burns stop</strong> and extra fees go to Community (+30%) and Anti-Rug (+10%). 
                 This strengthens price stability and reduces sell pressure over time.
             </p>
+
+            <!-- Stake-by-duration donut: your stakes grouped by lock time -->
+            <div style="margin-top: 28px; border-top: 1px solid #374151; padding-top: 22px;">
+                <h4 style="color:#86efac; text-align:center; margin:0 0 4px;">🔒 Your Stakes by Lock Time</h4>
+                <p id="stake-donut-empty" class="muted-sm" style="text-align:center; margin:0 0 16px;">Connect your wallet and stake to see your breakdown.</p>
+                <div id="stake-donut-wrap" style="display:none; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap;">
+                    <div id="stake-donut-svg" style="flex:0 0 auto;"></div>
+                    <div id="stake-donut-legend" style="flex:0 1 240px; display:grid; gap:8px; font-size:13px;"></div>
+                </div>
+            </div>
         </div>
 
         <div style="text-align: center; color: #6b7280; font-size: 13px;">
