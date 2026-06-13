@@ -84,7 +84,9 @@ function loadConfig() {
         postLockLiquidity: 0,
         postLockCommunity: 60,
         postLockAntiRug: 30,
-        postLockCreator: 10
+        postLockCreator: 10,
+        dailyTicketPrice: 3,
+        weeklyTicketPrice: 6
     }, CONFIG.metrics || {});
 
     // Chain connection (admin panel > ⛓ Chain)
@@ -1202,6 +1204,8 @@ function populateDevPanel() {
     set('m-postlock-community', mv.postLockCommunity);
     set('m-postlock-antirug', mv.postLockAntiRug);
     set('m-postlock-creator', mv.postLockCreator);
+    set('m-daily-ticket-price', mv.dailyTicketPrice);
+    set('m-weekly-ticket-price', mv.weeklyTicketPrice);
 
     // Chain
     const ch = CONFIG.chain || {};
@@ -1362,6 +1366,8 @@ function saveDeveloperSettings() {
     mm.postLockCommunity = getAdminInputNumber('m-postlock-community', 60);
     mm.postLockAntiRug = getAdminInputNumber('m-postlock-antirug', 30);
     mm.postLockCreator = getAdminInputNumber('m-postlock-creator', 10);
+    mm.dailyTicketPrice = parseFloat(document.getElementById('m-daily-ticket-price')?.value) || 3;
+    mm.weeklyTicketPrice = parseFloat(document.getElementById('m-weekly-ticket-price')?.value) || 6;
 
     // Chain
     CONFIG.chain = CONFIG.chain || {};
@@ -1474,12 +1480,8 @@ const TokenomicsChart = {
         }
     }
         } catch (e) {}
-        if (window.lpLockView && CONFIG.metrics) {
-    const mm = CONFIG.metrics;
-    splits = {
-        liquidity: mm.postLockLiquidity, antiRug: mm.postLockAntiRug,
-        community: mm.postLockCommunity, creator: mm.postLockCreator
-    };
+        if (window.lpLockView) {
+    splits = currentSplitSet();
         }
     
         const labels = [
@@ -1637,6 +1639,34 @@ function showPieExplanation(index) {
     explanationBox.style.borderLeftColor = exp.color;
 }
 
+// Returns the split set the chart/breakdown should currently show.
+function currentSplitSet() {
+    if (window.lpLockView && CONFIG.metrics) {
+        const mm = CONFIG.metrics;
+        return { liquidity: mm.postLockLiquidity, antiRug: mm.postLockAntiRug,
+                 community: mm.postLockCommunity, creator: mm.postLockCreator };
+    }
+    return CONFIG.distributionSplits || { liquidity: 40, antiRug: 20, community: 30, creator: 10 };
+}
+window.currentSplitSet = currentSplitSet;
+
+// Keep the on-page "Fee Breakdown" list in sync with whichever split set
+// the chart is showing (normal or post-LP-lock).
+function syncFeeBreakdown() {
+    const s = currentSplitSet();
+    const map = {
+        'fee-bd-liquidity': s.liquidity,
+        'fee-bd-community': s.community,
+        'fee-bd-antirug': s.antiRug,
+        'fee-bd-creator': s.creator
+    };
+    for (const [id, val] of Object.entries(map)) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val + '%';
+    }
+}
+window.syncFeeBreakdown = syncFeeBreakdown;
+
 // Toggle between normal and post-50%-LP-lock fee distribution on the chart.
 function toggleLpLockView() {
     window.lpLockView = !window.lpLockView;
@@ -1650,8 +1680,9 @@ function toggleLpLockView() {
         btn.style.color = window.lpLockView ? '#fde68a' : '#86efac';
     }
     if (note) note.style.display = window.lpLockView ? 'block' : 'none';
-    // rebuild the chart with the chosen split set
+    // rebuild the chart + fee breakdown with the chosen split set
     if (typeof initTokenomicsChart === 'function') initTokenomicsChart();
+    syncFeeBreakdown();
     // clear any open slice explanation (percentages changed)
     const exp = document.getElementById('pie-explanation');
     if (exp) exp.style.display = 'none';
@@ -1706,7 +1737,9 @@ function metricsView() {
         postLockLiquidity: m.postLockLiquidity,
         postLockCommunity: m.postLockCommunity,
         postLockAntiRug: m.postLockAntiRug,
-        postLockCreator: m.postLockCreator
+        postLockCreator: m.postLockCreator,
+        dailyTicketPrice: m.dailyTicketPrice,
+        weeklyTicketPrice: m.weeklyTicketPrice
     };
 }
 window.metricsView = metricsView;
@@ -1720,11 +1753,14 @@ function applyMetrics() {
         const fmt = el.dataset.fmt || 'raw';
         el.textContent =
             fmt === 'pct' ? v + '%' :
+            fmt === 'usd' ? '$' + Number(v).toLocaleString() :
             fmt === 'num' ? Number(v).toLocaleString() :
             v;
     });
     // rules that re-render lists
     if (typeof renderBannedTable === 'function') renderBannedTable();
+    if (typeof syncFeeBreakdown === 'function') syncFeeBreakdown();
+    if (typeof renderTicketTables === 'function') renderTicketTables();
     // live chart refresh with new splits — fully defensive. window.feePieChart
     // starts as the CANVAS element (ids auto-become window globals), becomes a
     // Chart instance only after initTokenomicsChart runs. Optional chaining +
