@@ -760,6 +760,53 @@ window.addEventListener('load', renderStakeDonut);
 // Each wallet extension injects its own provider object into the page.
 // detect() checks for that injection; get() returns the provider whose
 // .connect() triggers the wallet's own approval popup (its "API login").
+// ==================== MOBILE WALLET DEEP LINKS ====================
+// On mobile browsers (Safari/Chrome) wallet extensions don't inject a
+// provider — window.solana etc. simply don't exist. The standard fix is a
+// "universal link" that opens the wallet app's built-in browser pointed back
+// at this site, where the provider DOES exist and connection works normally.
+function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(navigator.userAgent || '');
+}
+
+// Are we already INSIDE a wallet's in-app browser? (then normal connect works)
+function isInWalletBrowser() {
+    return !!(window.solana || window.phantom?.solana || window.solflare ||
+              window.backpack || window.glowSolana || window.trustwallet?.solana ||
+              window.coinbaseSolana || window.exodus?.solana);
+}
+
+// Build the deep link that reopens THIS page inside a given wallet's browser.
+function buildWalletDeepLink(walletType) {
+    const url = window.location.href;
+    const host = window.location.host;
+    const path = window.location.pathname + window.location.search;
+    const enc = encodeURIComponent(url);
+    switch (walletType) {
+        case 'phantom':
+            // Phantom universal link: ref is where it returns after browsing.
+            return `https://phantom.app/ul/browse/${enc}?ref=${encodeURIComponent(window.location.origin)}`;
+        case 'solflare':
+            return `https://solflare.com/ul/v1/browse/${enc}?ref=${encodeURIComponent(window.location.origin)}`;
+        case 'backpack':
+            return `https://backpack.app/ul/v1/browse/${enc}`;
+        case 'glow':
+            return `https://glow.app/browse/${enc}`;
+        case 'trust':
+            // Trust uses a query-string deep link to its dApp browser
+            return `https://link.trustwallet.com/open_url?coin_id=501&url=${enc}`;
+        case 'coinbase':
+            return `https://go.cb-w.com/dapp?cb_url=${enc}`;
+        case 'exodus':
+            return `exodus://browse/${enc}`;
+        default:
+            return null;
+    }
+}
+
+// Wallets that support opening this site in their in-app browser via deep link
+const DEEPLINK_SUPPORTED = ['phantom', 'solflare', 'backpack', 'glow', 'trust', 'coinbase', 'exodus'];
+
 const WALLET_PROVIDERS = {
     phantom: {
         name: "Phantom",
@@ -1111,12 +1158,21 @@ window.addEventListener('load', () => {
 
 // Try to silently reconnect to the last used wallet on page load
 async function tryAutoReconnect() {
+    // Returning from a mobile deep link: the site is now inside the wallet's
+    // browser, so the provider exists. Finish the connection the user started.
+    let pending = null;
+    try { pending = localStorage.getItem('ruggyPendingWallet'); } catch (_) {}
+    if (pending && WALLET_PROVIDERS[pending] && WALLET_PROVIDERS[pending].detect()) {
+        try { localStorage.removeItem('ruggyPendingWallet'); } catch (_) {}
+        // Explicit prompt here (not silent) so the user sees the approval dialog
+        try { await connectWallet(pending, true); return; } catch (_) {}
+    }
+
     const lastWallet = localStorage.getItem('ruggyLastConnectedWallet');
     if (!lastWallet || !WALLET_PROVIDERS[lastWallet]) return;
     if (!WALLET_PROVIDERS[lastWallet].detect()) return;
     // Reuse the one connect path with forcePrompt=false (onlyIfTrusted), so a
     // previously-approved wallet reconnects silently and anything else no-ops.
-    // { silent:true } suppresses the spinner/toast for this background attempt.
     try {
         await connectWallet(lastWallet, false, { silent: true });
     } catch (_) { /* expected if the site was never approved */ }
@@ -1161,14 +1217,44 @@ async function connectWallet(preferredWallet = null, forcePrompt = true, opts = 
         if (w.detect()) {
             provider = w.get();
             name = w.name;
+        } else if (!silent && !isInWalletBrowser() && DEEPLINK_SUPPORTED.includes(preferredWallet)) {
+            // No injected provider in THIS browser (mobile browser, or desktop
+            // without the extension). Open the site inside the wallet app via
+            // its deep link — connection works there. Same path for web + mobile.
+            const link = buildWalletDeepLink(preferredWallet);
+            const mobile = isMobileDevice();
+            if (link && mobile) {
+                // Mobile: redirect straight into the wallet app's browser.
+                showToast(`Opening ${w.name}…`, "info", `Continue in the ${w.name} app, then tap Connect again.`);
+                resetBtn();
+                try { localStorage.setItem('ruggyPendingWallet', preferredWallet); } catch (_) {}
+                window.location.href = link;
+                return;
+            }
+            if (link && !mobile) {
+                // Desktop without the extension: offer to open the wallet app
+                // (deep link) OR install the extension. Don't hijack the tab.
+                resetBtn();
+                if (await showConfirm(
+                    `<strong>${w.name}</strong> isn't detected in this browser.<br><br>` +
+                    `Open it in the ${w.name} app, or install the browser extension.`,
+                    { okText: `Open ${w.name} App`, cancelText: 'Install Extension' })) {
+                    try { localStorage.setItem('ruggyPendingWallet', preferredWallet); } catch (_) {}
+                    window.open(link, '_blank');
+                } else {
+                    window.open(getWalletInstallUrl(preferredWallet), '_blank');
+                }
+                return;
+            }
+            resetBtn();
+            showToast(`${w.name} not available`, "error", `Open this site inside the ${w.name} app's browser to connect.`);
+            return;
         } else {
             resetBtn();
             if (w.hint) {
                 showToast(`${w.name} unavailable`, "error", w.hint);
-            } else {
-                if (await showConfirm(`<strong>${w.name}</strong> not found. Would you like to install it?`, { okText: 'Install' })) {
-                    window.open(getWalletInstallUrl(preferredWallet), '_blank');
-                }
+            } else if (await showConfirm(`<strong>${w.name}</strong> not found. Would you like to install it?`, { okText: 'Install' })) {
+                window.open(getWalletInstallUrl(preferredWallet), '_blank');
             }
             return;
         }
@@ -1822,6 +1908,10 @@ document.addEventListener('click', function(e) {
 
 // Make modal functions globally available
 window.showWalletModal = function showWalletModal() {
+    // Show the mobile deep-link hint only on mobile browsers (not in-app)
+    const mh = document.getElementById('wallet-modal-mobile-hint');
+    if (mh) mh.style.display = (isMobileDevice() && !isInWalletBrowser()) ? 'block' : 'none';
+
     try {
         const modal = document.getElementById('wallet-modal');
         if (modal) {
