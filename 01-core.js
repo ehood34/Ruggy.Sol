@@ -1592,12 +1592,13 @@ window.toggleMobileMenu = toggleMobileMenu;
 
 function closeMobileMenu() {
     const menu = document.getElementById('mobile-menu');
-    if (menu && menu.style.display === 'flex') {
-        menu.style.display = 'none';
-        document.body.style.overflow = '';
-        const btn = document.getElementById('mobile-menu-btn');
-        if (btn) btn.setAttribute('aria-expanded', 'false');
-    }
+    if (!menu) return;
+    // Unconditionally force the closed state — safe to call even if already
+    // closed, and avoids races where display wasn't exactly 'flex'.
+    menu.style.display = 'none';
+    document.body.style.overflow = '';
+    const btn = document.getElementById('mobile-menu-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
 }
 window.closeMobileMenu = closeMobileMenu;
 
