@@ -727,14 +727,32 @@ function renderStakeDonut() {
     empty.style.display = 'none';
     wrap.style.display = 'flex';
 
-    // Geometry
-    const size = 200, cx = size / 2, cy = size / 2, r = 78, stroke = 26;
-    const circ = 2 * Math.PI * r;
-    let offset = 0;
-    const arcs = [];
-    const legendRows = [];
+    // Assemble an ordered list of slices (duration buckets that have value,
+    // then the circulating slice). Each becomes an interactive SVG wedge.
+    const slices = [];
+    for (const b of STAKE_DURATION_BUCKETS) {
+        if (totals[b.key]) slices.push({ label: b.label, color: b.color, glow: b.glow, key: 'b' + b.key, value: totals[b.key] });
+    }
+    if (circulating > 0) slices.push({ label: CIRCULATING_BUCKET.label, color: CIRCULATING_BUCKET.color, glow: false, key: 'circ', value: circulating });
 
-    // glow filter defs (gold + green)
+    // Geometry — donut as real pie WEDGES (paths from center) so a slice can
+    // pop OUT on click, like the tokenomics pie.
+    const size = 240, cx = size / 2, cy = size / 2, rOuter = 96, rInner = 52;
+    const TAU = Math.PI * 2;
+    const polar = (cxx, cyy, rr, ang) => [cxx + rr * Math.cos(ang), cyy + rr * Math.sin(ang)];
+    // Build a donut-wedge path between two angles (start at -90deg / top).
+    const wedgePath = (a0, a1, push) => {
+        const ox = push ? Math.cos((a0 + a1) / 2) * 12 : 0;
+        const oy = push ? Math.sin((a0 + a1) / 2) * 12 : 0;
+        const [x0o, y0o] = polar(cx + ox, cy + oy, rOuter, a0);
+        const [x1o, y1o] = polar(cx + ox, cy + oy, rOuter, a1);
+        const [x0i, y0i] = polar(cx + ox, cy + oy, rInner, a1);
+        const [x1i, y1i] = polar(cx + ox, cy + oy, rInner, a0);
+        const large = (a1 - a0) > Math.PI ? 1 : 0;
+        return `M ${x0o} ${y0o} A ${rOuter} ${rOuter} 0 ${large} 1 ${x1o} ${y1o} ` +
+               `L ${x0i} ${y0i} A ${rInner} ${rInner} 0 ${large} 0 ${x1i} ${y1i} Z`;
+    };
+
     const defs = `
         <defs>
             <filter id="donut-glow-gold" x="-50%" y="-50%" width="200%" height="200%">
@@ -747,69 +765,95 @@ function renderStakeDonut() {
             </filter>
         </defs>`;
 
-    for (const b of STAKE_DURATION_BUCKETS) {
-        const val = totals[b.key];
-        if (!val) continue;
-        const frac = val / grand;
-        const len = frac * circ;
-        const filter = b.glow
-            ? (b.key === 9999 ? ' filter="url(#donut-glow-gold)"' : ' filter="url(#donut-glow-green)"')
+    let ang = -Math.PI / 2; // start at top
+    const wedges = [];
+    const legendRows = [];
+    slices.forEach((s, i) => {
+        const frac = s.value / grand;
+        const a0 = ang, a1 = ang + frac * TAU;
+        ang = a1;
+        const filter = s.glow
+            ? (s.label.indexOf('Permanent') === 0 ? ' filter="url(#donut-glow-gold)"' : ' filter="url(#donut-glow-green)"')
             : '';
-        const extraGlow = b.glow ? `;filter:drop-shadow(0 0 6px ${b.color})` : '';
-        arcs.push(
-            `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${b.color}" ` +
-            `stroke-width="${stroke}" stroke-dasharray="${len} ${circ - len}" ` +
-            `stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"${filter} ` +
-            `style="transition:stroke-dashoffset .4s ease${extraGlow}"></circle>`
+        wedges.push(
+            `<path d="${wedgePath(a0, a1, false)}" fill="${s.color}"${filter} ` +
+            `data-slice="${s.key}" data-a0="${a0}" data-a1="${a1}" ` +
+            `style="cursor:pointer; transition:transform .25s ease, opacity .2s ease; transform-origin:${cx}px ${cy}px;" ` +
+            `tabindex="0" role="button" aria-label="${s.label}: ${Number(s.value).toLocaleString()}"></path>`
         );
-        offset += len;
 
         const pct = (frac * 100).toFixed(frac >= 0.1 ? 0 : 1);
-        const dot = `<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${b.color}` +
-            (b.glow ? `;box-shadow:0 0 8px ${b.color},0 0 14px ${b.color}` : '') + `"></span>`;
+        const dot = `<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${s.color}` +
+            (s.glow ? `;box-shadow:0 0 8px ${s.color},0 0 14px ${s.color}` : '') + `"></span>`;
         legendRows.push(
-            `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            `<div data-legend="${s.key}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:3px 4px;border-radius:6px;transition:background .15s;">
                 <span style="display:flex;align-items:center;gap:8px;">${dot}
-                    <strong style="color:${b.color}${b.glow ? ';text-shadow:0 0 8px ' + b.color : ''}">${b.label}</strong>
+                    <strong style="color:${s.color}${s.glow ? ';text-shadow:0 0 8px ' + s.color : ''}">${s.label}</strong>
                 </span>
-                <span style="color:#d1d5db;">${Number(val).toLocaleString()} <span class="muted-sm">(${pct}%)</span></span>
+                <span style="color:#d1d5db;">${Number(s.value).toLocaleString()} <span class="muted-sm">(${pct}%)</span></span>
             </div>`
         );
-    }
-
-    // Circulating (unstaked) slice — rendered last, neutral gray, no glow.
-    if (circulating > 0) {
-        const frac = circulating / grand;
-        const len = frac * circ;
-        arcs.push(
-            `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${CIRCULATING_BUCKET.color}" ` +
-            `stroke-width="${stroke}" stroke-dasharray="${len} ${circ - len}" ` +
-            `stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" ` +
-            `style="transition:stroke-dashoffset .4s ease"></circle>`
-        );
-        offset += len;
-        const pct = (frac * 100).toFixed(frac >= 0.1 ? 0 : 1);
-        const dot = `<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${CIRCULATING_BUCKET.color}"></span>`;
-        legendRows.push(
-            `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-                <span style="display:flex;align-items:center;gap:8px;">${dot}
-                    <strong style="color:${CIRCULATING_BUCKET.color};">${CIRCULATING_BUCKET.label}</strong>
-                </span>
-                <span style="color:#d1d5db;">${Number(circulating).toLocaleString()} <span class="muted-sm">(${pct}%)</span></span>
-            </div>`
-        );
-    }
+    });
 
     svgBox.innerHTML =
-        `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Stakes by lock time">
+        `<svg id="stake-donut-svgel" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Pool distribution by lock time">
             ${defs}
-            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1f2937" stroke-width="${stroke}"></circle>
-            ${arcs.join('')}
-            <text x="${cx}" y="${cy - 8}" text-anchor="middle" fill="#9ca3af" font-size="10">Staked / Supply</text>
-            <text x="${cx}" y="${cy + 8}" text-anchor="middle" fill="#fff" font-size="15" font-weight="bold">${((totalStaked / grand) * 100).toFixed(1)}%</text>
-            <text x="${cx}" y="${cy + 24}" text-anchor="middle" fill="#9ca3af" font-size="9">${Number(totalStaked).toLocaleString()} staked</text>
+            ${wedges.join('')}
+            <text x="${cx}" y="${cy - 9}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="11" font-weight="600">Staked / Supply</text>
+            <text x="${cx}" y="${cy + 9}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="20" font-weight="bold">${((totalStaked / grand) * 100).toFixed(1)}%</text>
+            <text x="${cx}" y="${cy + 28}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="10">${Number(totalStaked).toLocaleString()} staked</text>
         </svg>`;
     legend.innerHTML = legendRows.join('');
+
+    // ---- Interactivity: click a wedge (or its legend row) to pop it out ----
+    const svgEl = document.getElementById('stake-donut-svgel');
+    if (svgEl && !svgBox.dataset.wired) {
+        // Use delegation on the container so it survives re-renders.
+        const toggleSlice = (key) => {
+            const path = svgBox.querySelector(`path[data-slice="${key}"]`);
+            if (!path) return;
+            const a0 = parseFloat(path.dataset.a0), a1 = parseFloat(path.dataset.a1);
+            const mid = (a0 + a1) / 2;
+            const isOut = path.dataset.exploded === '1';
+            // reset all others
+            svgBox.querySelectorAll('path[data-slice]').forEach(p => {
+                p.style.transform = '';
+                p.dataset.exploded = '0';
+                p.style.opacity = '1';
+            });
+            if (!isOut) {
+                const dx = Math.cos(mid) * 14, dy = Math.sin(mid) * 14;
+                path.style.transform = `translate(${dx}px, ${dy}px)`;
+                path.dataset.exploded = '1';
+                // dim the others slightly to emphasize the selected slice
+                svgBox.querySelectorAll('path[data-slice]').forEach(p => {
+                    if (p !== path) p.style.opacity = '0.55';
+                });
+            }
+        };
+        svgBox.addEventListener('click', (e) => {
+            const path = e.target.closest('path[data-slice]');
+            const row = e.target.closest('[data-legend]');
+            if (path) toggleSlice(path.dataset.slice);
+            else if (row) toggleSlice(row.dataset.legend);
+        });
+        // hover lift on wedges
+        svgBox.addEventListener('mouseover', (e) => {
+            const path = e.target.closest('path[data-slice]');
+            if (path && path.dataset.exploded !== '1') path.style.filter = 'brightness(1.15)';
+        });
+        svgBox.addEventListener('mouseout', (e) => {
+            const path = e.target.closest('path[data-slice]');
+            if (path) path.style.filter = '';
+        });
+        // keyboard activation
+        svgBox.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            const path = e.target.closest('path[data-slice]');
+            if (path) { e.preventDefault(); toggleSlice(path.dataset.slice); }
+        });
+        svgBox.dataset.wired = '1';
+    }
 }
 window.renderStakeDonut = renderStakeDonut;
 window.addEventListener('load', renderStakeDonut);
