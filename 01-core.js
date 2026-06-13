@@ -611,6 +611,7 @@ window.renderStakeNotice = renderStakeNotice;
 function renderActiveStakes() {
     const box = DOM.get('active-stakes');
     renderStakeNotice();
+    if (typeof renderStakeDonut === 'function') renderStakeDonut();
     if (!box) return;
 
     // Stakes are wallet-scoped: show nothing (and a hint) when disconnected.
@@ -636,6 +637,124 @@ function renderActiveStakes() {
     }).join('');
 }
 window.addEventListener('load', renderActiveStakes);
+
+// SVG donut of the connected wallet's stakes grouped by lock duration.
+// Each duration bucket is a distinct neon color; Permanent is gold (glowing)
+// and 1 Year is green (glowing) per spec. Pure SVG — no chart library.
+const STAKE_DURATION_BUCKETS = [
+    { key: 1,    label: '1 Day',     color: '#22d3ee', glow: false }, // cyan
+    { key: 3,    label: '3 Day',     color: '#38bdf8', glow: false }, // sky
+    { key: 7,    label: '1 Week',    color: '#a855f7', glow: false }, // purple
+    { key: 30,   label: '1 Month',   color: '#ec4899', glow: false }, // pink
+    { key: 180,  label: '6 Months',  color: '#f97316', glow: false }, // orange
+    { key: 365,  label: '1 Year',    color: '#22c55e', glow: true  }, // GREEN glow
+    { key: 9999, label: 'Permanent', color: '#fbbf24', glow: true  }  // GOLD glow
+];
+
+function renderStakeDonut() {
+    const wrap = document.getElementById('stake-donut-wrap');
+    const empty = document.getElementById('stake-donut-empty');
+    const svgBox = document.getElementById('stake-donut-svg');
+    const legend = document.getElementById('stake-donut-legend');
+    if (!wrap || !empty || !svgBox || !legend) return;
+
+    const connected = !!(window.ruggyWallet && window.ruggyWallet.connected);
+    const stakes = (connected && typeof getStakes === 'function') ? getStakes() : [];
+
+    // Sum staked amount per duration bucket
+    const totals = {};
+    let grand = 0;
+    for (const s of stakes) {
+        const amt = Number(s.amount) || 0;
+        if (amt <= 0) continue;
+        // map a stake's days to the nearest defined bucket key
+        const d = Number(s.days);
+        const bucket = STAKE_DURATION_BUCKETS.find(b => b.key === d)
+            || (d >= 9999 ? STAKE_DURATION_BUCKETS[6]
+            : d >= 365 ? STAKE_DURATION_BUCKETS[5]
+            : d >= 180 ? STAKE_DURATION_BUCKETS[4]
+            : d >= 30 ? STAKE_DURATION_BUCKETS[3]
+            : d >= 7 ? STAKE_DURATION_BUCKETS[2]
+            : d >= 3 ? STAKE_DURATION_BUCKETS[1]
+            : STAKE_DURATION_BUCKETS[0]);
+        totals[bucket.key] = (totals[bucket.key] || 0) + amt;
+        grand += amt;
+    }
+
+    if (!connected || grand <= 0) {
+        wrap.style.display = 'none';
+        empty.style.display = 'block';
+        empty.textContent = connected
+            ? 'You have no active stakes yet — stake below to see your breakdown.'
+            : 'Connect your wallet and stake to see your breakdown.';
+        return;
+    }
+    empty.style.display = 'none';
+    wrap.style.display = 'flex';
+
+    // Geometry
+    const size = 200, cx = size / 2, cy = size / 2, r = 78, stroke = 26;
+    const circ = 2 * Math.PI * r;
+    let offset = 0;
+    const arcs = [];
+    const legendRows = [];
+
+    // glow filter defs (gold + green)
+    const defs = `
+        <defs>
+            <filter id="donut-glow-gold" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3.5" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="donut-glow-green" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3.5" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+        </defs>`;
+
+    for (const b of STAKE_DURATION_BUCKETS) {
+        const val = totals[b.key];
+        if (!val) continue;
+        const frac = val / grand;
+        const len = frac * circ;
+        const filter = b.glow
+            ? (b.key === 9999 ? ' filter="url(#donut-glow-gold)"' : ' filter="url(#donut-glow-green)"')
+            : '';
+        const extraGlow = b.glow ? `;filter:drop-shadow(0 0 6px ${b.color})` : '';
+        arcs.push(
+            `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${b.color}" ` +
+            `stroke-width="${stroke}" stroke-dasharray="${len} ${circ - len}" ` +
+            `stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"${filter} ` +
+            `style="transition:stroke-dashoffset .4s ease${extraGlow}"></circle>`
+        );
+        offset += len;
+
+        const pct = (frac * 100).toFixed(frac >= 0.1 ? 0 : 1);
+        const dot = `<span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${b.color}` +
+            (b.glow ? `;box-shadow:0 0 8px ${b.color},0 0 14px ${b.color}` : '') + `"></span>`;
+        legendRows.push(
+            `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                <span style="display:flex;align-items:center;gap:8px;">${dot}
+                    <strong style="color:${b.color}${b.glow ? ';text-shadow:0 0 8px ' + b.color : ''}">${b.label}</strong>
+                </span>
+                <span style="color:#d1d5db;">${Number(val).toLocaleString()} <span class="muted-sm">(${pct}%)</span></span>
+            </div>`
+        );
+    }
+
+    svgBox.innerHTML =
+        `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Stakes by lock time">
+            ${defs}
+            <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1f2937" stroke-width="${stroke}"></circle>
+            ${arcs.join('')}
+            <text x="${cx}" y="${cy - 6}" text-anchor="middle" fill="#9ca3af" font-size="11">Total Staked</text>
+            <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="#fff" font-size="17" font-weight="bold">${Number(grand).toLocaleString()}</text>
+        </svg>`;
+    legend.innerHTML = legendRows.join('');
+}
+window.renderStakeDonut = renderStakeDonut;
+window.addEventListener('load', renderStakeDonut);
+
 
 // ==================== REAL WALLET CONNECTION ====================
 // Each wallet extension injects its own provider object into the page.
