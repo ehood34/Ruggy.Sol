@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0a">
     
     <!-- ==================== SEO & SOCIAL META TAGS ==================== -->
     <title>Ruggy Rewards • pump.fun | Anti-Rug Tokenomics & Community Rewards</title>
@@ -30,12 +31,10 @@
           media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"></noscript>
     <link rel="preconnect" href="https://i.ibb.co" crossorigin>
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v28 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=28">
+    <!-- ASSET VERSION v31 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=31">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -43,13 +42,13 @@
          not on every page — see ensureChartJsLoaded() in 04-pages-admin.js. -->
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=28"></script>
-    <script defer src="02-banner-video.js?v=28"></script>
-    <script defer src="03-rewards-helpers.js?v=28"></script>
-    <script defer src="04-pages-admin.js?v=28"></script>
-    <script defer src="05-text-emoji.js?v=28"></script>
-    <script defer src="06-final-wiring.js?v=28"></script>
-    <script defer src="07-chain.js?v=28"></script>
+    <script defer src="01-core.js?v=31"></script>
+    <script defer src="02-banner-video.js?v=31"></script>
+    <script defer src="03-rewards-helpers.js?v=31"></script>
+    <script defer src="04-pages-admin.js?v=31"></script>
+    <script defer src="05-text-emoji.js?v=31"></script>
+    <script defer src="06-final-wiring.js?v=31"></script>
+    <script defer src="07-chain.js?v=31"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -111,7 +110,6 @@
                                     preload="metadata"
                                     style="width: 100%; height: 100%; object-fit: cover; display: block;">
                                     <source src="https://pub-21b06b5258c545bba385c46094bf8574.r2.dev/IMG_4382-ezgif.com-gif-maker.webm" type="video/webm">
-                                    <source src="https://pub-21b06b5258c545bba385c46094bf8574.r2.dev/IMG_4382-ezgif.com-gif-to-mp4-converter.MP4" type="video/mp4">
                                 </video>
                             </div>
                         </div>
@@ -126,16 +124,16 @@
 
                     <!-- Social Icons -->
                     <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
-                        <a id="social-x" href="https://x.com" target="_blank" rel="noopener noreferrer" 
+                        <a id="social-x" href="https://x.com" target="_blank" rel="noopener noreferrer" aria-label="Ruggy on X (Twitter)"
                            class="icon-glow x207" >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white" aria-hidden="true">
                                 <path d="M18.244 2.25l-7.451 8.502L4.5 2.25H1.5l7.5 8.625L1.5 21.75h3l6.75-7.875L18 21.75h3l-7.5-8.625L21 2.25h-2.756z"/>
                             </svg>
                         </a>
 
-                        <a id="social-telegram" href="https://t.me" target="_blank" rel="noopener noreferrer" 
+                        <a id="social-telegram" href="https://t.me" target="_blank" rel="noopener noreferrer" aria-label="Ruggy on Telegram"
                            class="icon-glow x208" >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white" aria-hidden="true">
                                 <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
                             </svg>
                         </a>
@@ -174,17 +172,17 @@
 
             <!-- Desktop Navigation Links -->
             <div id="desktop-nav" class="hidden" style="gap: 18px; font-size: 15px; align-items: center; padding: 4px 0;">
-                <a data-page="home" class="nav-link active home-cycling" 
+                <a href="#home" data-page="home" class="nav-link active home-cycling" 
                    style="text-decoration: none; font-weight: 700;">HOME</a>
-                <a data-page="tokenomics" class="nav-link" style="color: #9ca3af; text-decoration: none;">TOKENOMICS</a>
-                <a data-page="lore" class="nav-link" style="color: #c084fc; text-decoration: none;">LORE</a>
-                <a data-page="rewards" class="nav-link" style="color: #22c55e; text-decoration: none;">REWARDS</a>
-                <a data-page="gallery" class="nav-link" style="color: #ff00ff; text-decoration: none;">GALLERY</a>
-                <a data-page="hall" class="nav-link" style="color: #f59e0b; text-decoration: none;">HALL</a>
-                <a data-page="wall" class="nav-link" style="color: #ef4444; text-decoration: none;">WALL</a>
-                <a data-page="pool" class="nav-link" style="color: #3b82f6; text-decoration: none;">POOL</a>
-                <a data-page="absolution" class="nav-link" style="color: white; text-decoration: none;">ABSOLUTION</a>
-                <a data-page="lotto" class="nav-link lotto-animated-title" style="text-decoration: none;">LOTTERY</a>
+                <a href="#tokenomics" data-page="tokenomics" class="nav-link" style="color: #9ca3af; text-decoration: none;">TOKENOMICS</a>
+                <a href="#lore" data-page="lore" class="nav-link" style="color: #c084fc; text-decoration: none;">LORE</a>
+                <a href="#rewards" data-page="rewards" class="nav-link" style="color: #22c55e; text-decoration: none;">REWARDS</a>
+                <a href="#gallery" data-page="gallery" class="nav-link" style="color: #ff00ff; text-decoration: none;">GALLERY</a>
+                <a href="#hall" data-page="hall" class="nav-link" style="color: #f59e0b; text-decoration: none;">HALL</a>
+                <a href="#wall" data-page="wall" class="nav-link" style="color: #ef4444; text-decoration: none;">WALL</a>
+                <a href="#pool" data-page="pool" class="nav-link" style="color: #3b82f6; text-decoration: none;">POOL</a>
+                <a href="#absolution" data-page="absolution" class="nav-link" style="color: white; text-decoration: none;">ABSOLUTION</a>
+                <a href="#lotto" data-page="lotto" class="nav-link lotto-animated-title" style="text-decoration: none;">LOTTERY</a>
             </div>
 
             <!-- Mobile Hamburger Button -->
@@ -217,35 +215,35 @@
             <!-- Mobile Navigation Links -->
             <div style="display: flex; flex-direction: column; gap: 10px; font-size: 17px; padding: 12px 20px 40px 20px;">
                 
-                <a data-page="home" class="nav-link active home-cycling" 
+                <a href="#home" data-page="home" class="nav-link active home-cycling" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.08); font-weight: 700; text-align: center;">HOME</a>
                 
-                <a data-page="tokenomics" class="nav-link" 
+                <a href="#tokenomics" data-page="tokenomics" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #9ca3af; text-align: center;">TOKENOMICS</a>
                 
-                <a data-page="lore" class="nav-link" 
+                <a href="#lore" data-page="lore" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #c084fc; text-align: center;">LORE</a>
                 
-                <a data-page="rewards" class="nav-link" 
+                <a href="#rewards" data-page="rewards" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #22c55e; text-align: center;">REWARDS</a>
                 
-                <a data-page="gallery" class="nav-link" 
+                <a href="#gallery" data-page="gallery" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #ff00ff; text-align: center;">GALLERY</a>
                 
-                <a data-page="hall" class="nav-link" 
+                <a href="#hall" data-page="hall" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #f59e0b; text-align: center;">HALL</a>
                 
-                <a data-page="wall" class="nav-link" 
+                <a href="#wall" data-page="wall" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #ef4444; text-align: center;">WALL</a>
                 
-                <a data-page="pool" class="nav-link" 
+                <a href="#pool" data-page="pool" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #3b82f6; text-align: center;">POOL</a>
                 
-                <a data-page="absolution" class="nav-link" 
+                <a href="#absolution" data-page="absolution" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #e5e7eb; text-align: center;">ABSOLUTION</a>
                 
                 <!-- LOTTERY button - Exact same shape & background as others + flashing green/gold text -->
-                <a data-page="lotto" class="nav-link x217"
+                <a href="#lotto" data-page="lotto" class="nav-link x217"
                    >
                     LOTTERY
                 </a>
