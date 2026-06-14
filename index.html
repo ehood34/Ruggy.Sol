@@ -1,0 +1,2101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0a">
+    
+    <!-- ==================== SEO & SOCIAL META TAGS ==================== -->
+    <title>Ruggy Rewards • pump.fun | Anti-Rug Tokenomics & Community Rewards</title>
+    <meta name="description" content="Hold Ruggy and earn real rewards. Transparent 40% Liquidity Burns, 30% Community Airdrops, 20% Anti-Rug Holders & 10% MDR. Fair tokenomics designed to reward loyalty and punish rugs on Solana.">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ruggy.fun">
+    <meta property="og:title" content="Ruggy Rewards • pump.fun | Anti-Rug Tokenomics & Community Rewards">
+    <meta property="og:description" content="Hold Ruggy and earn real rewards. Transparent fee distribution with 40% Liquidity Burns, 30% Community Airdrops, and strong anti-rug mechanics.">
+    <meta property="og:image" content="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Ruggy Rewards • pump.fun | Anti-Rug Tokenomics">
+    <meta name="twitter:description" content="Earn rewards for holding Ruggy. 40% Liquidity Burns • 30% Community Airdrops • Strong Anti-Rug Mechanics on Solana.">
+    <meta name="twitter:image" content="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg">
+
+    <!-- Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+          media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"></noscript>
+    <link rel="preconnect" href="https://i.ibb.co" crossorigin>
+    <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
+
+    <!-- ASSET VERSION v41 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=41">
+
+    <!-- Neon Glow for Navigation + Page Titles -->
+
+    <!-- Chart.js is loaded ON DEMAND (only when the Tokenomics page opens),
+         not on every page — see ensureChartJsLoaded() in 04-pages-admin.js. -->
+    <!-- App JS: numeric order is load+execution order (defer preserves it).
+         All files sit in the SAME folder as index.html. -->
+    <script defer src="01-core.js?v=41"></script>
+    <script defer src="02-banner-video.js?v=41"></script>
+    <script defer src="03-rewards-helpers.js?v=41"></script>
+    <script defer src="04-pages-admin.js?v=41"></script>
+    <script defer src="05-text-emoji.js?v=41"></script>
+    <script defer src="06-final-wiring.js?v=41"></script>
+    <script defer src="07-chain.js?v=41"></script>
+
+    <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
+    
+</head>
+<body>
+
+    <!-- Skip link: first thing keyboard/screen-reader users reach -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Navbar -->
+    <nav class="x201">
+        <div style="max-width: 1280px; margin: 0 auto;">
+            
+            <!-- Top Row: Logo + Timer + Icons + Connect Wallet -->
+            <div class="x202 topbar-scroll">
+                <div style="display: flex; align-items: center; gap: 14px; min-width: max-content; padding-right: 10px;">
+                    
+                    <!-- Logo + Title -->
+                    <div data-action="navigate" data-page="home" 
+                         class="hover-scale" style="--scale: 1.03; display: flex; align-items: center; gap: 8px; flex-shrink: 0; cursor: pointer;"
+                         title="Go to Homepage">
+                        <img alt="" decoding="async" fetchpriority="high" width="48" height="48" src="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" 
+                             id="logo" style="width: 34px; height: 34px; border-radius: 9999px; border: 3px solid #ff00ff; object-fit: cover;">
+                        <!-- Multi-colored glowing RUGGY logo -->
+                        <h1 style="margin: 0; font-size: 22px; letter-spacing: 3.5px; font-weight: 800; display: flex; align-items: center; gap: 6px;">
+                            <span class="logo-letter" style="--c: #ef4444">R</span>
+                            <span class="logo-letter" style="--c: #3b82f6">U</span>
+                            <span class="logo-letter" style="--c: #22c55e">G</span>
+                            <span class="logo-letter" style="--c: #eab308">G</span>
+                            <span class="logo-letter" style="--c: #c084fc">Y</span>
+                        </h1>
+                    </div>
+
+                    <!-- Distribution Timer -->
+                    <div class="hover-scale" style="--scale: 1.02; width: 220px; flex-shrink: 0; cursor: pointer;" 
+                         data-action="navigate" data-page="rewards" 
+                         title="Click to view Rewards & Claim">
+                        <div style="font-size: 9px; color: #f59e0b; text-align: center; margin-bottom: 4px; font-weight: bold;">NEXT REWARD IN</div>
+                        
+                        <div id="timer-bar-container" 
+                             class="x203">
+                            
+                            <div id="timer-bar-fill" 
+                                 class="x204"></div>
+                            
+                            <div id="bank-target"
+                                 class="x205">
+                                🏦
+                            </div>
+                            
+                            <div id="timer-lambo" 
+                                 class="x206">
+                                <video 
+                                    id="timer-video"
+                                    autoplay 
+                                    loop 
+                                    muted 
+                                    playsinline
+                                    preload="metadata"
+                                    style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                    <source src="https://pub-21b06b5258c545bba385c46094bf8574.r2.dev/IMG_4382-ezgif.com-gif-maker.webm" type="video/webm">
+                                </video>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 5px;">
+                            <span id="nav-timer" class="timer" role="timer" aria-label="Time until next reward distribution" 
+                                  style="font-size: 14px; font-weight: bold; color: #f59e0b; text-shadow: 0 1px 3px rgba(0,0,0,0.6);">
+                                15:00
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Social Icons -->
+                    <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+                        <a id="social-x" href="https://x.com" target="_blank" rel="noopener noreferrer" aria-label="Ruggy on X (Twitter)"
+                           class="icon-glow x207" >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white" aria-hidden="true">
+                                <path d="M18.244 2.25l-7.451 8.502L4.5 2.25H1.5l7.5 8.625L1.5 21.75h3l6.75-7.875L18 21.75h3l-7.5-8.625L21 2.25h-2.756z"/>
+                            </svg>
+                        </a>
+
+                        <a id="social-telegram" href="https://t.me" target="_blank" rel="noopener noreferrer" aria-label="Ruggy on Telegram"
+                           class="icon-glow x208" >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white" aria-hidden="true">
+                                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                            </svg>
+                        </a>
+
+                        <a id="social-dexscreener" href="https://dexscreener.com" target="_blank" rel="noopener noreferrer" 
+                           class="icon-glow x209" >
+                            <img decoding="async" width="28" height="28" src="https://i.ibb.co/99rsGw3q/IMG-4375.png" 
+                                 class="u4" alt="Dexscreener">
+                        </a>
+
+                        <a id="social-pumpfun" href="https://pump.fun" target="_blank" rel="noopener noreferrer" 
+                           class="icon-glow x210" >
+                            <img decoding="async" width="28" height="28" src="https://smithii.io/wp-content/uploads/2025/07/400-x-400.webp" 
+                                 class="u4" alt="Pump.fun">
+                        </a>
+                    </div>
+
+                    <!-- Admin Access -->
+                    <div class="u101">
+                        <button id="admin-btn" 
+                                class="x211 icon-glow"
+                                title="Admin Panel">
+                            🔐 Admin
+                        </button>
+                    </div>
+
+                    <!-- Connect Wallet Button -->
+                    <div class="u101">
+                        <button id="connect-btn" data-action="connect-toggle" aria-label="Connect or disconnect wallet"
+                                class="x212">
+                            CONNECT WALLET
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desktop Navigation Links -->
+            <div id="desktop-nav" class="hidden" style="gap: 18px; font-size: 15px; align-items: center; padding: 4px 0;">
+                <a href="#home" data-page="home" class="nav-link active home-cycling" 
+                   style="text-decoration: none; font-weight: 700;">HOME</a>
+                <a href="#tokenomics" data-page="tokenomics" class="nav-link" style="color: #9ca3af; text-decoration: none;">TOKENOMICS</a>
+                <a href="#lore" data-page="lore" class="nav-link" style="color: #c084fc; text-decoration: none;">LORE</a>
+                <a href="#rewards" data-page="rewards" class="nav-link" style="color: #22c55e; text-decoration: none;">REWARDS</a>
+                <a href="#gallery" data-page="gallery" class="nav-link" style="color: #ff00ff; text-decoration: none;">GALLERY</a>
+                <a href="#hall" data-page="hall" class="nav-link" style="color: #f59e0b; text-decoration: none;">HALL</a>
+                <a href="#wall" data-page="wall" class="nav-link" style="color: #ef4444; text-decoration: none;">WALL</a>
+                <a href="#pool" data-page="pool" class="nav-link" style="color: #3b82f6; text-decoration: none;">POOL</a>
+                <a href="#absolution" data-page="absolution" class="nav-link" style="color: white; text-decoration: none;">ABSOLUTION</a>
+                <a href="#lotto" data-page="lotto" class="nav-link lotto-animated-title" style="text-decoration: none;">LOTTERY</a>
+            </div>
+
+            <!-- Mobile Hamburger Button -->
+            <button id="mobile-menu-btn" aria-label="Open navigation menu" aria-haspopup="true" aria-expanded="false" aria-controls="mobile-menu"
+                    class="x213">
+                <span aria-hidden="true">☰</span>
+            </button>
+
+        </div>
+    </nav>
+
+    <!-- ==================== MOBILE MENU (Popup Overlay) ==================== -->
+    <!-- NOTE: Tailwind is not loaded on this page, so utility classes do nothing.
+         All positioning is done with real CSS below. The overlay is fixed and
+         sits ABOVE the nav (z-index 100000> nav's 50); the card is pushed
+         below the nav via a dynamic padding-top set in toggleMobileMenu(). -->
+    <div id="mobile-menu" role="dialog" aria-modal="true" aria-label="Navigation menu"
+         class="x214">
+        
+        <div id="mobile-menu-card" class="x215">
+            
+            <!-- Close Button -->
+            <div style="display: flex; justify-content: flex-end; padding: 18px 22px 8px 22px;">
+                <button id="mobile-menu-close-btn" aria-label="Close navigation menu"
+                        class="x216">
+                    <span aria-hidden="true">✕</span>
+                </button>
+            </div>
+
+            <!-- Mobile Navigation Links -->
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 17px; padding: 12px 20px 40px 20px;">
+                
+                <a data-page="home" class="nav-link active home-cycling" 
+                   style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.08); font-weight: 700; text-align: center;">HOME</a>
+                
+                <a data-page="tokenomics" class="nav-link" 
+                   style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #9ca3af; text-align: center;">TOKENOMICS</a>
+                
+                <a data-page="lore" class="nav-link" 
+                   style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #c084fc; text-align: center;">LORE</a>
+                
+                <a data-page="rewards" class="nav-link" 
+                   style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #22c55e; text-align: center;">REWARDS</a>
+                
+                <a data-page="gallery" class="nav-link" 
+                   style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #ff00ff; text-align: center;">GALLERY</a>
+                
+                <a data-page="hall" class="nav-link" 
+                   style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #f59e0b; text-align: center;">HALL</a>
+                
+                <a data-page="wall" class="nav-link" 
+                   style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #ef4444; text-align: center;">WALL</a>
+                
+                <a data-page="pool" class="nav-link" 
+                   style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #3b82f6; text-align: center;">POOL</a>
+                
+                <a data-page="absolution" class="nav-link" 
+                   style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #e5e7eb; text-align: center;">ABSOLUTION</a>
+                
+                <!-- LOTTERY button - Exact same shape & background as others + flashing green/gold text -->
+                <a data-page="lotto" class="nav-link x217"
+                   >
+                    LOTTERY
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== HORIZONTAL CONNECT WALLET BAR (Clean) ==================== -->
+    <div id="wallet-connect-bar" 
+         class="x218">
+        <div class="x219">
+            
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span style="color: #f3e8ff; font-weight: 700; margin-right: 8px; font-size: 14px;">Connect Wallet:</span>
+                
+                <button data-action="connect-wallet" data-wallet="phantom" 
+                        class="x220">
+                    👻 Phantom
+                </button>
+
+                <button data-action="connect-wallet" data-wallet="solflare" 
+                        class="x221">
+                    🔥 Solflare
+                </button>
+
+                <button data-action="connect-wallet" data-wallet="backpack" 
+                        class="x222">
+                    🎒 Backpack
+                </button>
+            </div>
+
+            <button data-action="closeWalletConnectBar" 
+                    class="x223">
+                ✕
+            </button>
+        </div>
+    </div>
+
+    <!-- HOME -->
+    <main id="main-content" tabindex="-1">
+    <section id="home" class="section active" style="padding-top: 0; padding-bottom: 60px;">
+
+        <!-- Banner with MP4 Video -->
+        <div style="position: relative; width: 100%; height: 520px; overflow: hidden; margin-bottom: 40px; border-bottom: 1px solid #374151;">
+            <video 
+                id="home-banner-video"
+                autoplay 
+                loop 
+                muted 
+                playsinline
+                webkit-playsinline
+                x-webkit-airplay="deny"
+                disablePictureInPicture
+                controls="false"
+                preload="metadata"
+                class="x224">
+                <source src="https://pub-21b06b5258c545bba385c46094bf8574.r2.dev/compressed%20webvid%20ruggy.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); z-index: 2;"></div>
+            
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 3; width: 92%;">
+                <h1 class="neon-text hero-title">RUGGY</h1>
+                <p class="hero-sub">The Ultimate Anti-Rug Mascot</p>
+                
+                <button data-action="navigate" data-page="rewards" class="buy-button" style="max-width: 280px; font-size: 17px; padding: 16px 32px;">
+                    CLAIM REWARDS
+                </button>
+            </div>
+        </div>
+
+
+        <div style="max-width: 1100px; margin: 0 auto; padding: 0 20px; text-align: center; width: 100%;">
+            
+            <div id="home-metrics" style="max-width: 620px; margin: 0 auto 30px; display: none;">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        <div>
+                            <div class="u5">TOKEN</div>
+                            <div id="home-token-name" style="font-size: 26px; font-weight: bold;">Loading...</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div id="home-price" class="metric">--</div>
+                            <div class="muted-sm">USD</div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                        <div>
+                            <div class="muted-12">MARKET CAP</div>
+                            <div id="home-market-cap" class="u6">--</div>
+                        </div>
+                        <div>
+                            <div class="muted-12">24H VOLUME</div>
+                            <div id="home-volume" class="u6">--</div>
+                        </div>
+                    </div>
+
+                    <div class="mb20">
+                        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                            <span>Bonding Curve</span>
+                            <span id="home-progress-text">--</span>
+                        </div>
+                        <div class="progress-container" style="height: 10px; background: #1f2937; border-radius: 9999px; overflow: hidden;">
+                            <div id="home-progress-bar" style="height: 100%; background: linear-gradient(to right, #22c55e, #16a34a); width: 0%; transition: width 0.4s;"></div>
+                        </div>
+                    </div>
+
+                    <button data-action="buyOnPumpFun" class="buy-button">🚀 BUY ON PUMP.FUN</button>
+                </div>
+            </div>
+
+            <div id="home-no-ca" style="max-width: 500px; margin: 0 auto; color: #9ca3af;">
+                <p>Token metrics will appear here once the CA is set in the <strong class="u102">Developer</strong> panel.</p>
+            </div>
+
+            <div style="max-width: 1100px; margin: 70px auto 0; padding: 0 20px; text-align: center;">
+                <h2 style="font-size: 28px; margin-bottom: 30px; text-align: center;">Explore Ruggy</h2>
+                
+                <div class="x225">
+                    
+                    <div data-action="navigate" data-page="tokenomics" class="card btn-bare">
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" 
+                             class="tile-img-sm" loading="lazy">
+                        <div class="pad-card">
+                            <h3 style="margin: 0 0 8px 0; color: #9ca3af; line-height: 1.25;">Tokenomics</h3>
+                            <p class="muted-sm-flat">Transparent fees & anti-rug mechanics</p>
+                        </div>
+                    </div>
+
+                    <div data-action="navigate" data-page="lore" class="card btn-bare">
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" 
+                             class="tile-img-sm" loading="lazy">
+                        <div class="pad-card">
+                            <h3 style="margin: 0 0 8px 0; color: #c084fc;">The Lore of Ruggy</h3>
+                            <p class="muted-sm-flat">The emotional story behind the anti-rug monster</p>
+                        </div>
+                    </div>
+
+                    <div data-action="navigate" data-page="rewards" class="card btn-bare">
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" 
+                             class="tile-img-sm" loading="lazy">
+                        <div class="pad-card">
+                            <h3 style="margin: 0 0 8px 0; color: #22c55e;">Rewards</h3>
+                            <p class="muted-sm-flat">Check eligibility & claim your rewards</p>
+                        </div>
+                    </div>
+
+                    <div data-action="navigate" data-page="gallery" class="card btn-bare">
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" 
+                             class="tile-img-sm">
+                        <div class="pad-card">
+                            <h3 style="margin: 0 0 8px 0; color: #ff00ff;">Gallery</h3>
+                            <p class="muted-sm-flat">All the different faces of Ruggy</p>
+                        </div>
+                    </div>
+
+                    <div data-action="navigate" data-page="hall" class="card btn-bare">
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" 
+                             class="tile-img-sm">
+                        <div class="pad-card">
+                            <h3 style="margin: 0 0 8px 0; color: #f59e0b;">Ruggy's Hall</h3>
+                            <p class="muted-sm-flat">Top holders, 🔒 top stakers & biggest bagworkers</p>
+                        </div>
+                    </div>
+
+                    <div data-action="navigate" data-page="wall" class="card u7">
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" 
+                             style="width: 100%; height: 160px; object-fit: cover; object-position: center 40%;">
+                        <div class="pad-card">
+                            <h3 style="margin: 0 0 8px 0; color: #ef4444;">Ruggy's Wall</h3>
+                            <p class="muted-sm-flat">Those who upset Ruggy</p>
+                        </div>
+                    </div>
+
+                    <div data-action="navigate" data-page="pool" class="card btn-bare">
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" 
+                             class="tile-img-sm">
+                        <div class="pad-card">
+                            <h3 style="margin: 0 0 8px 0; color: #3b82f6;">Ruggy's Pool</h3>
+                            <p class="muted-sm-flat">Live Liquidity & Burns</p>
+                        </div>
+                    </div>
+
+                    <div data-action="navigate" data-page="absolution" class="card btn-bare">
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" 
+                             style="width: 100%; height: 160px; object-fit: cover; object-position: center;">
+                        <div class="pad-card">
+                            <h3 style="margin: 0 0 8px 0; color: white; line-height: 1.25;">Absolution</h3>
+                            <p style="font-size: 13px; color: white; margin: 0;">The path to forgiveness</p>
+                        </div>
+                    </div>
+
+                    <!-- Ruggy's Lottery -->
+                    <div data-action="navigate" data-page="lotto" class="card u7">
+                        <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/LdFxTN9p/IMG-4431.jpg" 
+                             style="width: 100%; height: 160px; object-fit: cover; object-position: center 30%;">
+                        <div class="pad-card">
+                            <h3 class="lotto-animated-title" style="margin: 0 0 8px 0; line-height: 1.25; font-size: 18px; font-weight: 900;">Ruggy's Lottery</h3>
+                            <p class="muted-sm-flat">Daily & Weekly Draws • Win Big!</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TOKENOMICS -->
+    <section id="tokenomics" class="section page-wrap">
+        
+        <div class="center-mb30">
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" 
+                 class="feature-img">
+        </div>
+
+        <h2 class="page-h2 neon-text">TOKENOMICS</h2>
+        <p class="u8">
+            Transparent fee distribution designed to reward loyalty and punish rugs
+        </p>
+
+        <div style="max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start;">
+            
+            <!-- LEFT COLUMN: Pie Chart + Fee Breakdown + Explanation (Clean Vertical Stack) -->
+            <div>
+                <!-- Pie Chart Card -->
+                <div class="card" style="overflow: visible; padding: 28px 24px 32px 24px; margin-bottom: 20px; height: auto; box-sizing: border-box;">
+                    <h3 style="color: #ff00ff; margin-bottom: 8px; text-align: center;">FEE DISTRIBUTION</h3>
+                    <p style="text-align:center; font-size:12px; color:#9ca3af; margin-bottom:16px;">Click any slice to learn more</p>
+                    
+                    <!-- Improved Chart Container -->
+                    <div id="chart-container" 
+                         class="x226">
+                        
+                        <div class="chart-loading x227" 
+                             >
+                            Loading chart...
+                        </div>
+                        
+                        <canvas id="feePieChart" 
+                                class="x228"></canvas>
+                    </div>
+                    
+                    <!-- LP-lock toggle: shows post-50%-lock fee redistribution -->
+                    <div style="text-align:center; margin:14px 0 4px;">
+                        <button id="lp-lock-toggle" data-action="toggleLpLockView" class="buy-button"
+                                style="background:#1e293b; border:1px solid #22c55e; color:#86efac; font-size:13px; max-width:280px;">
+                            🔓 Show 50% LP Locked Distribution
+                        </button>
+                        <p id="lp-lock-note" style="display:none; margin:10px 0 0; font-size:13px; color:#86efac; line-height:1.5;">
+                            <strong>Post-Lock mode:</strong> once 50% of the LP is permanently locked, burns stop and those fees redirect to stakers. Click slices to learn more.
+                        </p>
+                    </div>
+
+                    <!-- Dynamic Explanation -->
+                    <div id="pie-explanation" 
+                         class="x229">
+                        <div id="pie-explanation-content"></div>
+                    </div>
+                </div>
+
+                <!-- Fee Breakdown - Directly under the chart -->
+                <div class="card" style="padding: 22px 24px;">
+                    <h3 style="color: #ff00ff; margin-bottom: 16px;">Fee Breakdown</h3>
+                    
+                    <div class="row-head">
+                        <div class="row-top">
+                            <span class="x230"></span>
+                            <span class="text-14"><strong>Burn Wallet</strong><br><span class="muted-125">Buybacks & Burns</span></span>
+                        </div>
+                        <span style="font-weight: bold; color: #ef4444; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span id="fee-bd-liquidity" data-m="liquidityPct" data-fmt="pct">40%</span></span>
+                    </div>
+                    
+                    <div class="row-head">
+                        <div class="row-top">
+                            <span class="x231"></span>
+                            <span class="text-14"><strong>Community</strong><br><span class="muted-125"><span data-m="communityThreshold" data-fmt="num">500,000</span>+ staked</span></span>
+                        </div>
+                        <span style="font-weight: bold; color: #fbbf24; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span id="fee-bd-community" data-m="communityPct" data-fmt="pct">30%</span></span>
+                    </div>
+                    
+                    <div class="row-head">
+                        <div class="row-top">
+                            <span class="x232"></span>
+                            <span class="text-14"><strong>Anti-Rug</strong><br><span class="muted-125"><span data-m="antiRugThreshold" data-fmt="num">1,000,000</span>+ staked</span></span>
+                        </div>
+                        <span style="font-weight: bold; color: #22c55e; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span id="fee-bd-antirug" data-m="antiRugPct" data-fmt="pct">20%</span></span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div class="row-top">
+                            <span class="x233"></span>
+                            <span class="text-14"><strong>MDR Fund</strong><br><span class="muted-125">Marketing, Development & Research</span></span>
+                        </div>
+                        <span style="font-weight: bold; color: #a855f7; font-size: 15px; white-space: nowrap; margin-top: 2px;"><span id="fee-bd-creator" data-m="creatorPct" data-fmt="pct">10%</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Other Important Cards -->
+            <div>
+                <div class="card" style="margin-bottom: 22px; border: 2px solid #f59e0b;">
+                    <h3 class="u9">📡 Distribution Mode</h3>
+                    <p style="font-size: 13px; line-height: 1.6; margin: 0;">
+                        <strong>Automatic Sending:</strong> Rewards are sent automatically to qualified wallets when the timer ends.<br><br>
+                        <strong>After <span data-m="holderShutoff" data-fmt="num">500</span> stakers:</strong> Automatic distribution stops, but rewards are <strong>still sent to the community vault every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes</strong>. They accumulate in the vault for approved <strong>stakers</strong> to <strong>claim whenever they like</strong> by connecting their wallet on this site.
+                    </p>
+                </div>
+
+                <div class="card" style="margin-bottom: 22px; border: 2px solid #22c55e;">
+                    <h3 class="green-mb15">💰 Take Profit Rules – For True Stakers</h3>
+                    <div class="text-15">
+                        <p><strong>True stakers deserve their reward.</strong></p>
+                        <p>After every <strong><span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI</strong>, you can safely take up to <strong><span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> of your Ruggy with no ban risk.</p>
+                        <p>If you sell more than <span data-m="roiSafeSellPct" data-fmt="pct">50%</span> in that window → <strong>Locked Ban</strong>.</p>
+                        <p class="gold">This only applies to your first sell after <span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI. After using it, your counter resets.</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="u10">⚠️ Ban Conditions</h3>
+                    
+                    <div style="margin-bottom: 20px; padding: 16px; background: #3f1f1f; border-radius: 12px; border-left: 5px solid #ef4444;">
+                        <h4 class="u11">🔴 Locked Ban</h4>
+                        <p class="text-14-flat">
+                            Selling <strong><span data-m="lockedBanSellPct" data-fmt="pct">30%</span> or more</strong> of your total holdings at once = <strong>Locked Ban</strong>.<br>
+                            You will not receive rewards until you <strong>Absolve yourself</strong> at the <strong>Ruggy Absolution</strong> page.
+                        </p>
+                    </div>
+                    
+                    <div style="padding: 16px; background: #3f2a1f; border-radius: 12px; border-left: 5px solid #f59e0b;">
+                        <h4 class="u12">🟠 Temporary Ban</h4>
+                        <p class="text-14-flat">
+                            Holding <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total token supply = <strong>Temporary Ban</strong> from rewards until your holdings drop below <span data-m="overholdPct" data-fmt="pct">3%</span>.<br><strong class="gold">Not having enough staked also disqualifies you from rewards</strong> until you reach the required stake amount.<br><strong>Banned wallets don't receive rewards or get to participate in the Lottery.</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- REWARDS -->
+    <section id="rewards" class="section" style="padding-top: 110px; padding-bottom: 80px; max-width: 1000px; margin: 0 auto;">
+        
+        <div class="center-mb30">
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" 
+                 class="feature-img" loading="lazy">
+        </div>
+
+        <h2 style="font-size: clamp(28px, 8vw, 42px); text-align: center; margin-bottom: 8px; line-height: 1.1;" class="neon-text">
+            CLAIM YOUR<br>
+            REWARDS
+        </h2>
+        <p class="u8">
+            Claim directly from the vault when automatic airdrops aren't possible
+        </p>
+
+        <div class="x234">
+            <p style="font-size: 13px; color: #fca5a5; margin: 0; line-height: 1.6;">
+                <strong>⚠️ Important Notice:</strong> Rewards are generated from trading volume and fees. 
+                When volume is low, reward payments may be small or may not distribute. Please take note.
+            </p>
+        </div>
+
+        <div class="card" style="max-width: 820px; margin: 0 auto 35px; border: 2px solid #22c55e;">
+            <h3 style="color: #22c55e; margin-bottom: 16px;">💰 Take Profit Rules – For True Stakers</h3>
+            
+            <div class="fs15">
+                <p><strong>True stakers deserve their reward.</strong></p>
+                <p>After every <strong><span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI</strong>, you are allowed to take up to <strong><span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> of your Ruggy with <strong>no ban consequence</strong>.</p>
+                <p>If you sell <strong>more than <span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> during this window, you will be placed on <strong>Locked Ban</strong>.</p>
+                <p class="gold"><strong>Important:</strong> This Take Profit window only applies to your <strong>first sell</strong> after reaching <span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI. Once used, your ROI counter resets.</p>
+            </div>
+        </div>
+
+        <div class="card" style="max-width: 820px; margin: 0 auto 35px; border: 2px solid #3b82f6;">
+            <h3 class="u13">📊 Your Live Stats</h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div>
+                    <div class="muted-sm">CURRENT ROI</div>
+                    <div id="user-roi" class="u14">+142%</div>
+                </div>
+                <div>
+                    <div class="muted-sm">% OF SUPPLY HELD</div>
+                    <div id="user-held" class="stat-lg">1.8%</div>
+                </div>
+                <div>
+                    <div class="muted-sm">% SOLD THIS CYCLE</div>
+                    <div id="user-sold" style="font-size: 28px; font-weight: bold; color: #ef4444;">22%</div>
+                </div>
+                <div>
+                    <div class="muted-sm">TAKE PROFIT STATUS</div>
+                    <div id="take-profit-status" style="font-size: 18px; font-weight: bold; color: #22c55e;">Available</div>
+                </div>
+            </div>
+            
+            <p style="font-size: 13px; color: #9ca3af; margin-top: 15px;">
+                Connect your wallet to see accurate live data. These numbers are simulated for demo purposes.
+            </p>
+        </div>
+
+
+        <div class="card" style="max-width: 720px; margin: 0 auto 35px; border: 2px solid #ef4444;">
+            <h3 style="color: #ef4444; margin-bottom: 18px;">📜 Rules & Bans Explained</h3>
+            
+            <div style="display: grid; gap: 18px; font-size: 14px;">
+                <div>
+                    <strong class="u103">🔴 Locked Ban</strong><br>
+                    You sold <strong><span data-m="lockedBanSellPct" data-fmt="pct">30%</span> or more</strong> of your $RUGGY holdings at any point.<br>
+                    You will not receive rewards until you <strong>Absolve yourself</strong> at the <strong>Ruggy Absolution</strong> page.
+                </div>
+                
+                <div>
+                    <strong class="gold">🟡 Temporary Ban</strong><br>
+                    You currently hold <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total supply. 
+                    Sell down below <span data-m="overholdPct" data-fmt="pct">3%</span> to become eligible again.<br>
+                    <strong class="gold">Not having enough staked also disqualifies you from rewards</strong> until you reach the required stake.<br>
+                    <strong>Banned wallets don't receive rewards or participate in the Lottery.</strong>
+                </div>
+                
+                <div>
+                    <strong class="green">How to Get Off the Wall</strong><br>
+                    • Temporary Ban (over-holding) → Sell until you hold under <span data-m="overholdPct" data-fmt="pct">3%</span> of supply.<br>
+                    • Temporary Ban (under-staked) → Stake at least <span data-m="communityThreshold" data-fmt="num">500,000</span> $RUGGY to requalify for rewards.<br>
+                    • Permanent Ban → Selling <span data-m="lockedBanSellPct" data-fmt="pct">30%</span> or more in one transaction is a Locked Ban; you must Absolve yourself.<br>
+                    • <strong class="u103">Locked Ban accounts cannot participate in the Lottery</strong> until absolved.
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="max-width: 720px; margin: 0 auto 35px;">
+            <h4 class="u9">How Claiming Works</h4>
+            <ul style="font-size: 14px; line-height: 1.7; color: #e5e7eb; padding-left: 20px;">
+                <li>Connect your wallet on this page</li>
+                <li>Check if you qualify (<span data-m="communityThreshold" data-fmt="num">500,000</span>+ staked for Community or <span data-m="antiRugThreshold" data-fmt="num">1,000,000</span>+ staked for Anti-Rug)</li>
+                <li>Click "Claim from Vault" to receive your rewards directly</li>
+                <li>Works even if automatic airdrops are paused due to high volume</li>
+            </ul>
+        </div>
+
+        <div class="card" style="max-width: 700px; margin: 0 auto 35px;">
+            <h3 style="margin-bottom: 12px; color: #ff00ff;">Check Your Reward Eligibility</h3>
+            <p style="font-size:12px; color:#9ca3af; margin-bottom:8px;">
+                Automatic airdrops continue until <strong><span data-m="holderShutoff" data-fmt="num">500</span> stakers</strong>. After that, rewards are still sent to the vault every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes and accumulate for manual claiming.
+            </p>
+            
+            <div id="rewards-ca-display" data-action="copyTokenCA" title="Click to copy"
+                 class="x235">
+                Token CA: <span id="rewards-token-ca">Not set in Dev Panel</span> 📋
+            </div>
+            
+            <!-- Live notice: updates automatically from the connected wallet's staked amount -->
+            <div id="stake-eligibility-notice" style="display:none; padding:14px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; line-height:1.5; background:#1f2937; border-left:5px solid #6b7280;"></div>
+
+            <button data-action="checkRewardsEligibility" class="buy-button" style="margin-bottom: 20px; background: linear-gradient(to right, #3b82f6, #2563eb);">
+                Check Eligibility
+            </button>
+
+            <!-- Populated by checkRewardsEligibility() — hidden until checked -->
+            <div id="wallet-info" style="display: none; background: #1f2937; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; font-size: 14px;">
+                <div class="u15">
+                    <span class="gray">Wallet</span>
+                    <strong id="wallet-address" style="font-family: monospace;"></strong>
+                </div>
+                <div class="u15">
+                    <span class="gray">Staked Amount</span>
+                    <strong id="wallet-balance" class="green"></strong>
+                </div>
+                <div class="row-between">
+                    <span class="gray">Staked % of Supply</span>
+                    <strong id="supply-percentage" class="gold"></strong>
+                </div>
+            </div>
+
+            <div id="eligibility-message" class="x236"></div>
+        </div>
+
+        <div class="card" style="max-width: 720px; margin: 0 auto 35px; border: 3px solid #22c55e; background: #052e16;">
+            <h3 style="color: #22c55e; margin-bottom: 12px; text-align: center;">💰 Claim Directly From Vault</h3>
+            
+            <p style="text-align: center; font-size: 15px; margin-bottom: 20px; color: #d1fae5;">
+                After <strong><span data-m="holderShutoff" data-fmt="num">500</span>+ stakers</strong>, automatic distribution stops.<br>
+                However, rewards are <strong>still sent to the community vault every 30 minutes</strong> and will accumulate.<br>
+                Approved wallets can <strong>claim them whenever they like</strong> by connecting here.
+            </p>
+
+            <button data-action="claimFromVault" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); font-size: 18px; padding: 18px;">
+                🏦 CLAIM FROM VAULT
+            </button>
+
+            <p style="text-align: center; font-size: 12px; color: #86efac; margin-top: 12px;">
+                Connect your wallet → Check eligibility → Claim your share
+            </p>
+        </div>
+
+        <div class="card" style="max-width: 720px; margin: 0 auto 50px;">
+            <h3 style="color: #a855f7; margin-bottom: 15px;">📜 Claim History</h3>
+            <p style="font-size: 13px; color: #9ca3af; margin-bottom: 15px;">
+                Recent claims from the vault. Connect your wallet to see your personal history.
+            </p>
+
+            <div id="claim-history-table" style="max-height: 280px; overflow-y: auto; border: 1px solid #374151; border-radius: 8px;">
+                <table class="u104">
+                    <thead>
+                        <tr style="background: #1f2937;">
+                            <th class="cell">Date</th>
+                            <th class="cell">Amount</th>
+                            <th class="cell">Type</th>
+                            <th class="cell">Tx</th>
+                        </tr>
+                    </thead>
+                    <tbody id="claim-history-body">
+                    </tbody>
+                </table>
+            </div>
+
+            <p style="font-size: 11px; color: #6b7280; margin-top: 10px; text-align: center;">
+                History updates automatically after successful claims.
+            </p>
+        </div>
+
+        <div style="max-width: 700px; margin: 0 auto 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="card">
+                <h3 style="color: #eab308; margin-bottom: 15px;">Community Airdrops <span style="font-size:12px; color:#fbbf24;">(<span data-m="communityPct" data-fmt="pct">30%</span> of fees)</span></h3>
+                <p style="font-size: 14px;"><strong>Stake</strong> <strong id="airdrop-threshold-display"><span data-m="communityThreshold" data-fmt="num">500,000</span>+</strong> Ruggy to qualify for Community rewards.<br>
+                <span class="u16">+30% boost once 50% LP is locked.</span></p>
+            </div>
+            
+            <div class="card" style="border: 2px solid #22c55e;">
+                <h3 class="green-mb15">Anti-Rug Rewards</h3>
+                <p style="font-size: 14px; line-height: 1.6;">
+                    <strong>Stake</strong> <strong id="antirug-threshold-display"><span data-m="antiRugThreshold" data-fmt="num">1,000,000</span>+</strong> Ruggy to qualify for <strong>both</strong> = <strong><span data-m="bothGroupsPct" data-fmt="pct">50%</span> total</strong> (Community <span data-m="communityPct" data-fmt="pct">30%</span> + Anti-Rug <span data-m="antiRugPct" data-fmt="pct">20%</span>)<br>
+                    <span class="u16">+10% boost once 50% LP is locked.</span>
+                </p>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- LORE PAGE -->
+    <section id="lore" class="section u17">
+        
+        <div class="center-mb30">
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" 
+                 class="feature-img" loading="lazy">
+        </div>
+
+        <h2 style="font-size: clamp(28px, 8vw, 42px); text-align: center; margin-bottom: 20px; line-height: 1.15;" class="neon-text">
+            THE LORE OF<br>
+            RUGGY
+        </h2>
+        
+        <div class="card" style="line-height: 1.8; font-size: 15px;">
+            <p>
+                Once upon a time on the wild and chaotic Solana blockchain, there lived a lonely little monster named <strong>Ruggy</strong>.
+            </p>
+            <p>
+                All Ruggy ever wanted was to be a <strong>successful meme</strong> — loved, shared, and sent to the moon like the greats before him. 
+                But everywhere he went, people called him a <strong>"Rug Monster"</strong>. 
+                They saw his name and assumed the worst. No one gave him a chance.
+            </p>
+            <p>
+                Day after day, Ruggy watched as rug pulls destroyed communities. He saw good people lose everything because of greed. 
+                It broke his heart. The constant betrayal on Solana made him feel <strong>unmarketable</strong>, unwanted, and completely alone.
+            </p>
+            <p>
+                But Ruggy was not like the others.
+            </p>
+            <p>
+                Instead of becoming another rug puller, he made a vow: <strong>"I will never rug. I will protect my friends."</strong>
+            </p>
+            <p>
+                And so, Ruggy created <strong>$RUGGY</strong> — a coin built with powerful <strong>anti-rug mechanics</strong>. 
+                Strong tokenomics. Real rewards for stakers. Harsh punishments for those who try to betray the community.
+            </p>
+            <p>
+                You see, Ruggy is <strong>very emotional</strong>. He’s been alone for so long that when someone finally shows him love, 
+                it means everything to him. But if you abandon him… if you sell too much and hurt the community he tried so hard to build…
+            </p>
+            <p style="color: #f87171; font-weight: bold;">
+                It would take a <strong>Miracle</strong> for Ruggy to forgive you… but you <em>can</em> ask?<br>
+                Sometimes he says yes — especially if you <strong>lock Ruggy in the Liquidity Pool</strong> to show your recommitment.
+            </p>
+            <p>
+                Ruggy doesn’t just want holders.<br>
+                <strong>He wants friends.</strong>
+            </p>
+            <p style="text-align: center; font-size: 18px; margin-top: 30px; color: #f59e0b;">
+                So please… be Ruggy’s friend.<br>
+                Hold strong. Stay loyal.<br>
+                <strong>And send him to the Moon.</strong>
+            </p>
+        </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section id="gallery" class="section u18">
+        
+        <div class="center-mb25">
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" 
+                 class="u19" loading="lazy">
+        </div>
+
+        <h2 class="page-h2 neon-text">Ruggy's Gallery</h2>
+        <p class="u1">
+            The many faces of Ruggy
+        </p>
+
+        <div id="gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; padding: 10px 0;">
+            
+            <!-- Ruggy Official -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" data-image-title="Ruggy Official">
+                <img alt="" src="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Ruggy Official</p>
+                </div>
+            </div>
+
+            <!-- Art Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" data-image-title="Art Ruggy">
+                <img alt="" src="https://i.ibb.co/YBMXZJrX/grok-image-306bf515-c3d0-441f-a54d-f6a44f9e4fc4.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Art Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Rave Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/Y4WL0Vpn/grok-image-b3877eea-5cd9-418f-8b5e-79766062d1dc.jpg" data-image-title="Rave Ruggy">
+                <img alt="" src="https://i.ibb.co/Y4WL0Vpn/grok-image-b3877eea-5cd9-418f-8b5e-79766062d1dc.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Rave Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Gatsby Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/yB5mNQqJ/grok-image-e72d4a15-2ae7-4ef7-bffa-515fc78d7c53.jpg" data-image-title="Gatsby Ruggy">
+                <img alt="" src="https://i.ibb.co/yB5mNQqJ/grok-image-e72d4a15-2ae7-4ef7-bffa-515fc78d7c53.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Gatsby Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Lambo Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" data-image-title="Lambo Ruggy">
+                <img alt="" src="https://i.ibb.co/Ps3cKSD8/grok-image-c4d3a07b-3b01-48f0-9d3e-889d8230ba88.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Lambo Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Moon Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" data-image-title="Moon Ruggy">
+                <img alt="" src="https://i.ibb.co/WvDQ5GLQ/grok-image-f278b401-bd77-42a9-aae8-2dffd2191eb9.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Moon Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Beach Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/RGnK0zkw/grok-image-c7fd6f1b-f185-4e12-ad61-bab9055e6eee.jpg" data-image-title="Beach Ruggy">
+                <img alt="" src="https://i.ibb.co/RGnK0zkw/grok-image-c7fd6f1b-f185-4e12-ad61-bab9055e6eee.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Beach Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Whale Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/MkvR5XRp/grok-image-8b3b620e-e992-4865-9a66-eb50d2537d5d.jpg" data-image-title="Whale Ruggy">
+                <img alt="" src="https://i.ibb.co/MkvR5XRp/grok-image-8b3b620e-e992-4865-9a66-eb50d2537d5d.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Whale Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Golden Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" data-image-title="Golden Ruggy">
+                <img alt="" src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Golden Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Bookworm Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" data-image-title="Bookworm Ruggy">
+                <img alt="" src="https://i.ibb.co/Q75M1ybm/IMG-4342.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Bookworm Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Banned Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" data-image-title="Banned Ruggy">
+                <img alt="" src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Banned Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Pool Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" data-image-title="Pool Ruggy">
+                <img alt="" src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Pool Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Absolution Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" data-image-title="Absolution Ruggy">
+                <img alt="" src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Absolution Ruggy</p>
+                </div>
+            </div>
+
+            <!-- 404 Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/Pv7VzDWW/IMG-4430.jpg" data-image-title="404 Ruggy">
+                <img alt="" src="https://i.ibb.co/Pv7VzDWW/IMG-4430.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">404 Ruggy</p>
+                </div>
+            </div>
+
+            <!-- Lotto Ruggy -->
+            <div class="gallery-card tile" data-action="open-image" data-image-src="https://i.ibb.co/LdFxTN9p/IMG-4431.jpg" data-image-title="Lotto Ruggy">
+                <img alt="" src="https://i.ibb.co/LdFxTN9p/IMG-4431.jpg" 
+                     class="tile-img" loading="lazy" decoding="async">
+                <div class="tile-caption">
+                    <p class="tile-title">Lotto Ruggy</p>
+                </div>
+            </div>
+
+        </div>
+
+        <p style="text-align: center; color: #6b7280; margin-top: 30px; font-size: 14px;">
+            More Ruggy variants coming soon...
+        </p>
+
+    </section>
+
+    <!-- RUGGY'S HALL -->
+    <section id="hall" class="section u18">
+        
+        <div class="center-mb25">
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/d0ghBvcX/IMG-4341.jpg" 
+                 class="u19">
+        </div>
+
+        <h2 class="page-h2 neon-text">RUGGY'S HALL</h2>
+        <p class="u1">
+            Ruggy's Hall of Fame • Honoring the strongest holders, top stakers, and biggest promoters in the community
+        </p>
+
+        <div class="card u105" >
+            <h3 class="u20">🤖 Automated Hall Monitoring</h3>
+            
+            <div class="u21">
+                <input id="hall-monitor-input" type="text" placeholder="Connected wallet auto-checks, or enter an address..." 
+                       class="u22">
+                
+                <button data-action="scanWalletForHall" class="buy-button u23">
+                    Check Wallet
+                </button>
+                
+                <button data-action="runAutomatedHallScan" class="buy-button" style="width: auto; padding: 12px 24px; background: linear-gradient(to right, #22c55e, #16a34a);">
+                    Run Automated Scan
+                </button>
+            </div>
+            
+            <div id="hall-scan-result" style="margin-top: 15px; padding: 15px; background: #1f2937; border-radius: 10px; display: none;">
+            </div>
+            
+            <p style="font-size: 12px; color: #9ca3af; margin: 10px 0 0 0;">
+                Check any wallet's token amount and days held to see Hall eligibility.
+            </p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 25px;">
+            
+            <div class="card">
+                <h3 style="color: #facc15; margin-bottom: 20px; text-align: center;">🏆 Top Holders</h3>
+                <p class="muted-sm" style="text-align:center; margin:-12px 0 14px;">Showing the top <span data-m="hallTopShown" data-fmt="num">12</span> wallets by balance</p>
+                <div class="table-container">
+                    <table class="u104">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Wallet</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-holders-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="color: #22c55e; margin-bottom: 20px; text-align: center;">🔒 Top Stakers</h3>
+                <p class="muted-sm" style="text-align:center; margin:-12px 0 14px;">Showing the top <span data-m="hallLongestShown" data-fmt="num">12</span> stakers by amount locked</p>
+                <div class="table-container">
+                    <table class="u104">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Wallet</th>
+                                <th>Staked</th>
+                            </tr>
+                        </thead>
+                        <tbody id="longest-holders-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="u24">🔥 Top <span data-m="hallBagworkersShown" data-fmt="num">5</span> Bagworkers</h3>
+                <div class="table-container">
+                    <table class="u104">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Wallet / Name</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bagworkers-table">
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #374151; text-align: center;">
+                    <p style="font-size: 13px; color: #d1d5db; line-height: 1.6; margin: 0;">
+                        The Top 5 are <strong>voted on by the community weekly in Telegram</strong>.<br><br>
+                        The Top <span data-m="hallBagworkersShown" data-fmt="num">5</span> Bagworkers of the week receive a <strong>special bonus drop every Sunday</strong> from the Marketing wallet, along with being featured on this page for the week.<br><br>
+                        <span class="u102">Thank you for your hard work!</span>
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- RUGGY'S WALL -->
+    <section id="wall" class="section page-wrap">
+        
+        <div class="center-mb30">
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/G4WXRR25/IMG-4340.jpg" 
+                 class="feature-img" loading="lazy">
+        </div>
+
+        <h2 class="page-h2 neon-text">RUGGY'S WALL</h2>
+        <p style="text-align: center; color: #9ca3af; margin-bottom: 20px; font-size: 15px;">
+            Ruggy's Wall of Shame • Those who upset Ruggy by breaking the rules
+        </p>
+        <p style="text-align: center; margin: -8px 0 20px; font-size: 14px;">
+            <span class="gold"><strong>Total wallets banned: <span id="wall-total-banned">0</span></strong></span>
+            <span class="muted-sm"> • showing up to <span data-m="wallShown" data-fmt="num">25</span> at a time</span><br>
+            <span class="u103" style="font-size:13px;"><strong>⚠ Locked Ban accounts cannot participate in the Lottery.</strong></span>
+        </p>
+
+        <div class="card" style="margin-bottom: 30px; border: 2px solid #ef4444;">
+            <h3 style="color: #ef4444; margin-bottom: 15px;">📜 Wall Rules – How You End Up Here</h3>
+            
+            <div style="display: grid; gap: 16px; font-size: 14px;">
+                <div>
+                    <strong class="u103">Locked Ban (Red)</strong><br>
+                    You sold <strong><span data-m="lockedBanSellPct" data-fmt="pct">30%</span> or more</strong> of your $RUGGY holdings at any point.<br>
+                    You will not receive rewards until you <strong>Absolve yourself</strong> at the Ruggy Absolution page.
+                </div>
+                
+                <div>
+                    <strong class="gold">Temporary Ban (Yellow)</strong><br>
+                    You currently hold <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total $RUGGY supply. 
+                    This is seen as hoarding/control. Sell down below <span data-m="overholdPct" data-fmt="pct">3%</span> to become eligible again.<br>
+                    <strong class="gold">Or you're not staking enough</strong> — below <span data-m="communityThreshold" data-fmt="num">500,000</span> staked disqualifies you from rewards until you reach the required stake.<br>
+                    <strong>Banned wallets don't receive rewards or participate in the Lottery.</strong>
+                </div>
+                
+                <div>
+                    <strong class="green">How to Get Off the Wall</strong><br>
+                    • Temporary Ban → Sell until you hold under <span data-m="overholdPct" data-fmt="pct">3%</span> of supply, or stake at least <span data-m="communityThreshold" data-fmt="num">500,000</span> $RUGGY.<br>
+                    • Locked Ban → Selling <span data-m="lockedBanSellPct" data-fmt="pct">30%</span>+ in one transaction; you must Absolve yourself at the Ruggy Absolution page.
+                </div>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-bottom: 25px;">
+            <h3 class="u20">🤖 Automated Wall Monitoring</h3>
+            
+            <div class="u21">
+                <input id="monitor-wallet-input" type="text" placeholder="Enter wallet to scan..." 
+                       class="u22">
+                
+                <button data-action="scanWalletForWall" class="buy-button u23">
+                    Check My Wallet
+                </button>
+                <div id="wall-scan-result" style="margin-top: 15px; padding: 15px; background: #1f2937; border-radius: 10px; display: none;"></div>
+                
+                <button data-action="runAutomatedWallScan" class="buy-button" style="width: auto; padding: 12px 24px; background: linear-gradient(to right, #ef4444, #b91c1c);">
+                    Run Automated Scan
+                </button>
+            </div>
+            
+            <p style="font-size: 12px; color: #9ca3af; margin: 0;">
+                The system automatically detects violations of the <span data-m="lockedBanSellPct" data-fmt="pct">30%</span> sell rule, the <span data-m="overholdPct" data-fmt="pct">3%</span> holding rule, and the minimum-stake requirement.
+            </p>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table style="width:100%; font-family: monospace; font-size:13px; min-width: 620px;">
+                    <thead>
+                        <tr>
+                            <th>Wallet</th>
+                            <th>Reason</th>
+                            <th>Type</th>
+                            <th>Date Added</th>
+                            <th>Admin Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="banned-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 30px;">
+            <h3 class="u10">📜 Wall Rules</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h4 class="u11">🔴 Locked Wall</h4>
+                    <p class="text-14-flat">
+                        Selling <strong><span data-m="lockedBanSellPct" data-fmt="pct">30%</span> or more</strong> of your holdings in a single transaction.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="u12">🟠 Temporary Wall</h4>
+                    <p class="text-14-flat">
+                        Holding <strong>more than <span data-m="overholdPct" data-fmt="pct">3%</span></strong> of the total token supply.<br>
+                        <strong class="gold">Or not staking enough</strong> — below <span data-m="communityThreshold" data-fmt="num">500,000</span> staked disqualifies you from rewards until you reach the required stake.
+                    </p>
+                </div>
+            </div>
+            
+            <p style="margin-top: 20px; font-size: 14px; color: #9ca3af; border-top: 1px solid #374151; padding-top: 15px;">
+                Once you're on the Wall, you've upset Ruggy. 
+                Fix your behavior to get removed from the temporary list. 
+                Permanent offenders stay on the Wall forever.
+            </p>
+        </div>
+
+        <div class="card" style="max-width: 820px; margin: 40px auto 0; border: 2px solid #22c55e;">
+            <h3 class="green-mb15">💰 Take Profit Rules – For True Stakers</h3>
+            <div class="text-15">
+                <p><strong>True stakers deserve their reward.</strong></p>
+                <p>After every <strong><span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI</strong>, you can safely take up to <strong><span data-m="roiSafeSellPct" data-fmt="pct">50%</span></strong> of your Ruggy with no ban risk.</p>
+                <p>If you sell more than <span data-m="roiSafeSellPct" data-fmt="pct">50%</span> in that window → <strong>Locked Ban</strong>.</p>
+                <p class="gold">This only applies to your first sell after <span data-m="roiTakeProfit" data-fmt="pct">200%</span> ROI. After using it, your counter resets.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- POOL PAGE -->
+    <section id="pool" class="section page-wrap">
+        
+        <div class="center-mb30">
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/twBcdrpr/IMG-4373.jpg" 
+                 style="max-width: 100%; height: 320px; object-fit: cover; border-radius: 16px; border: 3px solid #6b21a8;">
+        </div>
+
+        <h2 style="font-size: 42px; text-align: center; margin-bottom: 8px;" class="neon-text">RUGGY'S POOL</h2>
+        <p class="u1">
+            Live Liquidity Pool Information • Transparent & Real-time
+        </p>
+
+        <div class="card" style="max-width: 900px; margin: 0 auto 40px;">
+            <h3 style="color: #3b82f6; margin-bottom: 20px;">💧 Live Liquidity Pool Stats</h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                <div>
+                    <div class="muted-sm">Total Liquidity (USD)</div>
+                    <div id="pool-liquidity" class="u14">Loading...</div>
+                </div>
+                <div>
+                    <div class="muted-sm">24h Volume</div>
+                    <div id="pool-volume" class="stat-lg">Loading...</div>
+                </div>
+                <div>
+                    <div class="muted-sm">Burned / Staked in LP</div>
+                    <div id="pool-burned" style="font-size: 28px; font-weight: bold; color: #f59e0b;">Loading...</div>
+                </div>
+                <div>
+                    <div class="muted-sm">LP Token Holders</div>
+                    <div id="pool-holders" class="stat-lg">Loading...</div>
+                </div>
+            </div>
+
+            <p style="margin-top: 25px; font-size: 13px; color: #9ca3af; line-height: 1.6;">
+                <strong>Burns = Permanent Staking in Liquidity Pool:</strong> When tokens are burned, they are permanently removed from circulation and added to the liquidity pool. <strong>Once 50% of LP is locked, burns stop</strong> and extra fees go to Community (+30%) and Anti-Rug (+10%). 
+                This strengthens price stability and reduces sell pressure over time.
+            </p>
+
+            <!-- Pool-wide stake distribution donut: all stakes by lock time + circulating -->
+            <div style="margin-top: 28px; border-top: 1px solid #374151; padding-top: 22px;">
+                <h4 style="color:#86efac; text-align:center; margin:0 0 4px;">🔒 Pool Distribution by Lock Time</h4>
+                <p id="stake-donut-empty" class="muted-sm" style="text-align:center; margin:0 0 16px;">Loading pool distribution…</p>
+                <div id="stake-donut-wrap" style="display:none; align-items:center; justify-content:center; gap:28px; flex-wrap:wrap;">
+                    <div id="stake-donut-svg" style="flex:0 0 auto; overflow:visible;"></div>
+                    <div id="stake-donut-legend" style="flex:0 1 240px; display:grid; gap:8px; font-size:13px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; color: #6b7280; font-size: 13px;">
+            Data updates live from on-chain sources (Dexscreener / Jupiter).
+        </div>
+
+        <div class="card" style="max-width: 1000px; margin: 40px auto 0; border: 2px solid #3b82f6;">
+            <h3 style="color: #3b82f6; margin-bottom: 18px;">💧 Single-Sided Staking to the Liquidity Pool</h3>
+            
+            <div class="text-15">
+                <p>
+                    <strong>40% of all fees</strong> from the dev wallet are automatically used to provide liquidity and perform buybacks & burns. 
+                    This strengthens the chart and reduces sell pressure over time.
+                </p>
+                
+                <p>
+                    By <strong>single-sided staking $RUGGY</strong> into the Liquidity Pool, investors can earn a share of trading fees 
+                    on top of any price appreciation. <strong>Once 50% of the LP is permanently locked</strong>, burns stop and extra fees are redirected with boosts to Community (+30%) and Anti-Rug (+10%).
+                </p>
+
+                <h4 style="color: #ef4444; margin: 20px 0 10px;">⚠️ Risks Involved</h4>
+                <ul style="margin-left: 20px; margin-bottom: 15px;">
+                    <li><strong>Impermanent Loss (IL):</strong> If the price of $RUGGY moves significantly against the paired asset, you may experience a loss compared to simply holding.</li>
+                    <li><strong>Smart Contract Risk:</strong> Although rare, there is always a risk of exploits or bugs in the liquidity protocol.</li>
+                </ul>
+
+                <h4 style="color: #22c55e; margin: 15px 0 10px;">🛡️ How to Protect Yourself</h4>
+                <ul style="margin-left: 20px;">
+                    <li>Only stake what you can afford to hold long-term.</li>
+                    <li>Use well-audited protocols (we recommend established Solana DEXs).</li>
+                    <li>Monitor your position regularly.</li>
+                    <li>Never approve suspicious contracts or click unknown links.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card" style="max-width: 1000px; margin: 30px auto 0; border: 2px solid #22c55e;">
+            <h3 style="color: #22c55e; margin-bottom: 18px; text-align: center;">🔒 Stake $RUGGY – Earn from the Pool</h3>
+            
+            <div style="max-width: 520px; margin: 0 auto;">
+                <div style="background: #052e16; padding: 16px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
+                    <div class="u25">Rolling 3-Day Average APY</div>
+                    <div id="staking-apy" class="u26">18.4%</div>
+                    <div style="font-size: 12px; color: #86efac;">(Updating live)</div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 13px; display: block; margin-bottom: 6px;">Amount to Stake</label>
+                    <input aria-label="Amount of RUGGY to stake" id="stake-amount" type="number" placeholder="Enter amount of $RUGGY" 
+                           class="x237">
+                </div>
+
+                <div class="mb20">
+                    <label style="font-size: 13px; display: block; margin-bottom: 8px;">Lock Period</label>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;" id="lock-period-options">
+                        <div data-action="select-lock" class="lock-option stat-box-green" data-days="1" data-multiplier="1.0">
+                            <div class="bold">1 Day</div>
+                            <div class="hint-green">1.0x</div>
+                        </div>
+                        <div data-action="select-lock" class="lock-option x238" data-days="3" data-multiplier="1.1"
+                             >
+                            <div class="bold">3 Day</div>
+                            <div style="font-size: 9px; color: #f59e0b;">(Absolution Forgiveness)</div>
+                            <div class="hint-green">1.1x</div>
+                        </div>
+                        <div data-action="select-lock" class="lock-option stat-box-green" data-days="7" data-multiplier="1.25">
+                            <div class="bold">1 Week</div>
+                            <div class="hint-green">1.25x</div>
+                        </div>
+                        <div data-action="select-lock" class="lock-option stat-box-green" data-days="30" data-multiplier="1.6">
+                            <div class="bold">1 Month</div>
+                            <div class="hint-green">1.6x</div>
+                        </div>
+                        <div data-action="select-lock" class="lock-option stat-box-green" data-days="180" data-multiplier="2.2">
+                            <div class="bold">6 Months</div>
+                            <div class="hint-green">2.2x</div>
+                        </div>
+                        <div data-action="select-lock" class="lock-option stat-box-green" data-days="365" data-multiplier="3.0">
+                            <div class="bold">1 Year</div>
+                            <div class="hint-green">3.0x</div>
+                        </div>
+
+                        <!-- Permanent Staking -->
+                        <div data-action="select-lock" class="lock-option stat-box-green" data-days="9999" data-multiplier="5.0">
+                            <div style="font-weight: bold; color: #fbbf24;">Permanent</div>
+                            <div style="font-size: 10px; color: #fbbf24;">5.0x</div>
+                        </div>
+                    </div>
+
+                    <!-- Permanent Staking Warning -->
+                    <div class="x239">
+                        ⚠️ <strong>Permanent Staking Warning:</strong> Choosing Permanent locks your $RUGGY forever. 
+                        There is <strong>no early unstake option</strong> and no way to withdraw early. 
+                        Only select this if you are fully committed for the long term.
+                    </div>
+                    
+                    <input type="hidden" id="stake-days" value="365">
+                    <input type="hidden" id="stake-multiplier" value="3.0">
+                </div>
+
+                <div id="lock-info" style="background: #052e16; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; color: #d1fae5;">
+                    Lock for <strong>1 Year</strong> → <strong class="green">3.0x fee multiplier</strong>. Early unstake penalty: <strong class="u106">10%</strong>
+                </div>
+
+                <button data-action="stakeRuggy" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); width: 100%; font-size: 17px; padding: 16px;">
+                    🔒 STAKE $RUGGY
+                </button>
+
+                <div style="margin-top: 25px;">
+                    <div id="stake-eligibility-notice-pool" style="display:none; padding:12px 14px; border-radius:10px; margin-bottom:14px; font-size:13.5px; line-height:1.5; background:#1f2937; border-left:5px solid #6b7280;"></div>
+                    <h5 style="color: #86efac; margin-bottom: 10px;">Your Active Stakes</h5>
+                    <div id="active-stakes" style="font-size: 13px; color: #d1fae5;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ABSOLUTION -->
+    <section id="absolution" class="section u17">
+        
+        <div class="center-mb30">
+            <img alt="Ruggy meme artwork" decoding="async" width="400" height="260" loading="lazy" fetchpriority="low" src="https://i.ibb.co/dJHZxvB4/IMG-4374.jpg" 
+                 class="feature-img">
+        </div>
+
+        <h2 style="font-size: clamp(26px, 7.5vw, 42px); text-align: center; margin-bottom: 8px; color: #f59e0b;" class="neon-text">RUGGY ABSOLUTION</h2>
+        <p style="text-align: center; color: #9ca3af; margin-bottom: 30px; font-size: 16px;">
+            The path to forgiveness for those on Locked Ban
+        </p>
+
+        <div class="card" style="max-width: 820px; margin: 0 auto 40px; border: 2px solid #f59e0b;">
+            <h3 style="color: #f59e0b; margin-bottom: 20px;">How to Absolve a Locked Ban</h3>
+            
+            <div style="margin-bottom: 28px;">
+                <p class="fs15">
+                    If you are on a <strong>Locked Ban</strong>, you have two paths to forgiveness:
+                </p>
+                <ul style="margin-top: 14px; margin-bottom: 16px; font-size: 15px; line-height: 1.75;">
+                    <li style="margin-bottom: 8px;"><strong>Path 1:</strong> Stake <strong><span data-m="absolutionStakePct" data-fmt="pct">20%</span> of the dollar value</strong> of the Ruggy you pulled, locked for <strong><span data-m="absolutionLockDays" data-fmt="raw">3</span> days</strong>.</li>
+                    <li><strong>Path 2:</strong> Submit a formal explanation to a moderator explaining your actions against Ruggy.</li>
+                </ul>
+                <p class="fs15">
+                    Ruggy <strong>might</strong> forgive you. He might not. It depends on your sincerity and recommitment.
+                </p>
+            </div>
+
+            <div style="background: #1f2937; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+                <h4 style="color: #fbbf24; margin-bottom: 12px;">🔍 Detect Locked Ban Status</h4>
+                <p style="font-size: 14px; margin-bottom: 15px;">Connect your wallet to check if you are on Locked Ban and see your required donation amount.</p>
+                
+                <button data-action="checkLockedBanStatus" class="buy-button" style="max-width: 100%; background: linear-gradient(to right, #f59e0b, #d97706);">
+                    Check My Status
+                </button>
+                
+                <div id="absolution-status" style="margin-top: 20px; display: none;">
+                    <div style="background: #111827; padding: 16px; border-radius: 10px;">
+                        <p id="locked-ban-result" style="font-size: 15px; margin: 0;"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="u105">
+                <h4 style="color: #22c55e; margin-bottom: 12px;">🔒 Stake to Absolve (3 Days)</h4>
+                <p style="font-size: 14px; margin-bottom: 12px;">
+                    Enter the <strong>dollar value</strong> of Ruggy you originally pulled from the coin. 
+                    You must stake <strong><span data-m="absolutionStakePct" data-fmt="pct">20%</span></strong> of that value, locked for <strong><span data-m="absolutionLockDays" data-fmt="raw">3</span> days</strong>.
+                </p>
+                
+                <div class="mb15">
+                    <label class="muted-12">Dollar Value You Rugged (USD)</label>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <input aria-label="Dollar value you were rugged" id="rugged-amount" type="number" placeholder="e.g. 12500" 
+                               class="x240">
+                        <button data-action="calculateAbsolutionStake" class="buy-button" style="background: #22c55e; flex: 1; min-width: 160px;">
+                            Calculate Requirement
+                        </button>
+                    </div>
+                </div>
+
+                <div id="absolution-stake-breakdown" style="display: none; background: #111827; padding: 16px; border-radius: 10px; margin-bottom: 15px; font-size: 14px;">
+                    <div style="display: grid; gap: 8px;">
+                        <div class="row-between">
+                            <span>Required Stake (20%)</span>
+                            <strong id="required-stake" class="green"></strong>
+                        </div>
+                        <div class="row-between">
+                            <span>Already Staked</span>
+                            <strong id="already-staked" style="color:#86efac;"></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-top: 1px solid #374151; padding-top: 8px;">
+                            <span><strong>Still Owed</strong></span>
+                            <strong id="still-owed" style="color:#ef4444; font-size:15px;"></strong>
+                        </div>
+                    </div>
+                    
+                    <div id="stake-warning" class="x241">
+                        ⚠️ You still need to stake more to reach the required amount.
+                    </div>
+                </div>
+
+                <button data-action="submitAbsolutionStake" class="buy-button" style="max-width: 100%; background: linear-gradient(to right, #22c55e, #16a34a);">
+                    Stake Remaining Amount & Request Absolution
+                </button>
+            </div>
+
+            <div style="background: #1f2937; padding: 20px; border-radius: 12px; border: 2px dashed #f59e0b;">
+                <h4 style="color: #f59e0b; margin-bottom: 10px;">✉️ Message Portal (Coming Soon)</h4>
+                <p class="u5">
+                    This section will allow you to send a personal message/explanation to the moderators.<br>
+                    It is currently under development.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- RUGGY'S LOTTERY -->
+    <section id="lotto" class="section" style="padding-bottom: 80px; max-width: 1200px; margin: 0 auto;">
+        
+        <!-- Lotto Banner - Lotto Ruggy -->
+        <div class="center-mb30">
+            <img decoding="async" width="400" height="260" loading="lazy" fetchpriority="high"
+                 src="https://i.ibb.co/LdFxTN9p/IMG-4431.jpg" 
+                 style="max-width: 100%; height: 280px; object-fit: cover; border-radius: 16px; border: 3px solid #fbbf24;"
+                 alt="Lotto Ruggy">
+            
+            <div style="margin-top: 20px;">
+                <h2 id="lotto-title" class="lotto-animated-title" style="font-size: clamp(32px, 8vw, 52px); margin-bottom: 8px;">RUGGY'S LOTTERY</h2>
+                <p style="font-size: 18px; color: #f3e8ff; margin-bottom: 0;">The Official Ruggy Lottery • Win Big Every Day & Sunday</p>
+            </div>
+        </div>
+
+        <!-- Current Jackpot -->
+        <div class="card" style="max-width: 900px; margin: 0 auto 40px; text-align: center; border: 3px solid #fbbf24;">
+            <div class="mb15">
+                <div style="font-size: 16px; color: #fbbf24; font-weight: bold;">CURRENT JACKPOT</div>
+                <div id="lotto-jackpot-display" style="font-size: 56px; font-weight: bold; color: #22c55e; line-height: 1;">$124,850</div>
+                <div class="u2">Rolling + Growing Every Draw</div>
+                <p style="margin: 12px 0 0; font-size: 14px;">
+                    <span class="gold">🗓 Daily draw at <strong><span data-m="lotteryDailyTime" data-fmt="raw">8:00 PM UTC</span></strong></span>
+                    &nbsp;•&nbsp;
+                    <span class="green">Weekly draw every <strong><span data-m="lotteryWeeklyDay" data-fmt="raw">Sunday</span></strong> at <strong><span data-m="lotteryWeeklyTime" data-fmt="raw">8:00 PM UTC</span></strong></span>
+                </p>
+                <p class="u103" style="margin: 8px 0 0; font-size: 13px;">
+                    <strong>⚠ Locked Ban accounts cannot participate in the Lottery</strong> — absolve yourself first.
+                </p>
+            </div>
+            
+            <div style="display: flex; justify-content: center; gap: 40px; margin-top: 20px; flex-wrap: wrap;">
+                <div>
+                    <div class="muted-sm">Next Mini Draw</div>
+                    <div class="u27"><span data-m="miniDrawLabel" data-fmt="raw">Today • 8:00 PM UTC</span></div>
+                </div>
+                <div>
+                    <div class="muted-sm">Next Big Draw</div>
+                    <div class="u27"><span data-m="bigDrawLabel" data-fmt="raw">Sunday • 8:00 PM UTC</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="x242">
+            
+            <!-- Buy Tickets -->
+            <div class="card" style="border: 3px solid #fbbf24;">
+                <h3 style="color: #fbbf24; margin-bottom: 20px; text-align: center;">Buy Lottery Tickets</h3>
+                
+                <div class="center-mb25">
+                    <div class="u2">Ticket Price</div>
+                    <div id="lotto-ticket-price-display" style="font-size: 38px; font-weight: bold; color: #22c55e;">$3 USD</div>
+                    <div class="u2">
+                        <span id="lotto-sol-price">(~0.015 SOL • live)</span>
+                    </div>
+                </div>
+
+                <div class="mb20">
+                    <label style="font-size: 14px; display: block; margin-bottom: 8px;">Number of Tickets</label>
+                    <input id="lotto-ticket-amount" type="number" value="5" min="1" max="100"
+                           class="x243" style="width:100%; margin-bottom:10px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button data-action="buyDailyTicket" class="buy-button" style="flex:1; min-width:140px; background: linear-gradient(to right,#22c55e,#16a34a);">
+                            🎟 Buy Daily (<span data-m="dailyTicketPrice" data-fmt="usd">$3</span>)
+                        </button>
+                        <button data-action="buyWeeklyTicket" class="buy-button" style="flex:1; min-width:140px; background: linear-gradient(to right,#fbbf24,#d97706); color:#1f2937;">
+                            🎫 Buy Weekly (<span data-m="weeklyTicketPrice" data-fmt="usd">$6</span>)
+                        </button>
+                    </div>
+                </div>
+
+                <div style="background: #1f2937; padding: 16px; border-radius: 12px; font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Total Cost</span>
+                        <strong id="lotto-total-cost">$15.00</strong>
+                    </div>
+                    <div class="muted-12">
+                        <span data-m="mainPoolPct" data-fmt="pct">50%</span> Prize Pool • <span data-m="consolationTotalPct" data-fmt="pct">30%</span> Consolation • <span data-m="lottoMdrPct" data-fmt="pct">10%</span> MDR • <span data-m="lottoBurnPct" data-fmt="pct">10%</span> Burn
+                    </div>
+                </div>
+
+                <!-- My Tickets: daily vs weekly + prior free tickets -->
+                <div style="margin-top:18px; border-top:1px solid #374151; padding-top:16px;">
+                    <h4 style="color:#fbbf24; margin:0 0 6px; text-align:center;">🎟 My Tickets</h4>
+                    <p id="tickets-wallet-status" class="muted-sm" style="text-align:center; margin:0 0 14px;">Connect your wallet to save and verify your tickets</p>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                        <div style="background:#052e16; border:1px solid #22c55e; border-radius:10px; padding:14px; text-align:center;">
+                            <div class="muted-sm">Daily Tickets</div>
+                            <div id="tickets-daily-count" style="font-size:30px; font-weight:bold; color:#22c55e;">0</div>
+                            <div id="tickets-daily-value" class="muted-sm">$0</div>
+                        </div>
+                        <div style="background:#1e1233; border:1px solid #a855f7; border-radius:10px; padding:14px; text-align:center;">
+                            <div class="muted-sm">Weekly Tickets</div>
+                            <div id="tickets-weekly-count" style="font-size:30px; font-weight:bold; color:#c084fc;">0</div>
+                            <div id="tickets-weekly-value" class="muted-sm">$0</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px; background:#0b1220; border:1px solid #374151; border-radius:10px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+                        <span class="text-14"><strong>🎁 Previously Earned Free Tickets</strong><br><span class="muted-sm">Kept even if settings change</span></span>
+                        <span id="tickets-free-count" style="font-size:24px; font-weight:bold; color:#86efac;">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Free Ticket -->
+            <div class="card" style="border: 3px solid #22c55e;">
+                <h3 style="color: #22c55e; margin-bottom: 15px; text-align: center;">🎁 Daily Free Ticket</h3>
+                
+                <p style="font-size: 15px; text-align: center; margin-bottom: 8px;">
+                    Stake $RUGGY in the <strong>Pool</strong> and earn <strong>1 free lottery ticket every <span data-m="freeTicketCooldownDisplay" data-fmt="raw">day</span></strong> you remain staked.
+                </p>
+                <p style="font-size: 13px; text-align: center; margin-bottom: 18px;">
+                    <strong class="gold">⚠ Free tickets are for the DAILY draw only</strong> — they cannot be used in the Weekly lottery.
+                </p>
+
+                <div style="background: #052e16; padding: 16px; border-radius: 12px; text-align: center; margin-bottom: 15px;">
+                    <div class="u25">Free Tickets Available</div>
+                    <div id="free-tickets-available" class="u26">0</div>
+                    <div style="font-size: 14px; color: #86efac;">Earned & held by your wallet</div>
+                </div>
+
+                <button data-action="claimDailyFreeTicket" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a);">
+                    Claim Your Free Ticket
+                </button>
+                <p class="muted-sm" style="text-align:center; margin:8px 0 0;">One free ticket every <span data-m="freeTicketCooldownDisplay" data-fmt="raw">day</span> of staking</p>
+
+                <!-- Enter free tickets into the daily draw (max 5) -->
+                <div style="margin-top:16px; border-top:1px solid #374151; padding-top:14px;">
+                    <label style="font-size:13px; display:block; margin-bottom:8px; text-align:center;">
+                        Enter free tickets into the <strong>Daily draw</strong> (max 5)
+                    </label>
+                    <div style="display:flex; gap:10px; align-items:center; justify-content:center;">
+                        <input aria-label="Number of free tickets to enter" id="free-ticket-enter-amount" type="number" value="1" min="1" max="5"
+                               style="width:90px; padding:10px; border-radius:8px; border:1px solid #22c55e; background:#0b1220; color:white; text-align:center;">
+                        <button data-action="enterFreeTickets" class="buy-button" style="flex:1; max-width:200px; background:linear-gradient(to right,#16a34a,#15803d);">
+                            Enter Into Daily Draw
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prize Breakdown -->
+            <div class="card">
+                <h3 style="color: #fbbf24; margin-bottom: 18px;">Prize Pool Breakdown</h3>
+
+                <!-- Dedicated lottery wallet (funds the pool; live on-chain) -->
+                <div style="background:#0b1220; border:1px solid #fbbf24; border-radius:10px; padding:12px 14px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <span class="text-14"><strong class="gold">🎰 Lottery Wallet</strong><br><span class="muted-sm" id="lottery-wallet-addr"><span data-m="lotteryWalletShort" data-fmt="raw">Not set</span></span></span>
+                    <span class="gold" style="font-weight:bold; font-size:18px;" id="lottery-wallet-total">$124,850</span>
+                </div>
+
+                <p class="muted-sm" style="margin:0 0 10px;">How the lottery wallet is allocated each draw:</p>
+                <div style="display: grid; gap: 12px; font-size: 15px;">
+                    <div class="u28">
+                        <span><strong class="gold"><span data-m="mainPoolPct" data-fmt="pct">50%</span></strong> → <span class="gold">Main Prize Pool</span></span>
+                        <span class="gold" style="font-weight: bold;">Match all numbers</span>
+                    </div>
+                    <div class="u28">
+                        <span><strong style="color:#3b82f6;"><span data-m="consolationTotalPct" data-fmt="pct">30%</span></strong> → <span style="color:#3b82f6;">Consolation Pool</span></span>
+                        <span style="color: #3b82f6; font-weight: bold;">Active • all draws</span>
+                    </div>
+                    <div class="u28">
+                        <span><strong style="color:#a855f7;"><span data-m="lottoMdrPct" data-fmt="pct">10%</span></strong> → <span style="color:#a855f7;">MDR Fund</span></span>
+                        <span style="color: #a855f7;">Marketing &amp; Dev</span>
+                    </div>
+                    <div class="u28" style="border-bottom:1px solid #374151; padding-bottom:10px;">
+                        <span><strong style="color:#f87171;"><span data-m="lottoBurnPct" data-fmt="pct">10%</span></strong> → <span style="color:#f87171;">Permanent Burn</span></span>
+                        <span style="color:#f87171;">Removed forever</span>
+                    </div>
+                    <div class="row-between" style="font-size:14px;">
+                        <span class="muted-sm">Total allocation</span>
+                        <strong style="color:#22c55e;">100%</strong>
+                    </div>
+                </div>
+                <div style="margin-top:14px; padding-top:12px; border-top:1px solid #374151; font-size:13.5px; color:#d1d5db; line-height:1.6;">
+                    <p style="margin:0 0 6px;"><strong class="gold">Unwon prize money rolls over.</strong> If the Main Prize Pool isn't won, it carries into the next draw and grows.</p>
+                    <p style="margin:0;"><strong class="green">Daily draws pay at most <span data-m="dailyMaxOfWeeklyPct" data-fmt="pct">50%</span> of the Main Prize Pool</strong> — daily winners take a capped share while the big Weekly jackpot keeps building.</p>
+                </div>
+            </div>
+
+            <!-- Consolation Pool -->
+            <div class="card" style="border: 3px solid #3b82f6;">
+                <h3 class="u13">Consolation Pool (<span data-m="consolationTotalPct" data-fmt="pct">30%</span>)</h3>
+                <p class="text-15">
+                    If you match <strong><span data-m="consolationLowerMatch" data-fmt="raw">2</span> or <span data-m="consolationHigherMatch" data-fmt="raw">3</span> numbers</strong>, you still win from the <strong><span data-m="consolationTotalPct" data-fmt="pct">30%</span> Consolation Pool</strong>!
+                </p>
+                <div style="margin-top: 15px; font-size: 14px; color: #9ca3af;">
+                    • <strong class="green"><span data-m="consolationHigherPct" data-fmt="pct">20%</span></strong> goes to <strong>match <span data-m="consolationHigherMatch" data-fmt="raw">3</span> numbers</strong> (the larger matches)<br>
+                    • <strong class="gold"><span data-m="consolationLowerPct" data-fmt="pct">10%</span></strong> goes to <strong>match <span data-m="consolationLowerMatch" data-fmt="raw">2</span> numbers</strong> (the lower matches)<br>
+                    • This pool rolls over if not fully claimed
+                </div>
+            </div>
+        </div>
+
+        <!-- Rollover Info -->
+        <div class="card" style="max-width: 900px; margin: 40px auto 0; border: 3px solid #fbbf24;">
+            <h3 style="color: #fbbf24; margin-bottom: 15px; text-align: center;">🔄 Rollover Mechanic</h3>
+            <p style="font-size: 15px; text-align: center; max-width: 700px; margin: 0 auto;">
+                If no one hits the <strong>exact winning numbers</strong> in a draw, the entire prize pool <strong>rolls over</strong> to the next draw. 
+                This means jackpots can grow extremely large over time!
+            </p>
+        </div>
+
+    </section>
+
+    <!-- ADMIN PANEL - Left Sidebar (Appears above everything) -->
+    <div id="developer-modal" role="dialog" aria-modal="true" aria-label="Admin developer settings" 
+         class="x245">
+        
+        <!-- Close Button -->
+        <button id="close-developer-modal-btn" data-action="closeDeveloperModal"
+                class="x246">
+            ×
+        </button>
+        
+        <div style="padding: 20px 24px 40px; clear: both;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h3 style="color: #f59e0b; margin: 0; font-size: 22px; font-weight: 700;">Ruggy Admin Panel</h3>
+                
+                <button id="admin-logout-btn" data-action="adminLogout" 
+                        class="x247">
+                    Logout
+                </button>
+            </div>
+            <p style="text-align: center; color: #9ca3af; font-size: 13px; margin-bottom: 24px;">Developer &amp; Distribution Controls</p>
+            
+            <!-- Admin access simplified to single button -->
+            
+            <!-- Developer Panel Content -->
+            <div id="dev-panel" class="section">
+                <h4 style="color:#22c55e; margin-bottom:16px; text-align:center; font-size:17px;">Developer Settings</h4>
+
+                <details class="admin-section" open>
+                    <summary>💰 Token, Wallets &amp; Splits</summary>
+                    <div class="admin-section-body">
+                        <label class="label-sm">Token CA (Mint)</label>
+                        <input id="dev-ca" type="text" class="dev-input" placeholder="Token mint address">
+
+                        <h5 class="u3">Reward Distribution Splits</h5>
+                        <div class="mb10">
+                            <label class="label-sm">Liquidity (Burn) <span id="liq-percent">40</span>%</label>
+                            <input id="dev-liq-percent" type="range" min="0" max="100" step="1" value="40" class="w-full" data-input-action="updateSplitPercentages">
+                        </div>
+                        <div class="mb10">
+                            <label class="label-sm">Anti-Rug (1M+) <span id="antirug-percent">20</span>%</label>
+                            <input id="dev-antirug-percent" type="range" min="0" max="100" step="1" value="20" class="w-full" data-input-action="updateSplitPercentages">
+                        </div>
+                        <div class="mb10">
+                            <label class="label-sm">Community (500k+) <span id="community-percent">30</span>%</label>
+                            <input id="dev-community-percent" type="range" min="0" max="100" step="1" value="30" class="w-full" data-input-action="updateSplitPercentages">
+                        </div>
+                        <div class="mb10">
+                            <label class="label-sm">MDR Fund <span id="creator-percent">10</span>%</label>
+                            <input id="dev-creator-percent" type="range" min="0" max="100" step="1" value="10" class="w-full" data-input-action="updateSplitPercentages">
+                        </div>
+                        <div style="font-size:12px; color:#9ca3af; margin-top:8px;">
+                            Total: <span id="split-total">100</span>%
+                            <span id="split-warning" style="color:#ef4444; display:none;">(Must = 100%)</span>
+                        </div>
+
+                        <h5 class="u3">Wallet Addresses</h5>
+                        <label class="label-xs">Burn Wallet (for buyback burns)</label>
+                        <input id="dev-burn-wallet" type="text" placeholder="Enter Burn Wallet Address" class="dev-input">
+                        <label class="label-xs">MDR (Marketing, Development &amp; Research) Wallet</label>
+                        <input id="dev-creator-wallet" type="text" placeholder="Enter MDR Wallet Address" class="dev-input">
+
+                        <h5 class="u3">Social Links</h5>
+                        <label class="label-xs">X (Twitter) Link</label>
+                        <input id="dev-x-link" type="text" placeholder="https://x.com/yourhandle" class="dev-input">
+                        <label class="label-xs">Telegram Link</label>
+                        <input id="dev-telegram-link" type="text" placeholder="https://t.me/yourgroup" class="dev-input">
+                        <label class="label-xs">Dexscreener Link</label>
+                        <input id="dev-dexscreener-link" type="text" placeholder="https://dexscreener.com/solana/..." class="dev-input">
+                        <label class="label-xs">Pump.fun Link</label>
+                        <input id="dev-pumpfun-link" type="text" placeholder="https://pump.fun/..." class="dev-input">
+
+                        <h5 class="u3">Dev Wallet</h5>
+                        <button id="connect-dev-wallet-home-btn" data-action="connectDevWalletForHome" class="buy-button" style="padding:8px 14px; font-size:12px; background: linear-gradient(to right, #a855f7, #7c3aed);">
+                            Connect Dev Wallet
+                        </button>
+                        <div id="dev-wallet-display" style="margin-top:6px; font-size:11px; color:#9ca3af; font-family: monospace; word-break: break-all;"></div>
+                    </div>
+                </details>
+
+                <details class="admin-section">
+                    <summary>📊 Rules &amp; Metrics</summary>
+                    <div class="admin-section-body">
+                        <p class="muted-sm" style="margin:0 0 10px;">Every value here updates ALL mentions across the site (tooltips, pages, rules) and the behaviors tied to it.</p>
+
+                        <h5 class="u3">Distribution</h5>
+                        <label class="admin-check"><input id="m-dist-enabled" type="checkbox" checked> Distributions enabled (manual master switch)</label>
+                        <label class="label-sm">Auto-distribution shutoff (stakers)</label>
+                        <input id="m-holder-shutoff" type="number" min="1" class="dev-input" placeholder="500">
+                        <label class="label-sm">Community group: tokens required</label>
+                        <input id="m-community-threshold" type="number" min="0" class="dev-input" placeholder="500000">
+                        <label class="label-sm">Anti-Rug group: tokens required</label>
+                        <input id="m-antirug-threshold" type="number" min="0" class="dev-input" placeholder="1000000">
+                        <label class="label-sm">Distribution Interval (minutes)</label>
+                        <input id="dev-interval" type="number" value="30" class="dev-input">
+                        <button id="reset-timer-btn" data-action="resetDistributionTimer" class="buy-button admin-tool-btn" style="background:#4b5563; color:#d1d5db; border:1px solid #6b7280;" title="Restarts the live countdown using the interval above">
+                            ⏱ Apply Interval &amp; Restart Timer
+                        </button>
+                        <button id="trigger-distribution-btn" data-action="triggerDistribution" class="buy-button admin-tool-btn" style="background: linear-gradient(to right, #22c55e, #16a34a);">
+                            🚀 Trigger Reward Distribution
+                        </button>
+                        <button id="pause-rewards-btn" data-action="toggleRewardsPause" class="buy-button admin-tool-btn" style="background:#ef4444;">
+                            ⏸ Pause Rewards
+                        </button>
+
+                        <h5 class="u3">Take Profit &amp; Bans</h5>
+                        <label class="label-sm">Take-profit unlocks at ROI (%)</label>
+                        <input id="m-roi-takeprofit" type="number" min="1" class="dev-input" placeholder="200">
+                        <label class="label-sm">Safe sell amount in window (%)</label>
+                        <input id="m-roi-safesell" type="number" min="1" max="100" class="dev-input" placeholder="50">
+                        <label class="label-sm">Locked Ban: selling ≥ (%) at once</label>
+                        <input id="m-lockedban-pct" type="number" min="1" max="100" class="dev-input" placeholder="30">
+                        <label class="label-sm">Temporary Ban: holding &gt; (%) of supply</label>
+                        <input id="m-overhold-pct" type="number" min="0.1" max="100" step="0.1" class="dev-input" placeholder="3">
+
+                        <h5 class="u3">Hall &amp; Wall</h5>
+                        <label class="label-sm">Top Holders shown</label>
+                        <input id="m-hall-top" type="number" min="1" max="100" class="dev-input" placeholder="12">
+                        <label class="label-sm">Top Stakers shown</label>
+                        <input id="m-hall-longest" type="number" min="1" max="100" class="dev-input" placeholder="12">
+                        <label class="label-sm">Bagworkers shown</label>
+                        <input id="m-hall-bagworkers" type="number" min="1" max="10" class="dev-input" placeholder="5">
+                        <label class="label-sm">Wall: wallets shown at a time</label>
+                        <input id="m-wall-shown" type="number" min="1" max="500" class="dev-input" placeholder="25">
+
+                        <h5 class="u3">Absolution</h5>
+                        <label class="label-sm">Absolution stake (% of pulled value)</label>
+                        <input id="m-abs-pct" type="number" min="1" max="100" class="dev-input" placeholder="20">
+                        <label class="label-sm">Absolution lock time (days)</label>
+                        <input id="m-abs-days" type="number" min="1" class="dev-input" placeholder="3">
+
+                        <h5 class="u3">Lottery Schedule</h5>
+                        <label class="label-sm">Daily draw time</label>
+                        <input id="m-lotto-daily-time" type="text" class="dev-input" placeholder="8:00 PM UTC">
+                        <label class="label-sm">Weekly draw day</label>
+                        <input id="m-lotto-weekly-day" type="text" class="dev-input" placeholder="Sunday">
+                        <label class="label-sm">Weekly draw time</label>
+                        <input id="m-lotto-weekly-time" type="text" class="dev-input" placeholder="8:00 PM UTC">
+                        <label class="label-sm">Free ticket hold time (hours; 24 = 1 day, shown as days on site)</label>
+                        <input id="m-free-ticket-hours" type="number" min="1" class="dev-input" placeholder="24">
+                        <label class="label-sm">Next Mini Draw label</label>
+                        <input id="m-mini-draw" type="text" class="dev-input" placeholder="Today • 8:00 PM UTC">
+                        <label class="label-sm">Next Big Draw label</label>
+                        <input id="m-big-draw" type="text" class="dev-input" placeholder="Sunday • 8:00 PM UTC">
+
+                        <h5 class="u3">Lottery Wallet Allocation</h5>
+                        <p class="muted-sm" style="margin:0 0 8px;">Main Prize Pool is auto-calculated as the remainder (100% − Consolation − MDR − Burn), so the allocation always totals 100%.</p>
+                        <label class="label-sm">MDR Fund %</label>
+                        <input id="m-lotto-mdr" type="number" min="0" max="100" class="dev-input" placeholder="10">
+                        <label class="label-sm">Permanent Burn %</label>
+                        <input id="m-lotto-burn" type="number" min="0" max="100" class="dev-input" placeholder="10">
+                        <label class="label-sm">Daily max winnings (% of Main Prize Pool)</label>
+                        <input id="m-daily-max" type="number" min="0" max="100" class="dev-input" placeholder="50">
+
+                        <h5 class="u3">Consolation Pool</h5>
+                        <label class="label-sm">Higher-match tier % (larger matches)</label>
+                        <input id="m-consol-higher-pct" type="number" min="0" max="100" class="dev-input" placeholder="20">
+                        <label class="label-sm">Higher tier: match how many numbers?</label>
+                        <input id="m-consol-higher-match" type="number" min="1" max="10" class="dev-input" placeholder="3">
+                        <label class="label-sm">Lower-match tier % (lower matches)</label>
+                        <input id="m-consol-lower-pct" type="number" min="0" max="100" class="dev-input" placeholder="10">
+                        <label class="label-sm">Lower tier: match how many numbers?</label>
+                        <input id="m-consol-lower-match" type="number" min="1" max="10" class="dev-input" placeholder="2">
+
+                        <h5 class="u3">Lottery Wallet & Ticket Prices</h5>
+                        <label class="label-sm">Dedicated Lottery Wallet address</label>
+                        <input id="m-lottery-wallet" type="text" class="dev-input" placeholder="Lottery wallet pubkey">
+                        <label class="label-sm">Daily ticket price (USD)</label>
+                        <input id="m-daily-ticket-price" type="number" min="0" step="0.01" class="dev-input" placeholder="3">
+                        <label class="label-sm">Weekly ticket price (USD)</label>
+                        <input id="m-weekly-ticket-price" type="number" min="0" step="0.01" class="dev-input" placeholder="6">
+                    </div>
+                </details>
+
+                <details class="admin-section">
+                    <summary>🔓 Post-50%-LP-Lock Distribution</summary>
+                    <div class="admin-section-body">
+                        <p class="muted-sm" style="margin:0 0 10px;">Fee split shown by the chart's "Show 50% LP Locked" button — when burns stop and fees redirect. Should total 100%.</p>
+                        <label class="label-sm">Liquidity / Burns %</label>
+                        <input id="m-postlock-liq" type="number" min="0" max="100" class="dev-input" placeholder="0">
+                        <label class="label-sm">Community %</label>
+                        <input id="m-postlock-community" type="number" min="0" max="100" class="dev-input" placeholder="60">
+                        <label class="label-sm">Anti-Rug %</label>
+                        <input id="m-postlock-antirug" type="number" min="0" max="100" class="dev-input" placeholder="30">
+                        <label class="label-sm">MDR Fund %</label>
+                        <input id="m-postlock-creator" type="number" min="0" max="100" class="dev-input" placeholder="10">
+                    </div>
+                </details>
+
+                <details class="admin-section">
+                    <summary>📝 Site Content</summary>
+                    <div class="admin-section-body">
+                        <label class="label-sm">Hero Title (home page)</label>
+                        <input id="content-hero-title" type="text" class="dev-input" placeholder="RUGGY">
+                        <label class="label-sm">Hero Subtitle</label>
+                        <input id="content-hero-sub" type="text" class="dev-input" placeholder="The Ultimate Anti-Rug Mascot">
+                        <label class="label-sm">Lottery Jackpot Display</label>
+                        <input id="content-jackpot" type="text" class="dev-input" placeholder="$124,850">
+
+                        <h5 class="u3">Top 5 Bagworkers (Hall of Fame)</h5>
+                        <input id="dev-bagworker-1" type="text" placeholder="Bagworker 1" class="dev-input-sm">
+                        <input id="dev-bagworker-2" type="text" placeholder="Bagworker 2" class="dev-input-sm">
+                        <input id="dev-bagworker-3" type="text" placeholder="Bagworker 3" class="dev-input-sm">
+                        <input id="dev-bagworker-4" type="text" placeholder="Bagworker 4" class="dev-input-sm">
+                        <input id="dev-bagworker-5" type="text" placeholder="Bagworker 5" class="dev-input-sm">
+                    </div>
+                </details>
+
+                <details class="admin-section">
+                    <summary>🎨 Appearance &amp; Effects</summary>
+                    <div class="admin-section-body">
+                        <label class="label-sm">Neon Intensity</label>
+                        <select id="ui-neon-level" class="dev-input">
+                            <option value="soft">Soft</option>
+                            <option value="normal" selected>Normal</option>
+                            <option value="max">Maximum</option>
+                        </select>
+                        <label class="admin-check"><input id="ui-breathe" type="checkbox" checked> Page titles breathe (pulse)</label>
+                        <label class="admin-check"><input id="ui-rain-on-zero" type="checkbox" checked> 💵 Money rain when timer hits 00:00</label>
+                        <label class="label-sm">Rain Duration (seconds)</label>
+                        <input id="ui-rain-duration" type="number" min="5" max="600" class="dev-input" placeholder="60">
+                        <label class="label-sm">Max Bills On Screen</label>
+                        <input id="ui-rain-max" type="number" min="5" max="120" class="dev-input" placeholder="40">
+                        <label class="label-sm">Bill Width (px)</label>
+                        <input id="ui-rain-width" type="number" min="40" max="320" class="dev-input" placeholder="124">
+                        <label class="label-sm">Bill Image URL (blank = default)</label>
+                        <input id="ui-rain-image" type="text" class="dev-input" placeholder="https://i.ibb.co/...jpg">
+                    </div>
+                </details>
+
+                <details class="admin-section">
+                    <summary>⛓ Chain (devnet/mainnet)</summary>
+                    <div class="admin-section-body">
+                        <label class="admin-check"><input id="chain-enabled" type="checkbox"> Connect site to on-chain program</label>
+                        <label class="label-sm">RPC URL</label>
+                        <input id="chain-rpc" type="text" class="dev-input" placeholder="https://api.devnet.solana.com">
+                        <label class="label-sm">Program ID (from anchor deploy)</label>
+                        <input id="chain-program" type="text" class="dev-input" placeholder="Your program ID">
+                        <label class="label-sm">Token Mint (CA)</label>
+                        <input id="chain-mint" type="text" class="dev-input" placeholder="Your token mint">
+                        <p class="muted-sm" style="margin:6px 0 0;">When enabled: countdown + jackpot read live chain state every 30s.</p>
+                    </div>
+                </details>
+
+                <details class="admin-section">
+                    <summary>🧰 Maintenance</summary>
+                    <div class="admin-section-body">
+                        <h5 class="u3" style="margin-top:0;">Test &amp; Preview</h5>
+                        <button data-action="startMoneyRain" class="buy-button admin-tool-btn" style="background:#14532d; color:#bbf7d0; border:1px solid #22c55e;" title="Preview the money rain that plays when the timer hits 00:00">💵 Test Money Rain</button>
+                        <button data-action="navigate" data-page="error-404" class="buy-button admin-tool-btn" style="background:#3f1f1f; color:#fca5a5; border:1px solid #ef4444;">🧪 Test 404 Error Page</button>
+
+                        <h5 class="u3">Backup &amp; Reset</h5>
+                        <p class="muted-sm" style="margin: 0 0 10px;">Settings live in <em>this browser's</em> storage. Export to back up or move them to another device.</p>
+                        <button data-action="exportSiteConfig" class="buy-button admin-tool-btn">⬇ Export Settings (JSON)</button>
+                        <label class="buy-button admin-tool-btn" style="display:block; text-align:center; cursor:pointer;">
+                            ⬆ Import Settings
+                            <input id="import-config-file" type="file" accept=".json,application/json" style="display:none;">
+                        </label>
+                        <button data-action="resetSiteData" class="buy-button admin-tool-btn" style="background:#7f1d1d; border:1px solid #ef4444; color:#fecaca;">🗑 Reset All Site Data</button>
+                    </div>
+                </details>
+
+                <button id="save-dev-settings-btn" data-action="saveDeveloperSettings" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); margin-bottom: 12px; width: 100%;">Save Settings</button>
+                
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Smart Text Wrapping Logic -->
+
+    <!-- Image Zoom Modal -->
+    <div id="image-modal" class="modal section" role="dialog" aria-modal="true" aria-label="Image viewer">
+        <div class="modal-content" style="max-width: 90%; max-height: 90vh; background: #111827; border: 2px solid #6b21a8; padding: 20px; text-align: center;">
+            <img alt="" decoding="async" id="modal-image" style="max-width: 100%; max-height: 75vh; border-radius: 12px; object-fit: contain;">
+            <p id="modal-image-title" style="margin-top: 15px; font-size: 18px; color: #f3e8ff;"></p>
+            <button id="close-image-modal-btn" data-action="closeImageModal" class="buy-button" style="max-width: 200px; margin-top: 15px; background: #374151;">Close</button>
+        </div>
+    </div>
+
+    </main>
+
+    <!-- Wallet Selection Modal -->
+    <div id="wallet-modal" class="modal section" role="dialog" aria-modal="true" aria-label="Select a wallet to connect">
+        <div class="modal-content" style="max-width: 460px; border: 3px solid #a855f7; box-shadow: 0 0 50px rgba(168, 85, 247, 0.4);">
+            <h3 class="u24">Connect Wallet</h3>
+            <p id="wallet-modal-mobile-hint" style="display:none; font-size:12.5px; color:#c4b5fd; text-align:center; margin:-6px 0 12px; line-height:1.5;">
+                📱 On mobile? Tap your wallet below — we'll open it in the wallet's app so you can approve, then bring you right back.
+            </p>
+            
+            <div style="display: grid; gap: 10px;">
+                <button id="select-phantom-btn" data-action="select-wallet" data-wallet="phantom" class="wallet-option u30">
+                    👻 Phantom
+                </button>
+
+                <button id="select-fomo-btn" data-action="select-wallet" data-wallet="fomo" class="wallet-option"
+                        style="--w1: #ff8a80; --w2: #e53935; --wshadow: rgba(229, 57, 53, 0.4); --wshadow-h: rgba(229, 57, 53, 0.5);">
+                    👀 FOMO Wallet
+                </button>
+
+                <button id="select-solflare-btn" data-action="select-wallet" data-wallet="solflare" class="wallet-option"
+                        style="--w1: #fbbf24; --w2: #d97706; --wshadow: rgba(217, 119, 6, 0.4); --wshadow-h: rgba(217, 119, 6, 0.5);">
+                    🔥 Solflare
+                </button>
+
+                <button id="select-backpack-btn" data-action="select-wallet" data-wallet="backpack" class="wallet-option"
+                        style="--w1: #4ade80; --w2: #16a34a; --wshadow: rgba(22, 163, 74, 0.4); --wshadow-h: rgba(22, 163, 74, 0.5);">
+                    🎒 Backpack
+                </button>
+
+                <button id="select-glow-btn" data-action="select-wallet" data-wallet="glow" class="wallet-option"
+                        style="--w1: #f9a8d4; --w2: #db2777; --wshadow: rgba(219, 39, 119, 0.4); --wshadow-h: rgba(219, 39, 119, 0.5);">
+                    ✨ Glow
+                </button>
+
+                <button data-action="select-wallet" data-wallet="slope" class="wallet-option u30">
+                    ⛰️ Slope
+                </button>
+
+                <button data-action="select-wallet" data-wallet="sollet" class="wallet-option"
+                        style="--w1: #93c5fd; --w2: #2563eb; --wshadow: rgba(37, 99, 235, 0.4); --wshadow-h: rgba(37, 99, 235, 0.5);">
+                    🪙 Sollet
+                </button>
+
+                <button data-action="select-wallet" data-wallet="trust" class="wallet-option"
+                        style="--w1: #60a5fa; --w2: #1e40af; --wshadow: rgba(30, 64, 175, 0.4); --wshadow-h: rgba(30, 64, 175, 0.5);">
+                    🛡️ Trust Wallet
+                </button>
+
+                <button data-action="select-wallet" data-wallet="coinbase" class="wallet-option"
+                        style="--w1: #3b82f6; --w2: #1e3a8a; --wshadow: rgba(30, 58, 138, 0.4); --wshadow-h: rgba(30, 58, 138, 0.5);">
+                    🔵 Coinbase Wallet
+                </button>
+
+                <button data-action="select-wallet" data-wallet="exodus" class="wallet-option"
+                        style="--w1: #a78bfa; --w2: #5b21b6; --wshadow: rgba(91, 33, 182, 0.4); --wshadow-h: rgba(91, 33, 182, 0.5);">
+                    🦊 Exodus
+                </button>
+
+                <button data-action="select-wallet" data-wallet="ledger" class="wallet-option"
+                        style="--w1: #374151; --w2: #111827; --wshadow: rgba(17, 24, 39, 0.6); --wshadow-h: rgba(17, 24, 39, 0.7);">
+                    🔐 Ledger
+                </button>
+            </div>
+
+            <button id="close-wallet-modal" class="buy-button" style="background: #374151; margin-top: 15px; font-size: 13px;">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== FLOATING SCROLL TO TOP BUTTON ==================== -->
+    <button id="scroll-to-top-btn"
+            data-action="scrollToTop"
+            class="x250">
+        ↑
+    </button>
+
+    <!-- ==================== TOAST NOTIFICATION CONTAINER ==================== -->
+    <div id="toast-container" role="status" aria-live="polite" aria-atomic="false" 
+         class="x251">
+    </div>
+
+    <div class="x252">
+        ⚠️ <strong>This is not financial advice.</strong><br>
+        Ruggy is a meme and he doesn't exist in reality. Please do your own research.<br><br>
+        <span class="gray">Rewards are generated from trading volume and fees. When volume is low, payments may be small or may not distribute.</span>
+    </div>
+
+
+    <!-- ==================== 404 ERROR PAGE ==================== -->
+    <section id="error-404" class="section" style="min-height: 100vh; padding: 80px 20px; background: #0f172a;">
+        <div class="x253">
+            
+            <!-- Funny Ruggy 404 Image -->
+            <img src="https://i.ibb.co/Pv7VzDWW/IMG-4430.jpg" 
+                 alt="Ruggy looking confused at a 404 error on his computer" 
+                 style="width: 100%; max-width: 420px; border-radius: 16px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            
+            <h1 style="font-size: 42px; color: #ef4444; margin-bottom: 12px; font-family: 'Press Start 2P', system-ui;">404 - PAGE NOT FOUND</h1>
+            
+            <p style="font-size: 20px; color: #f1f5f9; margin-bottom: 10px;">
+                Ruggy tried his best…
+            </p>
+            
+            <p style="font-size: 17px; color: #cbd5e1; line-height: 1.6; margin-bottom: 30px;">
+                He’s an incredible anti-rug mascot…<br>
+                but frontend development? Not exactly his strongest suit.
+            </p>
+
+            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                <button data-action="navigate" data-page="home" 
+                        class="x254">
+                    🏠 Take Me Home
+                </button>
+            </div>
+            
+            <p style="margin-top: 30px; font-size: 13px; color: #64748b;">
+                (This page exists because Ruggy is still learning how to code)
+            </p>
+        </div>
+    </section>
+
+</body>
+</html>
