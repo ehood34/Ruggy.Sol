@@ -1,185 +1,168 @@
-/* Part of the Ruggy Rewards app. CHAIN CONNECTOR (read layer).
-   When enabled in the admin panel (⛓ Chain section), this connects the
-   site to the deployed devnet/mainnet program and replaces simulated
-   numbers with real chain state:
-     - distribution countdown <- Config.last_distribution + interval
-     - lottery jackpot display <- daily Lottery.pot
-     - Ruggy.Chain.* API: config(), lottery(kind), hall(), isBanned(),
-       checkEligibility(wallet) — used by pages and (next step) buttons.
-   Loads @solana/web3.js from CDN lazily, only when chain mode is on.
-   Account layouts mirror programs/ruggy/src/lib.rs — keep in sync. */
+// ============================================================================
+// 07-chain.js — LIVE on-chain reader for the Ruggy Rewards program (devnet)
+// ----------------------------------------------------------------------------
+// Dormant until enabled in Admin → ⛓ Chain. When enabled with a programId +
+// mint + rpc, it reads REAL on-chain state and exposes it to the rest of the
+// site through window.Ruggy.Chain. Read-only: no transactions are sent here.
+//
+// Offsets below mirror the structs in lib.rs exactly (8-byte Anchor
+// discriminator first). If you change the program's struct field order, update
+// these offsets to match.
+// ============================================================================
+(function () {
+  'use strict';
 
-const Chain = {
-    REFRESH_MS: 30_000,
+  const Chain = {
     _conn: null,
-    _timer: null,
     _pdas: null,
+    _ready: false,
 
     get settings() {
-        return (typeof CONFIG !== 'undefined' && CONFIG.chain) || {};
+      const c = (window.RUGGY_SETTINGS && window.RUGGY_SETTINGS.chain) ||
+                (window.CONFIG && window.CONFIG.chain) || {};
+      return {
+        enabled: !!c.enabled,
+        rpc: c.rpc || 'https://api.devnet.solana.com',
+        programId: c.programId || '',
+        mint: c.mint || '',
+      };
     },
 
-    get enabled() {
-        const s = this.settings;
-        return !!(s.enabled && s.programId && s.mint);
+    isConfigured() {
+      const s = this.settings;
+      return !!(s.enabled && s.programId && s.mint);
     },
 
-    async start() {
-        if (this._timer) { clearInterval(this._timer); this._timer = null; }
-        if (!this.enabled) return;
-        try {
-            await this._loadWeb3();
-            this._connect();
-            await this.refresh();
-            this._timer = setInterval(() => this.refresh().catch(() => {}), this.REFRESH_MS);
-            console.log('[Ruggy.Chain] live —', this.settings.rpc);
-        } catch (err) {
-            reportUIError(err, 'chain connector');
-        }
+    async _ensureWeb3() {
+      if (window.solanaWeb3) return;
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('web3.js failed to load'));
+        document.head.appendChild(s);
+      });
     },
 
-    _loadWeb3() {
-        if (window.solanaWeb3) return Promise.resolve();
-        return new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = 'https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js';
-            s.onload = resolve;
-            s.onerror = () => reject(new Error('web3.js CDN failed to load'));
-            document.head.appendChild(s);
-        });
-    },
-
-    _connect() {
+    async init() {
+      if (!this.isConfigured()) return false;
+      try {
+        await this._ensureWeb3();
         const W = window.solanaWeb3;
         const s = this.settings;
-        this._conn = new W.Connection(s.rpc || 'https://api.devnet.solana.com', 'confirmed');
+        this._conn = new W.Connection(s.rpc, 'confirmed');
         const programId = new W.PublicKey(s.programId);
-        const mint = new W.PublicKey(s.mint);
-        const find = (...seeds) => W.PublicKey.findProgramAddressSync(seeds, programId)[0];
-        const m = mint.toBuffer();
         const te = new TextEncoder();
+        const find = (...seeds) => W.PublicKey.findProgramAddressSync(seeds, programId)[0];
         this._pdas = {
-            mint,
-            programId,
-            config: find(te.encode('config'), m),
-            hall: find(te.encode('hall'), m),
-            lottery: (k) => find(te.encode('lottery'), m, new Uint8Array([k])),
-            receipt: (w) => find(te.encode('rewards'), m, w.toBuffer()),
+          programId,
+          config: find(te.encode('config')),
+          burnVault: find(te.encode('burn_vault')),
+          stakeOf: (ownerB58) => find(te.encode('stake'), new W.PublicKey(ownerB58).toBuffer()),
         };
+        this._ready = true;
+        console.log('[Ruggy.Chain] live on', s.rpc, '— program', s.programId.slice(0, 8) + '…');
+        return true;
+      } catch (e) {
+        console.warn('[Ruggy.Chain] init failed:', e.message);
+        return false;
+      }
     },
 
     async _account(pubkey) {
-        const info = await this._conn.getAccountInfo(pubkey);
-        if (!info) return null;
-        return new DataView(info.data.buffer, info.data.byteOffset, info.data.byteLength);
+      const info = await this._conn.getAccountInfo(pubkey);
+      if (!info || !info.data) return null;
+      return new DataView(info.data.buffer, info.data.byteOffset, info.data.byteLength);
     },
 
-    // ---- decoders (offsets mirror lib.rs; 8-byte anchor discriminator) ----
+    _pk(view, off) {
+      const W = window.solanaWeb3;
+      const bytes = new Uint8Array(view.buffer, view.byteOffset + off, 32);
+      return new W.PublicKey(bytes).toBase58();
+    },
+    _u64(view, off) {
+      const lo = view.getUint32(off, true);
+      const hi = view.getUint32(off + 4, true);
+      return hi * 4294967296 + lo;
+    },
+
+    // ---- Config (offsets after 8-byte discriminator) ----
     async config() {
-        const d = await this._account(this._pdas.config);
+      if (!this._ready) return null;
+      const d = await this._account(this._pdas.config);
+      if (!d) return null;
+      return {
+        authority:          this._pk(d, 8),
+        mint:               this._pk(d, 40),
+        mdrWallet:          this._pk(d, 72),
+        communityThreshold: this._u64(d, 104),
+        antirugThreshold:   this._u64(d, 112),
+        burnBps:            d.getUint16(120, true),
+        communityBps:       d.getUint16(122, true),
+        antirugBps:         d.getUint16(124, true),
+        mdrBps:             d.getUint16(126, true),
+        burnStakeThreshold: this._u64(d, 128),
+        totalDistributed:   this._u64(d, 136),
+        totalStaked:        this._u64(d, 144),
+        paused:             d.getUint8(152) === 1,
+      };
+    },
+
+    // ---- A wallet's stake position (or null if none) ----
+    async stakeOf(walletB58) {
+      if (!this._ready) return null;
+      try {
+        const d = await this._account(this._pdas.stakeOf(walletB58));
         if (!d) return null;
-        const bannedCount = d.getUint32(96, true);
-        const banned = [];
-        for (let i = 0; i < bannedCount; i++) {
-            const off = 100 + i * 32;
-            banned.push(new window.solanaWeb3.PublicKey(
-                new Uint8Array(d.buffer, d.byteOffset + off, 32)).toBase58());
-        }
         return {
-            distributionInterval: Number(d.getBigInt64(72, true)),
-            lastDistribution: Number(d.getBigInt64(80, true)),
-            airdropThreshold: d.getBigUint64(88, true),
-            banned,
+          owner:      this._pk(d, 8),
+          amount:     this._u64(d, 40),
+          lockDays:   d.getUint32(48, true),
+          lastUpdate: this._u64(d, 52),
         };
+      } catch (_) { return null; }
     },
 
-    async lottery(kind) {
-        const d = await this._account(this._pdas.lottery(kind));
-        if (!d) return null;
-        return {
-            kind,
-            ticketPrice: d.getBigUint64(73, true),
-            drawInterval: Number(d.getBigInt64(83, true)),
-            lastDraw: Number(d.getBigInt64(91, true)),
-            round: Number(d.getBigUint64(99, true)),
-            pot: d.getBigUint64(107, true),
-            entrants: d.getUint32(115, true),
-        };
+    // ---- Eligibility for a wallet, computed from live on-chain stake ----
+    async eligibility(walletB58) {
+      const cfg = await this.config();
+      const pos = await this.stakeOf(walletB58);
+      const staked = pos ? pos.amount : 0;
+      const communityReq = cfg ? cfg.communityThreshold : 0;
+      const antiRugReq = cfg ? cfg.antirugThreshold : 0;
+      const community = staked >= communityReq;
+      const antiRug = staked >= antiRugReq;
+      return {
+        source: 'chain',
+        connected: !!walletB58,
+        wallet: walletB58 || null,
+        staked, communityReq, antiRugReq, community, antiRug,
+        tier: antiRug ? 'antiRug' : community ? 'community' : 'none',
+        toCommunity: Math.max(0, communityReq - staked),
+        toAntiRug: Math.max(0, antiRugReq - staked),
+      };
     },
 
-    async hall() {
-        const d = await this._account(this._pdas.hall);
-        if (!d) return null;
-        const count = d.getUint8(48);
-        const entries = [];
-        for (let i = 0; i < count; i++) {
-            const off = 49 + i * 48;
-            entries.push({
-                wallet: new window.solanaWeb3.PublicKey(
-                    new Uint8Array(d.buffer, d.byteOffset + off, 32)).toBase58(),
-                amount: d.getBigUint64(off + 32, true),
-            });
-        }
-        return { updatedAt: Number(d.getBigInt64(40, true)), entries };
+    // ---- Pool-wide totals for the donut / stats (live) ----
+    async poolTotals() {
+      const cfg = await this.config();
+      if (!cfg) return null;
+      return {
+        totalStaked: cfg.totalStaked,
+        totalDistributed: cfg.totalDistributed,
+        burnStakeThreshold: cfg.burnStakeThreshold,
+      };
     },
+  };
 
-    async checkEligibility(walletBase58) {
-        const W = window.solanaWeb3;
-        const cfg = await this.config();
-        if (!cfg) return null;
-        const onWall = cfg.banned.includes(walletBase58);
-        let balance = 0n;
-        try {
-            const res = await this._conn.getParsedTokenAccountsByOwner(
-                new W.PublicKey(walletBase58), { mint: this._pdas.mint });
-            for (const a of res.value) {
-                balance += BigInt(a.account.data.parsed.info.tokenAmount.amount);
-            }
-        } catch (_) { /* none */ }
-        return {
-            balance,
-            threshold: cfg.airdropThreshold,
-            onWall,
-            eligible: balance >= cfg.airdropThreshold && !onWall,
-        };
-    },
+  window.RuggyChain = Chain;
+  if (window.Ruggy) {
+    try { Object.defineProperty(window.Ruggy, 'Chain', { value: Chain, configurable: true }); } catch (_) {}
+  }
 
-    // ---- push live values into the page ----
-    fmt(baseUnits, decimals = 9) {
-        return (Number(baseUnits) / 10 ** decimals).toLocaleString(undefined, { maximumFractionDigits: 0 });
-    },
-
-    async refresh() {
-        const cfg = await this.config();
-        if (cfg && cfg.lastDistribution > 0) {
-            const nextMs = (cfg.lastDistribution + cfg.distributionInterval) * 1000;
-            if (nextMs > Date.now() &&
-                CONFIG.nextDistributionTime !== new Date(nextMs).toISOString()) {
-                CONFIG.nextDistributionTime = new Date(nextMs).toISOString();
-                CONFIG.distributionIntervalMinutes = Math.round(cfg.distributionInterval / 60);
-                if (window.rewardTimerInterval) {
-                    clearInterval(window.rewardTimerInterval);
-                    window.rewardTimerInterval = null;
-                }
-                if (typeof startSimpleTimer === 'function') startSimpleTimer();
-            }
-        }
-        const daily = await this.lottery(0);
-        if (daily) {
-            const el = document.getElementById('lotto-jackpot-display');
-            if (el) el.textContent = this.fmt(daily.pot) + ' RUGGY';
-        }
-    },
-};
-
-function applyChainSettings() {
-    Chain.start();
-}
-window.RuggyChain = Chain;
-window.applyChainSettings = applyChainSettings;
-
-document.addEventListener('DOMContentLoaded', () => {
-    // CONFIG is loaded by 04-pages-admin's DOMContentLoaded (earlier file);
-    // small delay lets it land before we read chain settings.
-    setTimeout(() => Chain.start(), 800);
-});
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { if (Chain.isConfigured()) Chain.init(); });
+  } else {
+    if (Chain.isConfigured()) Chain.init();
+  }
+})();
