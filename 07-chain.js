@@ -18,8 +18,11 @@
     _ready: false,
 
     get settings() {
-      const c = (window.RUGGY_SETTINGS && window.RUGGY_SETTINGS.chain) ||
-                (window.CONFIG && window.CONFIG.chain) || {};
+      // Merge both possible config sources. CONFIG.chain is where the Admin
+      // panel SAVES values, so it wins; RUGGY_SETTINGS.chain is a fallback.
+      const a = (window.RUGGY_SETTINGS && window.RUGGY_SETTINGS.chain) || {};
+      const b = (window.CONFIG && window.CONFIG.chain) || {};
+      const c = Object.assign({}, a, b); // b (CONFIG.chain) overrides a
       return {
         enabled: !!c.enabled,
         rpc: c.rpc || 'https://api.devnet.solana.com',
@@ -159,6 +162,21 @@
   if (window.Ruggy) {
     try { Object.defineProperty(window.Ruggy, 'Chain', { value: Chain, configurable: true }); } catch (_) {}
   }
+
+  // Called by the Admin panel right after Save. Re-reads settings and either
+  // (re)connects to the chain or tears down if chain mode was switched off.
+  window.applyChainSettings = function applyChainSettings() {
+    Chain._ready = false;
+    Chain._conn = null;
+    Chain._pdas = null;
+    if (Chain.isConfigured()) {
+      Chain.init().then((ok) => {
+        if (ok && typeof showToast === 'function') {
+          showToast('Chain connected', 'success', 'Reading live on-chain data.');
+        }
+      });
+    }
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => { if (Chain.isConfigured()) Chain.init(); });
