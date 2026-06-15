@@ -325,6 +325,18 @@ function startLottoSolPriceUpdates() {
 const Lottery = {
     FREE_CLAIM_KEY: 'lastFreeLottoTicket',
 
+    // Returns the connected wallet's winning ticket for a draw type, or null.
+    // When the chain connector is live, RuggyChain populates winners into
+    // window.ruggyWinners = { daily:{ticketNumber,drawType}, weekly:{...} }.
+    // Until then this returns null (no winner shown).
+    winnerInfo(type) {
+        try {
+            const w = (window.ruggyWinners && window.ruggyWinners[type]) || null;
+            if (!w || w.ticketNumber == null) return null;
+            return { ticketNumber: w.ticketNumber, drawType: w.drawType || type };
+        } catch (_) { return null; }
+    },
+
     // Per-wallet ticket ledger lives under ruggyTickets:<wallet>, so changing
     // settings never wipes a holder's previously-earned tickets. A connected,
     // verified wallet keeps its daily + weekly + free balances permanently.
@@ -418,6 +430,54 @@ function renderTicketTables() {
         status.textContent = w
             ? ('Connected: ' + w.slice(0, 4) + '…' + w.slice(-4) + ' — tickets saved to this wallet')
             : 'Connect your wallet to save and verify your tickets';
+    }
+
+    // --- detailed ticket row tables (daily + weekly), with winner glow ---
+    renderTicketRows('daily', l.daily, w);
+    renderTicketRows('weekly', l.weekly, w);
+}
+
+// Build the rows for one draw type's ticket table. If a winning ticket for this
+// wallet exists (Lottery.winnerInfo), float it to the top and glow it by type:
+// weekly=gold, daily=green, consolation=blue. Also shows a withdraw prompt.
+function renderTicketRows(type, count, wallet) {
+    const tbody = document.getElementById(type + '-ticket-rows');
+    if (!tbody) return;
+    const shortW = wallet ? (wallet.slice(0, 4) + '…' + wallet.slice(-4)) : '—';
+
+    if (!count || count <= 0) {
+        tbody.innerHTML = '<tr><td colspan="2" style="padding:12px; text-align:center; color:#6b7280;">No ' + type + ' tickets yet</td></tr>';
+        return;
+    }
+
+    // winner info (if any) for THIS draw type: { ticketNumber, drawType }
+    const win = (typeof Lottery.winnerInfo === 'function') ? Lottery.winnerInfo(type) : null;
+    const glowClass = win
+        ? (win.drawType === 'weekly' ? 'winner-row-gold'
+           : win.drawType === 'daily' ? 'winner-row-green' : 'winner-row-blue')
+        : '';
+
+    let rows = '';
+    // winning row first (glowing) if present
+    if (win && win.ticketNumber != null) {
+        rows += `<tr class="${glowClass}"><td style="padding:8px;">#${win.ticketNumber} 🏆</td><td style="padding:8px;">${shortW}</td></tr>`;
+    }
+    // the rest of the wallet's tickets
+    for (let i = 1; i <= count; i++) {
+        if (win && win.ticketNumber === i) continue; // already shown at top
+        rows += `<tr><td style="padding:8px; color:#cbd5e1;">#${i}</td><td style="padding:8px; color:#94a3b8;">${shortW}</td></tr>`;
+    }
+    tbody.innerHTML = rows;
+
+    // winner banner + withdraw prompt
+    const banner = document.getElementById('ticket-winner-banner');
+    if (banner && win && win.ticketNumber != null) {
+        const colors = { weekly: ['#3a2e08', '#fde68a'], daily: ['#06301c', '#86efac'], consolation: ['#04293a', '#7dd3fc'] };
+        const c = colors[win.drawType] || colors.weekly;
+        banner.style.display = 'block';
+        banner.style.background = c[0];
+        banner.style.color = c[1];
+        banner.innerHTML = `🏆 Ticket #${win.ticketNumber} won the ${win.drawType} draw! <span style="text-decoration:underline; cursor:pointer;" data-action="withdrawWinnings">Withdraw your winnings →</span>`;
     }
 }
 window.renderTicketTables = renderTicketTables;
@@ -533,6 +593,59 @@ async function stakeRuggy() {
     if (amountInput) amountInput.value = '';
     renderActiveStakes();
     showToast(`Staked ${amount.toLocaleString()} $RUGGY for ${label} (${multiplier}x)`, "success");
+}
+
+// Extend the lock on the connected wallet's most recent stake to the lock period
+// currently selected above. On-chain this calls extend_stake; here it updates the
+// local stake record's lock (the frontend write-path is simulated for now).
+async function extendStake() {
+    if (!window.ruggyWallet || !window.ruggyWallet.connected) {
+        showToast("Connect your wallet first to extend a stake.", "error");
+        showWalletModal();
+        return;
+    }
+    const stakes = getStakes();
+    if (!stakes.length) {
+        showToast("You have no active stake to extend. Stake first.", "error");
+        return;
+    }
+    const newDays = parseInt(document.getElementById('stake-days')?.value) || 365;
+    const newMult = parseFloat(document.getElementById('stake-multiplier')?.value) || 3.0;
+    // extend the LAST (most recent) stake; must be a longer lock
+    const idx = stakes.length - 1;
+    const current = stakes[idx];
+    if (newDays <= (current.days || 0)) {
+        showToast("Pick a LONGER lock period above than your current lock.", "error",
+            `Current lock is ${current.days} days — choose something longer to extend.`);
+        return;
+    }
+    const label = newDays >= 9999 ? 'Permanent' : (newDays >= 365 ? '1 Year' : newDays + ' Days');
+    const confirmed = newDays >= 9999
+        ? await showConfirm("Extending to <strong>Permanent</strong> locks this stake <strong>forever</strong>. Continue?", { okText: 'Lock Forever', danger: true })
+        : await showConfirm(`Extend your lock from <strong>${current.days} days</strong> to <strong>${label}</strong> (${newMult}x)?`, { okText: 'Extend Lock' });
+    if (!confirmed) return;
+
+    stakes[idx].days = newDays;
+    stakes[idx].multiplier = newMult;
+    stakes[idx].label = label;
+    stakes[idx].extendedAt = new Date().toISOString();
+    saveStakes(stakes);
+    renderActiveStakes();
+    showToast(`Lock extended to ${label} (${newMult}x)`, "success",
+        "Longer locks earn a bigger share of rewards over time.");
+}
+
+// Prompt the winner to claim their prize on-chain (claim_prize). Until the
+// frontend write-path is wired, this guides them; with chain live it triggers
+// the claim transaction.
+async function withdrawWinnings() {
+    if (!window.ruggyWallet || !window.ruggyWallet.connected) {
+        showToast("Connect the winning wallet to withdraw.", "error");
+        showWalletModal();
+        return;
+    }
+    showToast("Withdraw winnings", "success",
+        "Your prize claim will be submitted on-chain. (Claim transaction wiring comes with the write-path step.)");
 }
 
 // Total $RUGGY currently staked by the connected wallet (sum of stake list).
@@ -1945,7 +2058,7 @@ document.addEventListener('keydown', function(e) {
 // delegated handler via data-action. The whitelist prevents data
 // attributes from invoking arbitrary global functions.
 const UI_ACTION_WHITELIST = new Set([
-    'stakeRuggy', 'buyLottoTickets', 'claimDailyFreeTicket', 'claimFromVault',
+    'stakeRuggy', 'extendStake', 'withdrawWinnings', 'buyLottoTickets', 'claimDailyFreeTicket', 'claimFromVault',
     'checkRewardsEligibility', 'checkLockedBanStatus', 'calculateAbsolutionStake',
     'submitAbsolutionStake', 'buyOnPumpFun', 'copyTokenCA', 'scrollToTop',
     'closeImageModal', 'closeDeveloperModal', 'closeWalletConnectBar',
