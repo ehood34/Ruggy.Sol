@@ -48,14 +48,22 @@
     },
 
     async init() {
-      if (!this.isConfigured()) return false;
+      if (!this.isConfigured()) { console.warn('[Ruggy.Chain] not configured (enable + programId + mint in Admin)'); return false; }
       try {
         await this._ensureWeb3();
         const W = window.solanaWeb3;
+        if (!W) throw new Error('web3.js global (window.solanaWeb3) missing after load');
         const s = this.settings;
+        console.log('[Ruggy.Chain] init step 1: settings', s);
+
         this._conn = new W.Connection(s.rpc, 'confirmed');
-        const programId = new W.PublicKey(s.programId);
-        // Seeds must be Buffer/Uint8Array; build them explicitly.
+        console.log('[Ruggy.Chain] init step 2: connection ok');
+
+        let programId;
+        try { programId = new W.PublicKey(s.programId); }
+        catch (e) { throw new Error('Bad Program ID "' + s.programId + '": ' + e.message); }
+        console.log('[Ruggy.Chain] init step 3: programId ok', programId.toBase58());
+
         const seed = (str) => (W.Buffer ? W.Buffer.from(str, 'utf8') : new TextEncoder().encode(str));
         const find = (...seeds) => W.PublicKey.findProgramAddressSync(seeds, programId)[0];
         this._pdas = {
@@ -65,11 +73,12 @@
           stakeOf: (ownerB58) => find(seed('stake'), new W.PublicKey(ownerB58).toBuffer()),
         };
         this._ready = true;
-        console.log('[Ruggy.Chain] live on', s.rpc, '— program', s.programId.slice(0, 8) + '…');
+        console.log('[Ruggy.Chain] init step 4: PDAs derived ✓');
         console.log('[Ruggy.Chain] config PDA:', this._pdas.config.toBase58());
+        console.log('[Ruggy.Chain] live on', s.rpc);
         return true;
       } catch (e) {
-        console.warn('[Ruggy.Chain] init failed:', e.message, e);
+        console.error('[Ruggy.Chain] init FAILED:', e.message, e);
         return false;
       }
     },
@@ -185,6 +194,88 @@
         }
       });
     }
+  };
+
+  // On-page connection tester. Saves the form, runs init with diagnostics, and
+  // writes a plain-English result into #chain-test-result. No console needed.
+  window.testChainConnection = async function testChainConnection() {
+    const box = document.getElementById('chain-test-result');
+    const show = (html, color) => {
+      if (!box) return;
+      box.style.display = 'block';
+      box.style.background = color === 'ok' ? '#052e1a' : color === 'warn' ? '#3f2d05' : '#3f0d0d';
+      box.style.border = '1px solid ' + (color === 'ok' ? '#22c55e' : color === 'warn' ? '#f59e0b' : '#ef4444');
+      box.style.color = color === 'ok' ? '#bbf7d0' : color === 'warn' ? '#fde68a' : '#fecaca';
+      box.textContent = html;
+    };
+
+    // 1) Save the form first so we test what's actually entered.
+    if (typeof saveDeveloperSettings === 'function') {
+      try { saveDeveloperSettings(); } catch (_) {}
+    }
+    show('Testing… reading the form, loading web3, deriving PDAs…', 'warn');
+
+    // 2) Read straight from the inputs (most reliable — bypasses any config merge).
+    const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+    const enabled = !!(document.getElementById('chain-enabled') && document.getElementById('chain-enabled').checked);
+    const programId = val('chain-program');
+    const mint = val('chain-mint');
+    const rpc = val('chain-rpc') || 'https://api.devnet.solana.com';
+
+    let lines = [];
+    lines.push('Enabled checkbox : ' + (enabled ? 'YES' : 'NO ❌ (check the box)'));
+    lines.push('Program ID       : ' + (programId ? programId : '❌ EMPTY'));
+    lines.push('Token Mint       : ' + (mint ? mint : '❌ EMPTY'));
+    lines.push('RPC              : ' + rpc);
+
+    if (!enabled || !programId || !mint) {
+      lines.push('\n⛔ Fill in all three fields and check the box, then test again.');
+      show(lines.join('\n'), 'err');
+      return;
+    }
+
+    // 3) Force settings into CONFIG.chain directly, then init.
+    try {
+      window.CONFIG = window.CONFIG || {};
+      CONFIG.chain = { enabled: true, rpc, programId, mint };
+    } catch (_) {}
+
+    // 4) Validate the Program ID is a real address before init.
+    try {
+      await Chain._ensureWeb3();
+      const W = window.solanaWeb3;
+      if (!W) { lines.push('\n❌ web3.js library did not load (network/CDN issue).'); show(lines.join('\n'),'err'); return; }
+      try { new W.PublicKey(programId); }
+      catch (e) { lines.push('\n❌ Program ID is not a valid Solana address. Check for extra spaces or missing characters.'); show(lines.join('\n'),'err'); return; }
+      try { new W.PublicKey(mint); }
+      catch (e) { lines.push('\n❌ Token Mint is not a valid Solana address.'); show(lines.join('\n'),'err'); return; }
+    } catch (e) {
+      lines.push('\n❌ Could not load web3: ' + e.message); show(lines.join('\n'),'err'); return;
+    }
+
+    // 5) Init + read config.
+    Chain._ready = false; Chain._pdas = null; Chain._conn = null;
+    const ok = await Chain.init();
+    if (!ok) { lines.push('\n❌ init() failed — see browser console for the red error.'); show(lines.join('\n'),'err'); return; }
+
+    lines.push('\nConfig PDA       : ' + Chain._pdas.config.toBase58());
+    const cfg = await Chain.config();
+    if (!cfg) {
+      lines.push('\n⚠️ Connected, but NO data at that Config PDA.');
+      lines.push('This almost always means the Program ID doesn\'t match your');
+      lines.push('deployed program. Compare the Config PDA above to the');
+      lines.push('CONFIG_PDA your 2-initialize.ts script printed in Playground.');
+      show(lines.join('\n'), 'warn');
+      return;
+    }
+
+    lines.push('\n✅ CONNECTED & READING LIVE DATA:');
+    lines.push('  authority   : ' + cfg.authority.slice(0, 12) + '…');
+    lines.push('  splits      : ' + cfg.burnBps + '/' + cfg.communityBps + '/' + cfg.antirugBps + '/' + cfg.mdrBps);
+    lines.push('  distributed : ' + (cfg.totalDistributed / 1e6).toLocaleString());
+    lines.push('  staked      : ' + (cfg.totalStaked / 1e6).toLocaleString());
+    show(lines.join('\n'), 'ok');
+    if (typeof showToast === 'function') showToast('Chain connected ✓', 'success', 'Live data is loading.');
   };
 
   if (document.readyState === 'loading') {
