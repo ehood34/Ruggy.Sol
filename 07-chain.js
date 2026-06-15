@@ -174,6 +174,33 @@
         burnStakeThreshold: cfg.burnStakeThreshold,
       };
     },
+
+    // ---- Push live chain data into the page's stat elements ----
+    async refreshUI() {
+      const cfg = await this.config();
+      if (!cfg) return false;
+      const fmt = (n) => Number(n / 1e6).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+
+      // Pool page stats (were "Loading...")
+      set('pool-burned', fmt(cfg.totalDistributed * cfg.burnBps / 10000) + ' 🔥');
+      set('pool-holders', fmt(cfg.totalStaked) + ' staked');
+      set('pool-volume', fmt(cfg.totalDistributed));
+      set('pool-liquidity', fmt(cfg.totalStaked));
+
+      // Distribution split percentages (fee breakdown) from live bps
+      set('fee-bd-liquidity', (cfg.burnBps / 100) + '%');
+      set('fee-bd-community', (cfg.communityBps / 100) + '%');
+      set('fee-bd-antirug', (cfg.antirugBps / 100) + '%');
+      set('fee-bd-creator', (cfg.mdrBps / 100) + '%');
+
+      // Re-render the pool donut with live totals if it's available
+      if (typeof window.renderStakeDonut === 'function') {
+        try { window.renderStakeDonut(); } catch (_) {}
+      }
+      console.log('[Ruggy.Chain] UI refreshed with live data');
+      return true;
+    },
   };
 
   window.RuggyChain = Chain;
@@ -274,13 +301,35 @@
     lines.push('  splits      : ' + cfg.burnBps + '/' + cfg.communityBps + '/' + cfg.antirugBps + '/' + cfg.mdrBps);
     lines.push('  distributed : ' + (cfg.totalDistributed / 1e6).toLocaleString());
     lines.push('  staked      : ' + (cfg.totalStaked / 1e6).toLocaleString());
+    lines.push('\nThe homepage stats + pool donut now show this live data.');
     show(lines.join('\n'), 'ok');
-    if (typeof showToast === 'function') showToast('Chain connected ✓', 'success', 'Live data is loading.');
+    // Push the data into the page immediately, and keep it fresh every 30s.
+    Chain.refreshUI();
+    Chain.startAutoRefresh();
+    if (typeof showToast === 'function') showToast('Chain connected ✓', 'success', 'Live data is now showing on the site.');
   };
 
+  // Refresh live data periodically while chain mode is on.
+  Chain.startAutoRefresh = function () {
+    if (Chain._refreshTimer) return;
+    Chain._refreshTimer = setInterval(() => {
+      if (Chain.isConfigured()) Chain.refreshUI();
+    }, 30000);
+  };
+
+  function autoStart() {
+    if (Chain.isConfigured()) {
+      Chain.init().then((ok) => {
+        if (ok) {
+          Chain.refreshUI();
+          Chain.startAutoRefresh();
+        }
+      });
+    }
+  }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { if (Chain.isConfigured()) Chain.init(); });
+    document.addEventListener('DOMContentLoaded', autoStart);
   } else {
-    if (Chain.isConfigured()) Chain.init();
+    autoStart();
   }
 })();
