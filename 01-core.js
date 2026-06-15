@@ -1949,7 +1949,7 @@ const UI_ACTION_WHITELIST = new Set([
     'checkRewardsEligibility', 'checkLockedBanStatus', 'calculateAbsolutionStake',
     'submitAbsolutionStake', 'buyOnPumpFun', 'copyTokenCA', 'scrollToTop',
     'closeImageModal', 'closeDeveloperModal', 'closeWalletConnectBar',
-    'adminLogout', 'saveDeveloperSettings', 'resetDistributionTimer',
+    'adminLogout', 'saveDeveloperSettings', 'testChainConnection', 'resetDistributionTimer',
     'triggerDistribution', 'toggleRewardsPause', 'connectDevWalletForHome',
     'startLiveTracking', 'scanWalletForWall', 'scanWalletForHall',
     'runAutomatedWallScan', 'runAutomatedHallScan', 'startMoneyRain',
