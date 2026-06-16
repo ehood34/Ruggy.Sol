@@ -271,7 +271,6 @@ function selectLockPeriod(element, days, multiplier) {
 
         let label = days === 9999 ? 'Permanent' : 
                     days === 1 ? '1 Day' : 
-                    days === 3 ? '3 Day' : 
                     days === 7 ? '1 Week' : 
                     days === 30 ? '1 Month' : 
                     days === 180 ? '6 Months' : '1 Year';
@@ -419,7 +418,35 @@ const Lottery = {
         }
     },
 
-    claimFreeTicket() {
+    async claimFreeTicket() {
+        // ON-CHAIN: a free ticket goes straight into the current DAILY round.
+        if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+            try {
+                const cfg = await RuggyChain.config();
+                if (!cfg || !cfg.currentRound) {
+                    showToast("No open daily round", "error", "There's no active daily round to enter right now.");
+                    return;
+                }
+                showToast("Confirm in your wallet…", "success", "Claiming your free daily ticket on-chain.");
+                const sig = await RuggyChain.tx.claimFreeTicket(cfg.currentRound);
+                showToast("🎁 Free Ticket Claimed on-chain!", "success", "Entered the Daily draw. Tx: " + String(sig).slice(0, 8) + "…");
+                try { await RuggyChain.refreshUI(); } catch (_) {}
+                renderTicketTables();
+                return;
+            } catch (e) {
+                const msg = (e && e.message) ? e.message : "Transaction rejected.";
+                // surface the program's specific reasons nicely
+                if (/cooldown/i.test(msg)) showToast("Free ticket on cooldown", "error", "You can claim one free ticket every 24 hours.");
+                else if (/daily/i.test(msg)) showToast("Daily round only", "error", "Free tickets only work in the daily draw.");
+                else if (/eligible|stake/i.test(msg)) showToast("Staking required", "error", "You must be staked to claim a free ticket.");
+                else showToast("Free ticket failed", "error", msg);
+                return;
+            }
+        }
+
+        // Fallback: localStorage. Claiming BANKS a free ticket (does NOT auto-enter
+        // the daily draw — that's what 'Enter free tickets' does). This avoids the
+        // old double-count where claim added to BOTH free and daily.
         const hours = (typeof CONFIG !== 'undefined' && CONFIG.metrics?.freeTicketCooldownHours) || 24;
         const last = parseInt(localStorage.getItem(this.FREE_CLAIM_KEY), 10) || 0;
         const remaining = last + hours * 3600 * 1000 - Date.now();
@@ -430,11 +457,10 @@ const Lottery = {
         }
         localStorage.setItem(this.FREE_CLAIM_KEY, String(Date.now()));
         const l = this.ledger();
-        l.free += 1;
-        l.daily += 1; // a free ticket enters the daily draw
+        l.free += 1; // bank it; entering the draw is a separate action
         this.saveLedger(l);
         renderTicketTables();
-        showToast("🎁 Free Ticket Claimed!", "success", "+1 Free ticket added (enters the Daily draw). Good luck!");
+        showToast("🎁 Free Ticket Claimed!", "success", "+1 Free ticket banked. Use \u201cEnter free tickets\u201d to put it in the Daily draw.");
     }
 };
 
@@ -531,6 +557,13 @@ async function enterFreeTickets() {
         if (typeof showWalletModal === 'function') showWalletModal();
         return;
     }
+    // ON-CHAIN: free tickets enter the daily round at claim time (one tx each),
+    // so there's no separate "enter" step. Each claim = one on-chain entry.
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        showToast("Already entered on-chain", "success",
+            "On-chain, each free ticket you claim goes straight into the Daily draw — no separate step needed.");
+        return;
+    }
     const input = document.getElementById('free-ticket-enter-amount');
     let n = parseInt(input?.value, 10) || 1;
     n = Math.max(1, Math.min(5, n)); // hard cap of 5
@@ -552,6 +585,133 @@ async function enterFreeTickets() {
     showToast(`Entered ${n} free ticket${n === 1 ? '' : 's'} into the Daily draw!`, "success", "Good luck!");
 }
 window.enterFreeTickets = enterFreeTickets;
+
+// ===================================================================
+// 5-NUMBER LOTTERY DRAW — spinner reveal + gold claim button
+// ===================================================================
+const LottoDraw = {
+    // animate the 5 reels, landing on `numbers` one at a time
+    async spin(numbers) {
+        const reels = Array.from(document.querySelectorAll('#lotto-spinner .lotto-reel'));
+        if (!reels.length) return;
+        const status = document.getElementById('lotto-draw-status');
+        if (status) status.textContent = 'Drawing…';
+        // start all spinning
+        reels.forEach(r => {
+            r.classList.remove('landed');
+            r.classList.add('spinning');
+            const sp = r.querySelector('span');
+            r.__iv = setInterval(() => { sp.textContent = (Math.floor(Math.random() * 35) + 1); }, 70);
+        });
+        // land each reel sequentially
+        for (let i = 0; i < reels.length; i++) {
+            await new Promise(res => setTimeout(res, 650));
+            const r = reels[i];
+            clearInterval(r.__iv);
+            r.classList.remove('spinning');
+            r.classList.add('landed');
+            r.querySelector('span').textContent = (numbers && numbers[i] != null) ? numbers[i] : '—';
+        }
+        if (status) status.textContent = 'Winning numbers drawn!';
+    },
+
+    // pull the current round's winning numbers (or simulate if not drawn yet)
+    async reveal() {
+        if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+            try {
+                const cfg = await RuggyChain.config();
+                if (cfg && cfg.currentRound) {
+                    const r = await RuggyChain.roundInfo(cfg.currentRound);
+                    if (r && r.drawn && r.winningNumbers.some(n => n > 0)) {
+                        await this.spin(r.winningNumbers);
+                        await this.checkWin(cfg.currentRound, r);
+                        return;
+                    }
+                    const status = document.getElementById('lotto-draw-status');
+                    if (status) status.textContent = 'This round hasn\u2019t been drawn yet — check back at draw time.';
+                    return;
+                }
+            } catch (e) { /* fall through to demo */ }
+        }
+        // demo spin (no chain / no round): random numbers
+        const demo = [];
+        while (demo.length < 5) { const n = Math.floor(Math.random() * 35) + 1; if (!demo.includes(n)) demo.push(n); }
+        await this.spin(demo);
+    },
+
+    // after a draw, check if the connected wallet holds a winning ticket and
+    // reveal the gold claim button if so.
+    async checkWin(roundId, roundInfo) {
+        const btn = document.getElementById('claim-lotto-btn');
+        const note = document.getElementById('claim-lotto-note');
+        if (!btn) return;
+        btn.style.display = 'none';
+        const wallet = (window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey)
+            ? window.ruggyWallet.publicKey.toString() : null;
+        if (!wallet) { if (note) note.textContent = 'Connect your wallet to check for winning tickets.'; return; }
+        try {
+            const entry = await RuggyChain.entryInfo(roundId, wallet);
+            if (!entry || !entry.tickets) { if (note) note.textContent = 'You have no tickets in this round.'; return; }
+            if (entry.claimed) { if (note) note.textContent = 'You already claimed for this round.'; return; }
+            const isWeekly = roundInfo.drawType === 2;
+            const jackpotPct = isWeekly ? '80%' : '50%';
+            // find the best matching ticket (free tickets can't win the jackpot)
+            let best = -1, bestTicket = -1;
+            entry.ticketsNums.forEach((nums, k) => {
+                let m = RuggyChain.countMatches(nums, roundInfo.winningNumbers);
+                const isFree = (entry.paidCount != null) && (k >= entry.paidCount);
+                if (isFree && m === 5) m = 4; // free 5/5 can only claim consolation
+                if (m > best) { best = m; bestTicket = k; }
+            });
+            if (best >= 3) {
+                const tier = best === 5 ? `JACKPOT (5/5 \u2022 ${jackpotPct} of main pool)`
+                    : best === 4 ? '20% Consolation (4/5)'
+                    : '10% Consolation (3/5)';
+                window.ruggyWinningTicket = { roundId, ticketIndex: bestTicket, matches: best };
+                btn.style.display = 'block';
+                if (note) note.textContent = `You have a winning ticket — ${tier}! Ticket #${bestTicket + 1} matched ${best}/5.`;
+            } else {
+                if (note) note.textContent = `Best match this round: ${best}/5. Need 3+ to win. Better luck next draw!`;
+            }
+        } catch (e) {
+            if (note) note.textContent = 'Could not check tickets: ' + (e.message || e);
+        }
+    },
+};
+window.LottoDraw = LottoDraw;
+
+async function spinLottoDraw() { return LottoDraw.reveal(); }
+window.spinLottoDraw = spinLottoDraw;
+
+// Gold claim button — claims the winning lottery ticket on-chain.
+async function claimLottoPrize() {
+    if (!window.ruggyWallet || !window.ruggyWallet.connected) {
+        showToast("Connect your wallet first", "error", "Connect the winning wallet to claim.");
+        if (typeof showWalletModal === 'function') showWalletModal();
+        return;
+    }
+    const win = window.ruggyWinningTicket;
+    if (!win) { showToast("No winning ticket", "error", "Reveal the draw first to check your tickets."); return; }
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        try {
+            const pools = window.ruggyLotteryPools || {};
+            if (!pools.prizeVaultAta) { showToast("Prize vault not loaded", "error", "Try again in a moment."); return; }
+            showToast("Confirm in your wallet…", "success", "Claiming your lottery prize on-chain.");
+            const sig = await RuggyChain.tx.claimPrize(win.roundId, win.ticketIndex, pools.prizeVaultAta);
+            showToast("🏆 Prize claimed on-chain!", "success", "Tx: " + String(sig).slice(0, 8) + "…");
+            const btn = document.getElementById('claim-lotto-btn');
+            if (btn) btn.style.display = 'none';
+            window.ruggyWinningTicket = null;
+            try { await RuggyChain.refreshUI(); } catch (_) {}
+            return;
+        } catch (e) {
+            showToast("Claim failed", "error", (e && e.message) ? e.message : "Transaction rejected.");
+            return;
+        }
+    }
+    showToast("Demo mode", "success", "Connect to the chain to claim a real prize.");
+}
+window.claimLottoPrize = claimLottoPrize;
 
 // Compatibility aliases (data-action whitelist + legacy call sites)
 async function buyLottoTickets() { return Lottery.buy('daily'); }
@@ -905,7 +1065,7 @@ function renderActiveStakes() {
         byBucket[d] = (byBucket[d] || 0) + (Number(s.amount) || 0);
     });
     const tierLabel = (d) => d >= 9999 ? 'Permanent' : d >= 365 ? '1 Year' : d >= 180 ? '6 Months'
-        : d >= 30 ? '1 Month' : d >= 7 ? '1 Week' : d >= 3 ? '3 Day' : d + ' Day';
+        : d >= 30 ? '1 Month' : d >= 7 ? '1 Week' : d >= 1 ? '1 Day' : d + ' Day';
 
     let header = `
         <div style="background:#04210f; border:1px solid #16a34a; border-radius:10px; padding:14px; margin-bottom:14px;">
@@ -957,7 +1117,6 @@ window.addEventListener('load', renderActiveStakes);
 // and 1 Year is green (glowing) per spec. Pure SVG — no chart library.
 const STAKE_DURATION_BUCKETS = [
     { key: 1,    label: '1 Day',     color: '#22d3ee', glow: false }, // cyan
-    { key: 3,    label: '3 Day',     color: '#38bdf8', glow: false }, // sky
     { key: 7,    label: '1 Week',    color: '#a855f7', glow: false }, // purple
     { key: 30,   label: '1 Month',   color: '#ec4899', glow: false }, // pink
     { key: 180,  label: '6 Months',  color: '#f97316', glow: false }, // orange
@@ -2178,7 +2337,7 @@ async function submitAbsolutionStake() {
     }
 
     const pct = (CONFIG.metrics && CONFIG.metrics.absolutionStakePct) || 20;
-    const days = (CONFIG.metrics && CONFIG.metrics.absolutionLockDays) || 3;
+    const days = (CONFIG.metrics && CONFIG.metrics.absolutionLockDays) || 1;
     const required = usdValue * (pct / 100);
     const stillOwed = Math.max(0, required - absolutionStakedAmount);
 
@@ -2265,7 +2424,8 @@ const UI_ACTION_WHITELIST = new Set([
     'startLiveTracking', 'scanWalletForWall', 'scanWalletForHall',
     'runAutomatedWallScan', 'runAutomatedHallScan', 'startMoneyRain',
     'exportSiteConfig', 'resetSiteData', 'toggleLpLockView',
-    'buyDailyTicket', 'buyWeeklyTicket', 'enterFreeTickets'
+    'buyDailyTicket', 'buyWeeklyTicket', 'enterFreeTickets',
+    'spinLottoDraw', 'claimLottoPrize'
 ]);
 
 // Delegated input events (admin split sliders)
