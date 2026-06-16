@@ -1022,7 +1022,13 @@ async function scanWalletForHall() {
         try {
             // ensure we have the latest stakers list
             let stakers = window.ruggyChainStakers;
-            if (!Array.isArray(stakers)) stakers = await RuggyChain.allStakers();
+            if (!Array.isArray(stakers)) {
+                if (typeof RuggyChain.allStakers === 'function') {
+                    stakers = await RuggyChain.allStakers();
+                } else {
+                    stakers = [];
+                }
+            }
 
             // this wallet's real staked total (base units -> tokens)
             const pos = await RuggyChain.stakeOf(wallet);
