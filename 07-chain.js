@@ -439,9 +439,17 @@
         set('home-token-name', (CONFIG && CONFIG.tokenName) ? CONFIG.tokenName : 'RUGGY');
       }
 
-      // Pool page stats — use the EXACT same source as the donut
-      // (getPoolStakeTotals returns WHOLE TOKENS per tier), so the top numbers
-      // can never diverge from the donut below.
+      // Pool page stats — use the EXACT same source as the donut.
+      // getPoolStakeTotals() returns WHOLE TOKENS already, so DO NOT use fmt()
+      // here (fmt divides by 1e6 — that double-divide was the bug). Use a plain
+      // thousands formatter instead.
+      // IMPORTANT: load the live buckets FIRST so the stats and donut both read
+      // fresh on-chain data (not a stale/empty cache).
+      try {
+        const freshBuckets = await this.poolBuckets();
+        if (freshBuckets) window.ruggyPoolBuckets = freshBuckets;
+      } catch (_) {}
+      const fmtWhole = (n) => Number(Math.round(n)).toLocaleString('en-US');
       let totalsTok = null;
       try { totalsTok = (typeof getPoolStakeTotals === 'function') ? getPoolStakeTotals() : null; } catch (_) {}
       if (totalsTok) {
@@ -457,15 +465,15 @@
           const bal = await this._conn.getTokenAccountBalance(bvAta);
           burnVaultTok = Number(bal?.value?.uiAmount || 0);
         } catch (_) {}
-        set('pool-liquidity', fmt(Math.round(totalStakedTok)));
-        set('pool-holders', fmt(Math.round(totalStakedTok)) + ' staked');
-        set('pool-burned', fmt(Math.round(permanentTok + burnVaultTok)) + ' 🔥');
-        set('pool-volume', fmt(Math.round(Number(cfg.totalDistributed) / 1e6)));
+        set('pool-liquidity', fmtWhole(totalStakedTok));
+        set('pool-holders', fmtWhole(totalStakedTok) + ' staked');
+        set('pool-burned', fmtWhole(permanentTok + burnVaultTok) + ' 🔥');
+        set('pool-volume', fmtWhole(Number(cfg.totalDistributed) / 1e6));
       } else {
-        set('pool-liquidity', fmt(Math.round(Number(cfg.totalStaked) / 1e6)));
-        set('pool-holders', fmt(Math.round(Number(cfg.totalStaked) / 1e6)) + ' staked');
+        set('pool-liquidity', fmtWhole(Number(cfg.totalStaked) / 1e6));
+        set('pool-holders', fmtWhole(Number(cfg.totalStaked) / 1e6) + ' staked');
         set('pool-burned', '0 🔥');
-        set('pool-volume', fmt(Math.round(Number(cfg.totalDistributed) / 1e6)));
+        set('pool-volume', fmtWhole(Number(cfg.totalDistributed) / 1e6));
       }
 
       // Distribution split percentages (fee breakdown) from live bps
@@ -502,15 +510,11 @@
         console.warn('[Ruggy.Chain] hall sync failed:', e.message);
       }
 
-      // ---- Pool buckets per lock tier (for the staking donut) ----
+      // ---- Re-render the staking donut from the buckets fetched above ----
       try {
-        const buckets = await this.poolBuckets();
-        if (buckets) {
-          window.ruggyPoolBuckets = buckets;
-          if (typeof renderStakeDonut === 'function') renderStakeDonut();
-        }
+        if (typeof renderStakeDonut === 'function') renderStakeDonut();
       } catch (e) {
-        console.warn('[Ruggy.Chain] pool buckets sync failed:', e.message);
+        console.warn('[Ruggy.Chain] donut render failed:', e.message);
       }
 
       // ---- Held free-ticket balance for the connected wallet ----
