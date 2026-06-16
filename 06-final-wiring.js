@@ -130,7 +130,7 @@ window.navigateTo = function(page) {
     const CRITICAL_FUNCTIONS = [
         // wallet
         'connectWallet', 'disconnectWallet', 'tryAutoReconnect',
-        'selectAndConnectWallet', 'connectSpecificWallet',
+        'selectAndConnectWallet', 'connectSpecificWallet', 'switchWallet',
         // navigation & layout
         'navigateTo', 'toggleMobileMenu', 'applySmartTextWrapping',
         // modals
