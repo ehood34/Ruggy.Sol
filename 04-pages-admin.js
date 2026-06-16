@@ -1614,6 +1614,78 @@ function getAdminInputNumber(id, defaultValue = 0) {
     return el ? (parseInt(el.value) || defaultValue) : defaultValue;
 }
 
+// Push EVERY on-chain-capable value from the MAIN config panel to the program,
+// in sequence. Lets you edit in one place (the normal config UI) and sync it all
+// live. Skips anything the program can't store (schedule, display rows, etc.).
+async function pushAllConfigToChain() {
+    if (!(window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured())) {
+        showToast("Enable Chain first", "error", "Turn on Chain in the ⛓ section, then connect your authority wallet.");
+        return;
+    }
+    if (!(window.ruggyWallet && window.ruggyWallet.connected)) {
+        showToast("Connect your wallet", "error", "Connect the program authority wallet to push config.");
+        if (typeof showWalletModal === 'function') showWalletModal();
+        return;
+    }
+    const numId = (id, d) => { const el = document.getElementById(id); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? d : v; };
+    const bps = (p) => Math.round(p * 100);
+
+    const ok = await showConfirm(
+        "This pushes your fee splits, thresholds, ticket params, absolution, and burn-stake threshold to the <strong>live on-chain program</strong>, one transaction each.<br><br>" +
+        "<span style='color:#9ca3af;font-size:13px;'>You'll confirm each in your wallet. Your wallet must be the program authority.</span>",
+        { okText: 'Push All to Chain' }
+    );
+    if (!ok) return;
+
+    const results = [];
+    const step = async (label, fn) => {
+        try { const sig = await fn(); results.push("✅ " + label + " (" + String(sig).slice(0, 8) + "…)"); }
+        catch (e) { results.push("❌ " + label + ": " + (e.message || e)); }
+    };
+
+    // 1) Fee splits — main panel uses liq(=burn)/antirug/community/creator(=mdr)
+    const burn = bps(numId('dev-liq-percent', 50));
+    const anti = bps(numId('dev-antirug-percent', 10));
+    const comm = bps(numId('dev-community-percent', 30));
+    const mdr  = bps(numId('dev-creator-percent', 10));
+    if (burn + comm + anti + mdr === 10000) {
+        await step("Fee splits", () => RuggyChain.tx.setSplits(burn, comm, anti, mdr));
+    } else {
+        results.push("⏭ Fee splits SKIPPED — must total 100% (got " + ((burn+comm+anti+mdr)/100) + "%).");
+    }
+
+    // 2) Thresholds
+    await step("Thresholds", () => RuggyChain.tx.setThresholds(
+        Math.round(numId('m-community-threshold', 500000) * 1e6),
+        Math.round(numId('m-antirug-threshold', 1000000) * 1e6)));
+
+    // 3) Ticket params (price + lottery mdr/burn)
+    const tMdr = bps(numId('m-lotto-mdr', 10)), tBurn = bps(numId('m-lotto-burn', 10));
+    if (tMdr + tBurn <= 10000) {
+        await step("Ticket params", () => RuggyChain.tx.setTicketParams(
+            Math.round(numId('m-daily-ticket-price', 3) * 1e6), tMdr, tBurn));
+    } else {
+        results.push("⏭ Ticket params SKIPPED — MDR%+Burn% over 100%.");
+    }
+
+    // 4) Absolution
+    await step("Absolution", () => RuggyChain.tx.setAbsolution(
+        bps(numId('m-abs-pct', 10)), Math.round(numId('m-abs-days', 1))));
+
+    // 5) Burn-stake threshold (reuse community threshold field if no dedicated one)
+    const bst = numId('chain-burn-stake-threshold', NaN);
+    if (!isNaN(bst)) {
+        await step("Burn-stake threshold", () => RuggyChain.tx.setBurnStakeThreshold(Math.round(bst * 1e6)));
+    }
+
+    try { await RuggyChain.refreshUI(); } catch (_) {}
+    showToast("Config pushed to chain", "success", results.join("  •  "));
+    // also drop the detail into the chain-admin result box if present
+    const box = document.getElementById('chain-admin-result');
+    if (box) { box.style.display = 'block'; box.style.background = '#052e1a'; box.style.border = '1px solid #22c55e'; box.style.color = '#bbf7d0'; box.textContent = results.join("\n"); }
+}
+window.pushAllConfigToChain = pushAllConfigToChain;
+
 function saveDeveloperSettings() {
     // Token & Timing
     CONFIG.tokenMint = getAdminInputValue('dev-ca');
