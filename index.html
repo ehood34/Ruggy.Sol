@@ -33,8 +33,8 @@
     <link rel="preconnect" href="https://i.ibb.co" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v49 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=49">
+    <!-- ASSET VERSION v51 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=51">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -42,13 +42,13 @@
          not on every page — see ensureChartJsLoaded() in 04-pages-admin.js. -->
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=49"></script>
-    <script defer src="02-banner-video.js?v=49"></script>
-    <script defer src="03-rewards-helpers.js?v=49"></script>
-    <script defer src="04-pages-admin.js?v=49"></script>
-    <script defer src="05-text-emoji.js?v=49"></script>
-    <script defer src="06-final-wiring.js?v=49"></script>
-    <script defer src="07-chain.js?v=49"></script>
+    <script defer src="01-core.js?v=51"></script>
+    <script defer src="02-banner-video.js?v=51"></script>
+    <script defer src="03-rewards-helpers.js?v=51"></script>
+    <script defer src="04-pages-admin.js?v=51"></script>
+    <script defer src="05-text-emoji.js?v=51"></script>
+    <script defer src="06-final-wiring.js?v=51"></script>
+    <script defer src="07-chain.js?v=51"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -1329,9 +1329,9 @@
                             <div class="bold">1 Day</div>
                             <div class="hint-green">1.0x</div>
                         </div>
-                        <div data-action="select-lock" class="lock-option x238" data-days="3" data-multiplier="1.1"
+                        <div data-action="select-lock" class="lock-option x238" data-days="1" data-multiplier="1.1"
                              >
-                            <div class="bold">3 Day</div>
+                            <div class="bold">1 Day</div>
                             <div style="font-size: 9px; color: #f59e0b;">(Absolution Forgiveness)</div>
                             <div class="hint-green">1.1x</div>
                         </div>
@@ -1414,7 +1414,7 @@
                     If you are on a <strong>Locked Ban</strong>, you have two paths to forgiveness:
                 </p>
                 <ul style="margin-top: 14px; margin-bottom: 16px; font-size: 15px; line-height: 1.75;">
-                    <li style="margin-bottom: 8px;"><strong>Path 1:</strong> Stake <strong><span data-m="absolutionStakePct" data-fmt="pct">20%</span> of the dollar value</strong> of the Ruggy you pulled, locked for <strong><span data-m="absolutionLockDays" data-fmt="raw">3</span> days</strong>.</li>
+                    <li style="margin-bottom: 8px;"><strong>Path 1:</strong> Stake <strong><span data-m="absolutionStakePct" data-fmt="pct">20%</span> of the dollar value</strong> of the Ruggy you pulled, locked for <strong><span data-m="absolutionLockDays" data-fmt="raw">1</span> day</strong>.</li>
                     <li><strong>Path 2:</strong> Submit a formal explanation to a moderator explaining your actions against Ruggy.</li>
                 </ul>
                 <p class="fs15">
@@ -1438,10 +1438,10 @@
             </div>
 
             <div class="u105">
-                <h4 style="color: #22c55e; margin-bottom: 12px;">🔒 Stake to Absolve (3 Days)</h4>
+                <h4 style="color: #22c55e; margin-bottom: 12px;">🔒 Stake to Absolve (1 Day)</h4>
                 <p style="font-size: 14px; margin-bottom: 12px;">
                     Enter the <strong>dollar value</strong> of Ruggy you originally pulled from the coin. 
-                    You must stake <strong><span data-m="absolutionStakePct" data-fmt="pct">20%</span></strong> of that value, locked for <strong><span data-m="absolutionLockDays" data-fmt="raw">3</span> days</strong>.
+                    You must stake <strong><span data-m="absolutionStakePct" data-fmt="pct">20%</span></strong> of that value, locked for <strong><span data-m="absolutionLockDays" data-fmt="raw">1</span> day</strong>.
                 </p>
                 
                 <div class="mb15">
@@ -1861,7 +1861,7 @@
                         <label class="label-sm">Absolution stake (% of pulled value)</label>
                         <input id="m-abs-pct" type="number" min="1" max="100" class="dev-input" placeholder="20">
                         <label class="label-sm">Absolution lock time (days)</label>
-                        <input id="m-abs-days" type="number" min="1" class="dev-input" placeholder="3">
+                        <input id="m-abs-days" type="number" min="1" class="dev-input" placeholder="1">
 
                         <h5 class="u3">Lottery Schedule</h5>
                         <label class="label-sm">Daily draw time</label>
