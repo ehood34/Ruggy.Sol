@@ -2338,7 +2338,14 @@ async function calculateAbsolutionStake() {
     const input = document.getElementById('rugged-amount');
     const breakdown = document.getElementById('absolution-stake-breakdown');
     const warning = document.getElementById('stake-warning');
-    const pct = (CONFIG.metrics && CONFIG.metrics.absolutionStakePct) || 20;
+    let pct = (CONFIG.metrics && CONFIG.metrics.absolutionStakePct) || 20;
+    // Prefer the LIVE on-chain absolution percentage when the chain is connected.
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        try {
+            const cfg = await RuggyChain.config();
+            if (cfg && cfg.absolutionStakeBps != null) pct = cfg.absolutionStakeBps / 100;
+        } catch (_) {}
+    }
 
     // Auto-calculate from the connected wallet's sells when possible
     const fromWallet = await getRuggedValueFromWallet();
@@ -2386,8 +2393,17 @@ async function submitAbsolutionStake() {
         return;
     }
 
-    const pct = (CONFIG.metrics && CONFIG.metrics.absolutionStakePct) || 20;
-    const days = (CONFIG.metrics && CONFIG.metrics.absolutionLockDays) || 1;
+    let pct = (CONFIG.metrics && CONFIG.metrics.absolutionStakePct) || 20;
+    let days = (CONFIG.metrics && CONFIG.metrics.absolutionLockDays) || 1;
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        try {
+            const cfg = await RuggyChain.config();
+            if (cfg) {
+                if (cfg.absolutionStakeBps != null) pct = cfg.absolutionStakeBps / 100;
+                if (cfg.absolutionLockDays != null) days = cfg.absolutionLockDays;
+            }
+        } catch (_) {}
+    }
     const required = usdValue * (pct / 100);
     const stillOwed = Math.max(0, required - absolutionStakedAmount);
 
@@ -2470,6 +2486,9 @@ const UI_ACTION_WHITELIST = new Set([
     'submitAbsolutionStake', 'buyOnPumpFun', 'copyTokenCA', 'scrollToTop',
     'closeImageModal', 'closeDeveloperModal', 'closeWalletConnectBar',
     'adminLogout', 'saveDeveloperSettings', 'testChainConnection', 'resetDistributionTimer',
+    'pushSplitsToChain', 'pushThresholdsToChain', 'pushTicketParamsToChain', 'pushAbsolutionToChain',
+    'pushBurnStakeThresholdToChain', 'pushPauseToChain', 'pushUnpauseToChain', 'loadChainConfigToPanel',
+    'pushAllConfigToChain',
     'triggerDistribution', 'toggleRewardsPause', 'connectDevWalletForHome',
     'startLiveTracking', 'scanWalletForWall', 'scanWalletForHall',
     'runAutomatedWallScan', 'runAutomatedHallScan', 'startMoneyRain',
