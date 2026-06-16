@@ -327,6 +327,35 @@
       }
     },
 
+    // ---- POOL-WIDE staked totals per lock tier (for the donut). Scans every
+    //      stake account and sums each of the 6 buckets. Returns
+    //      { 1:x, 7:x, 30:x, 180:x, 365:x, 9999:x } in base units. ----
+    async poolBuckets() {
+      if (!(await this._ensureReady())) return null;
+      try {
+        const accts = await this._conn.getProgramAccounts(this._pdas.programId, {
+          filters: [{ dataSize: 209 }],   // StakeAccount::LEN
+        });
+        const TIERS = [1, 7, 30, 180, 365, 9999];
+        const totals = { 1: 0, 7: 0, 30: 0, 180: 0, 365: 0, 9999: 0 };
+        for (const { account } of accts) {
+          try {
+            const data = account.data;
+            const d = new DataView(data.buffer, data.byteOffset, data.byteLength);
+            // buckets[u64;6] start at offset 48 (8 bytes each)
+            for (let i = 0; i < 6; i++) {
+              const v = this._u64(d, 48 + i * 8);
+              totals[TIERS[i]] += v;
+            }
+          } catch (_) { /* skip malformed */ }
+        }
+        return totals;
+      } catch (e) {
+        console.warn('[Ruggy.Chain] poolBuckets scan failed:', e.message);
+        return null;
+      }
+    },
+
     // ---- Pool-wide totals for the donut / stats (live) ----
     async poolTotals() {
       const cfg = await this.config();
@@ -400,6 +429,17 @@
         }
       } catch (e) {
         console.warn('[Ruggy.Chain] hall sync failed:', e.message);
+      }
+
+      // ---- Pool buckets per lock tier (for the staking donut) ----
+      try {
+        const buckets = await this.poolBuckets();
+        if (buckets) {
+          window.ruggyPoolBuckets = buckets;
+          if (typeof renderStakeDonut === 'function') renderStakeDonut();
+        }
+      } catch (e) {
+        console.warn('[Ruggy.Chain] pool buckets sync failed:', e.message);
       }
 
       // ---- Expose pool ATAs the write-path needs (same accounts the test
