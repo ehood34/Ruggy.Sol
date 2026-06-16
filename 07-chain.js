@@ -452,6 +452,38 @@
       const fmtWhole = (n) => Number(Math.round(n)).toLocaleString('en-US');
       // We have live chain data now — drop any "Demo Mode" badge.
       try { const b = document.getElementById('demo-mode-badge'); if (b) b.remove(); } catch (_) {}
+
+      // ---- Sync the page's text bindings (data-m spans) to LIVE chain values.
+      // metricsView() reads CONFIG.metrics/splits, so we overwrite the on-chain
+      // ones here, then call applyMetrics() to repaint every bound span. This is
+      // what makes the visible text (splits, thresholds, ticket price, absolution,
+      // cadence) match the actual program state instead of stale local config. ----
+      try {
+        if (typeof CONFIG !== 'undefined') {
+          CONFIG.metrics = CONFIG.metrics || {};
+          CONFIG.distributionSplits = CONFIG.distributionSplits || {};
+          // fee splits (bps -> %)
+          CONFIG.distributionSplits.liquidity = cfg.burnBps / 100;
+          CONFIG.distributionSplits.community = cfg.communityBps / 100;
+          CONFIG.distributionSplits.antiRug   = cfg.antirugBps / 100;
+          CONFIG.distributionSplits.creator   = cfg.mdrBps / 100;
+          // thresholds (base units -> whole tokens)
+          CONFIG.airdropThreshold  = Math.round(Number(cfg.communityThreshold) / 1e6);
+          CONFIG.antiRugThreshold  = Math.round(Number(cfg.antirugThreshold) / 1e6);
+          // absolution
+          CONFIG.metrics.absolutionStakePct = cfg.absolutionStakeBps / 100;
+          CONFIG.metrics.absolutionLockDays = cfg.absolutionLockDays;
+          // lottery ticket economics
+          CONFIG.metrics.dailyTicketPrice = Math.round(Number(cfg.ticketPrice) / 1e6);
+          CONFIG.metrics.lottoMdrPct  = cfg.lotteryMarketingBps / 100;
+          CONFIG.metrics.lottoBurnPct = cfg.lotteryBurnBps / 100;
+          // paused state
+          CONFIG.metrics.distributionEnabled = !cfg.paused;
+          if (typeof applyMetrics === 'function') applyMetrics();
+        }
+      } catch (e) {
+        console.warn('[Ruggy.Chain] metric text sync failed:', e.message);
+      }
       let totalsTok = null;
       try { totalsTok = (typeof getPoolStakeTotals === 'function') ? getPoolStakeTotals() : null; } catch (_) {}
       if (totalsTok) {
