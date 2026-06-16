@@ -1009,6 +1009,11 @@ function renderBagworkers() {
 let bannedWallets = [];
 
 function loadBannedWall() {
+    // If the chain connector already fetched live bans, use those.
+    if (Array.isArray(window.ruggyChainBans)) {
+        setBannedWallFromChain(window.ruggyChainBans);
+        return;
+    }
     try {
         const saved = safeStorage.getItem('ruggyBannedWall');
         if (saved) bannedWallets = JSON.parse(saved);
@@ -1043,6 +1048,29 @@ function saveBannedWall() {
         safeStorage.setItem('ruggyBannedWall', JSON.stringify(bannedWallets));
     } catch (e) {}
 }
+
+// Replace the Wall's list with LIVE on-chain bans (from RuggyChain.allBans()).
+// Called by the chain connector on every refresh. When the chain is the source,
+// absolved wallets (ban account closed) naturally disappear from this list.
+function setBannedWallFromChain(chainBans) {
+    if (!Array.isArray(chainBans)) return;
+    bannedWallets = chainBans.map(b => {
+        const usd = Number(b.ruggedUsd) || 0;
+        // permanent ("Locked") vs temporary is a display heuristic; the chain
+        // only stores the ban itself. Treat any ban with a rugged-$ amount as
+        // a hard ban; others as temporary (under-staked).
+        return {
+            wallet: b.wallet,
+            reason: b.reason || 'On the Wall',
+            type: usd > 0 ? 'Locked' : 'Temporary',
+            ruggedUsd: usd,
+            date: b.bannedAt ? new Date(Number(b.bannedAt) * 1000).toISOString() : new Date().toISOString(),
+            onChain: true,
+        };
+    });
+    if (typeof renderBannedTable === 'function') renderBannedTable();
+}
+window.setBannedWallFromChain = setBannedWallFromChain;
 
 // Escape user-controlled strings before HTML interpolation (the Wall
 // table previously injected wallet/reason text into innerHTML raw —
