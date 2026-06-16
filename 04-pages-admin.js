@@ -1015,28 +1015,61 @@ async function scanWalletForHall() {
         return;
     }
 
-    // Deterministic per-wallet figures so a wallet always sees the same result
-    let h = 0; for (let i = 0; i < wallet.length; i++) h = (h * 31 + wallet.charCodeAt(i)) >>> 0;
-    const balance = 150000 + (h % 1500000);
-    const days = 10 + (h % 300);
+    // ---- LIVE: pull real on-chain stake + the live stakers list (the Hall) ----
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        resultDiv.innerHTML = '<p style="color:#9ca3af;">Checking the chain…</p>';
+        resultDiv.style.display = 'block';
+        try {
+            // ensure we have the latest stakers list
+            let stakers = window.ruggyChainStakers;
+            if (!Array.isArray(stakers)) stakers = await RuggyChain.allStakers();
 
-    // Membership thresholds (top-holder = top 1% balance proxy; longest = 90+ days)
-    const isTopHolder = balance >= 1000000;
-    const stakedEst = (typeof getStakedTotal === 'function' && connected) ? getStakedTotal() : (h % 900000);
-    const isTopStaker = stakedEst >= ((CONFIG.airdropThreshold) || 500000);
-    let verdict, color;
-    if (isTopHolder && isTopStaker) { verdict = "🏆 BOTH — Top Holder AND a 🔒 Top Staker of the Hall!"; color = "#fbbf24"; }
-    else if (isTopHolder) { verdict = "💎 TOP HOLDER — you're in the Hall's top holders."; color = "#22c55e"; }
-    else if (isTopStaker) { verdict = "🔒 TOP STAKER — you're staking enough for the Hall."; color = "#60a5fa"; }
-    else { verdict = "Not in the Hall yet — hold and stake more to climb the ranks."; color = "#9ca3af"; }
+            // this wallet's real staked total (base units -> tokens)
+            const pos = await RuggyChain.stakeOf(wallet);
+            const stakedTokens = pos ? Number(pos.amount) / 1e6 : 0;
 
+            // rank within the live stakers list
+            const idx = stakers.findIndex(s => s.wallet === wallet);
+            const rank = idx >= 0 ? idx + 1 : null;
+            const topN = (CONFIG.metrics?.hallTopShown) || 12;
+            const inHall = rank !== null && rank <= topN;
+
+            // thresholds from live config (anti-rug = top staker tier)
+            let antirugReq = 1000000, communityReq = 500000;
+            try {
+                const cfg = await RuggyChain.config();
+                if (cfg) { antirugReq = Number(cfg.antirugThreshold) / 1e6; communityReq = Number(cfg.communityThreshold) / 1e6; }
+            } catch (_) {}
+
+            let verdict, color;
+            if (inHall && stakedTokens >= antirugReq) { verdict = `🏆 IN THE HALL — rank #${rank} staker, Anti-Rug tier!`; color = "#fbbf24"; }
+            else if (inHall) { verdict = `🔒 IN THE HALL — you're rank #${rank} on the stakers board.`; color = "#60a5fa"; }
+            else if (stakedTokens >= antirugReq) { verdict = "🔒 Anti-Rug tier staker — not in the top board yet, but climbing."; color = "#22c55e"; }
+            else if (stakedTokens >= communityReq) { verdict = "✅ Community tier staker — stake more to reach the Hall board."; color = "#22c55e"; }
+            else if (stakedTokens > 0) { verdict = "Staking, but below the Hall thresholds — keep stacking."; color = "#9ca3af"; }
+            else { verdict = "Not staking yet — stake $RUGGY to enter the Hall."; color = "#9ca3af"; }
+
+            resultDiv.innerHTML = `
+                <h4 style="color: #f59e0b; margin-bottom: 12px;">${connected ? 'Your Hall Standing' : 'Wallet Check Result'}</h4>
+                <p><strong>Wallet:</strong> ${escapeHTML(wallet.slice(0, 6) + '…' + wallet.slice(-6))}</p>
+                <p><strong>Staked (on-chain):</strong> 🔒 ${stakedTokens.toLocaleString(undefined, {maximumFractionDigits: 0})} $RUGGY</p>
+                <p><strong>Stakers-board rank:</strong> ${rank !== null ? '#' + rank + ' of ' + stakers.length : 'not ranked'}</p>
+                <p style="margin-top: 10px; font-weight:bold; color: ${color};">${verdict}</p>
+            `;
+            resultDiv.style.display = 'block';
+            return;
+        } catch (e) {
+            resultDiv.innerHTML = '<p style="color:#ef4444;">Could not read chain: ' + escapeHTML(e.message || String(e)) + '</p>';
+            resultDiv.style.display = 'block';
+            return;
+        }
+    }
+
+    // Fallback (chain not configured): show a clear "connect to chain" message
     resultDiv.innerHTML = `
-        <h4 style="color: #f59e0b; margin-bottom: 12px;">${connected ? 'Your Hall Standing' : 'Wallet Check Result'}</h4>
+        <h4 style="color: #f59e0b; margin-bottom: 12px;">Hall Standing</h4>
         <p><strong>Wallet:</strong> ${escapeHTML(wallet.slice(0, 6) + '…' + wallet.slice(-6))}</p>
-        <p><strong>Token Amount:</strong> ${balance.toLocaleString()} $RUGGY</p>
-        <p><strong>Staked:</strong> 🔒 ${stakedEst.toLocaleString()} $RUGGY</p>
-        <p><strong>Days Held:</strong> ${days} days</p>
-        <p style="margin-top: 10px; font-weight:bold; color: ${color};">${verdict}</p>
+        <p style="margin-top:10px; color:#9ca3af;">Connect to the chain (Admin → ⛓ Chain) to see real Hall standing.</p>
     `;
     resultDiv.style.display = 'block';
 }
