@@ -601,7 +601,7 @@ const LottoDraw = {
             r.classList.remove('landed');
             r.classList.add('spinning');
             const sp = r.querySelector('span');
-            r.__iv = setInterval(() => { sp.textContent = (Math.floor(Math.random() * 35) + 1); }, 70);
+            r.__iv = setInterval(() => { sp.textContent = (Math.floor(Math.random() * 15) + 1); }, 70);
         });
         // land each reel sequentially
         for (let i = 0; i < reels.length; i++) {
@@ -635,7 +635,7 @@ const LottoDraw = {
         }
         // demo spin (no chain / no round): random numbers
         const demo = [];
-        while (demo.length < 5) { const n = Math.floor(Math.random() * 35) + 1; if (!demo.includes(n)) demo.push(n); }
+        while (demo.length < 5) { const n = Math.floor(Math.random() * 15) + 1; if (!demo.includes(n)) demo.push(n); }
         await this.spin(demo);
     },
 
@@ -682,6 +682,31 @@ window.LottoDraw = LottoDraw;
 
 async function spinLottoDraw() { return LottoDraw.reveal(); }
 window.spinLottoDraw = spinLottoDraw;
+
+// Check the connected wallet's tickets against the current round's draw, and
+// reveal the gold claim button if they hold a winner (independent of spinning).
+async function checkMyTickets() {
+    const note = document.getElementById('claim-lotto-note');
+    if (!window.RuggyChain || !RuggyChain.isConfigured || !RuggyChain.isConfigured()) {
+        if (note) note.textContent = 'Connect to the chain to check tickets.';
+        return;
+    }
+    if (!window.ruggyWallet || !window.ruggyWallet.connected) {
+        showToast("Connect your wallet first", "error", "Connect to check your tickets.");
+        if (typeof showWalletModal === 'function') showWalletModal();
+        return;
+    }
+    try {
+        const cfg = await RuggyChain.config();
+        if (!cfg || !cfg.currentRound) { if (note) note.textContent = 'No active round.'; return; }
+        const r = await RuggyChain.roundInfo(cfg.currentRound);
+        if (!r || !r.drawn) { if (note) note.textContent = 'This round hasn\u2019t been drawn yet.'; return; }
+        await LottoDraw.checkWin(cfg.currentRound, r);
+    } catch (e) {
+        if (note) note.textContent = 'Check failed: ' + (e.message || e);
+    }
+}
+window.checkMyTickets = checkMyTickets;
 
 // Gold claim button — claims the winning lottery ticket on-chain.
 async function claimLottoPrize() {
@@ -1039,7 +1064,7 @@ function renderStakeNotice() {
 }
 window.renderStakeNotice = renderStakeNotice;
 
-function renderActiveStakes() {
+async function renderActiveStakes() {
     const box = DOM.get('active-stakes');
     renderStakeNotice();
     if (typeof renderStakeDonut === 'function') renderStakeDonut();
@@ -1051,7 +1076,32 @@ function renderActiveStakes() {
         return;
     }
 
-    const stakes = getStakes();
+    // Prefer LIVE on-chain stake buckets when the chain is configured, so the
+    // table reflects real state (e.g. right after an on-chain unstake).
+    let stakes;
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()
+        && window.ruggyWallet.publicKey) {
+        try {
+            const pos = await RuggyChain.stakeOf(window.ruggyWallet.publicKey.toString());
+            if (pos && pos.buckets) {
+                stakes = pos.buckets
+                    .filter(b => Number(b.amount) > 0)
+                    .map(b => {
+                        const days = b.lockDays;
+                        const mult = days >= 9999 ? 3.5 : days >= 365 ? 3.0 : days >= 180 ? 2.2
+                            : days >= 30 ? 1.6 : days >= 7 ? 1.25 : 1.1;
+                        const label = days >= 9999 ? 'Permanent' : days >= 365 ? '1 Year' : days >= 180 ? '6 Months'
+                            : days >= 30 ? '1 Month' : days >= 7 ? '1 Week' : '1 Day';
+                        return { amount: Number(b.amount) / 1e6, days, multiplier: mult, label };
+                    });
+            } else {
+                stakes = [];
+            }
+        } catch (_) { stakes = getStakes(); }
+    } else {
+        stakes = getStakes();
+    }
+
     if (!stakes.length) {
         box.innerHTML = '<span style="color:#6b7280;">No active stakes yet.</span>';
         return;
@@ -2425,7 +2475,7 @@ const UI_ACTION_WHITELIST = new Set([
     'runAutomatedWallScan', 'runAutomatedHallScan', 'startMoneyRain',
     'exportSiteConfig', 'resetSiteData', 'toggleLpLockView',
     'buyDailyTicket', 'buyWeeklyTicket', 'enterFreeTickets',
-    'spinLottoDraw', 'claimLottoPrize'
+    'spinLottoDraw', 'claimLottoPrize', 'checkMyTickets'
 ]);
 
 // Delegated input events (admin split sliders)
