@@ -323,9 +323,9 @@
           antirugAta: antirugAta ? antirugAta.toBase58() : null,
         };
         // lottery pools
-        const [burnVaultPda] = W.PublicKey.findProgramAddressSync([W.Buffer.from('burn_vault')], this._pdas.programId);
-        const [prizeVaultPda] = W.PublicKey.findProgramAddressSync([W.Buffer.from('prize_vault')], this._pdas.programId);
-        const [mdrPda] = W.PublicKey.findProgramAddressSync([W.Buffer.from('mdr_pool')], this._pdas.programId);
+        const [burnVaultPda] = W.PublicKey.findProgramAddressSync([this._seed('burn_vault')], this._pdas.programId);
+        const [prizeVaultPda] = W.PublicKey.findProgramAddressSync([this._seed('prize_vault')], this._pdas.programId);
+        const [mdrPda] = W.PublicKey.findProgramAddressSync([this._seed('mdr_pool')], this._pdas.programId);
         const burnVaultAta = await this._ata(burnVaultPda);
         const prizeVaultAta = await this._ata(prizeVaultPda);
         const mdrAta = await this._ata(mdrPda);
@@ -376,6 +376,13 @@
       arrays.forEach(a => { out.set(a, off); off += a.length; });
       return out;
     },
+    // Buffer-free seed bytes for PDA derivation (some web3.js IIFE builds don't
+    // expose Buffer). findProgramAddressSync accepts Uint8Array seeds fine.
+    _seed(str) {
+      const W = window.solanaWeb3;
+      if (W && W.Buffer && W.Buffer.from) return W.Buffer.from(str, 'utf8');
+      return new TextEncoder().encode(str);
+    },
 
     // ---- the connected wallet (provider + pubkey) ----
     _wallet() {
@@ -403,7 +410,7 @@
       return new W.TransactionInstruction({
         programId: this._pdas.programId,
         keys,
-        data: W.Buffer ? W.Buffer.from(data) : data,
+        data: (W.Buffer && W.Buffer.from) ? W.Buffer.from(data) : data,
       });
     },
 
@@ -463,7 +470,7 @@
         const ixList = [];
         const stakePda = await C._ensureStakeAccount(owner, ixList);
         const banPda = W.PublicKey.findProgramAddressSync(
-          [W.Buffer.from('ban'), owner.toBuffer()], C._pdas.programId)[0];
+          [C._seed('ban'), owner.toBuffer()], C._pdas.programId)[0];
         const stakerAta = await C._ata(owner);
         const stakeVault = await C._ata(C._pdas.config); // config-owned vault
         ixList.push(C._ix(C._DISC.stake, C._concat([amount, lock]), [
@@ -499,9 +506,11 @@
         const TOK = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
         const stakePda = C._pdas.stakeOf(owner.toBase58());
         const banPda = W.PublicKey.findProgramAddressSync(
-          [W.Buffer.from('ban'), owner.toBuffer()], C._pdas.programId)[0];
+          [C._seed('ban'), owner.toBuffer()], C._pdas.programId)[0];
         const stakerAta = await C._ata(owner);
         const stakeVault = await C._ata(C._pdas.config);
+        const [burnVaultPda] = W.PublicKey.findProgramAddressSync([C._seed('burn_vault')], C._pdas.programId);
+        const burnVaultAta = await C._ata(burnVaultPda);
         const data = C._concat([C._encU64(Math.round(amountTokens * 1e6)), C._encU32(lockDays)]);
         return C._send([C._ix(C._DISC.unstake, data, [
           { pubkey: C._pdas.config, isSigner: false, isWritable: true },
@@ -509,6 +518,7 @@
           { pubkey: stakePda, isSigner: false, isWritable: true },
           { pubkey: stakerAta, isSigner: false, isWritable: true },
           { pubkey: stakeVault, isSigner: false, isWritable: true },
+          { pubkey: burnVaultAta, isSigner: false, isWritable: true },
           { pubkey: owner, isSigner: true, isWritable: true },
           { pubkey: TOK, isSigner: false, isWritable: false },
         ])]);
@@ -522,7 +532,7 @@
         const TOK = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
         const stakePda = C._pdas.stakeOf(owner.toBase58());
         const banPda = W.PublicKey.findProgramAddressSync(
-          [W.Buffer.from('ban'), owner.toBuffer()], C._pdas.programId)[0];
+          [C._seed('ban'), owner.toBuffer()], C._pdas.programId)[0];
         const claimantAta = await C._ata(owner);
         const community = new W.PublicKey(communityPoolAta);
         const antirug = new W.PublicKey(antirugPoolAta);
@@ -545,11 +555,11 @@
         const buyer = wal.pubkey;
         const TOK = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
         const roundPda = W.PublicKey.findProgramAddressSync(
-          [W.Buffer.from('round'), C._encU64(roundId)], C._pdas.programId)[0];
+          [C._seed('round'), C._encU64(roundId)], C._pdas.programId)[0];
         const entryPda = W.PublicKey.findProgramAddressSync(
-          [W.Buffer.from('entry'), roundPda.toBuffer(), buyer.toBuffer()], C._pdas.programId)[0];
+          [C._seed('entry'), roundPda.toBuffer(), buyer.toBuffer()], C._pdas.programId)[0];
         const banPda = W.PublicKey.findProgramAddressSync(
-          [W.Buffer.from('ban'), buyer.toBuffer()], C._pdas.programId)[0];
+          [C._seed('ban'), buyer.toBuffer()], C._pdas.programId)[0];
         const buyerAta = await C._ata(buyer);
         return C._send([C._ix(C._DISC.buy_tickets, C._encU32(count), [
           { pubkey: C._pdas.config, isSigner: false, isWritable: false },
@@ -573,11 +583,11 @@
         const claimant = wal.pubkey;
         const TOK = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
         const roundPda = W.PublicKey.findProgramAddressSync(
-          [W.Buffer.from('round'), C._encU64(roundId)], C._pdas.programId)[0];
+          [C._seed('round'), C._encU64(roundId)], C._pdas.programId)[0];
         const entryPda = W.PublicKey.findProgramAddressSync(
-          [W.Buffer.from('entry'), roundPda.toBuffer(), claimant.toBuffer()], C._pdas.programId)[0];
+          [C._seed('entry'), roundPda.toBuffer(), claimant.toBuffer()], C._pdas.programId)[0];
         const [prizeVaultPda] = W.PublicKey.findProgramAddressSync(
-          [W.Buffer.from('prize_vault')], C._pdas.programId);
+          [C._seed('prize_vault')], C._pdas.programId);
         const claimantAta = await C._ata(claimant);
         return C._send([C._ix(C._DISC.claim_prize, C._encU64(entryStartIndex), [
           { pubkey: C._pdas.config, isSigner: false, isWritable: false },
