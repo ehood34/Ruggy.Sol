@@ -728,12 +728,18 @@ async function checkRewardsEligibility() {
     const walletInfo = document.getElementById('wallet-info');
     const eligibilityMsg = document.getElementById('eligibility-message');
 
-    if (!CONFIG.tokenMint) {
-        showToast("Please set the Token CA in the Developer panel first.", "error");
+    // Resolve the mint: dev panel setting, else the live chain mint.
+    let mint = CONFIG.tokenMint;
+    if (!mint && window.RuggyChain && RuggyChain.settings && RuggyChain.settings.mint) {
+        mint = RuggyChain.settings.mint;
+        CONFIG.tokenMint = mint;
+    }
+    if (!mint) {
+        showToast("Token CA not configured", "error", "Set it in the Developer panel or enable Chain.");
         return;
     }
 
-    if (caDisplay) caDisplay.textContent = CONFIG.tokenMint;
+    if (caDisplay) caDisplay.textContent = mint;
 
     // Use the already-connected wallet if present; otherwise prompt to connect.
     let walletAddress = null;
@@ -901,6 +907,34 @@ async function connectDevWalletForHome() {
 document.addEventListener('DOMContentLoaded', function() {
     loadConfig();
     applySiteSettings();
+
+    // ---- Demo Mode labeling: when Chain is NOT configured, flip the stuck
+    // "Loading..." placeholders to a clear "Demo Mode" label so the site never
+    // looks unfinished. When Chain IS on, refreshUI fills these with live data.
+    setTimeout(function applyDemoModeLabels() {
+        const chainOn = !!(window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured());
+        if (chainOn) return; // live data will populate these
+        const demoPairs = [
+            ['home-token-name', 'RUGGY'],
+            ['pool-liquidity', 'Demo Mode'],
+            ['pool-volume', 'Demo Mode'],
+            ['pool-burned', 'Demo Mode'],
+            ['pool-holders', 'Demo Mode'],
+        ];
+        demoPairs.forEach(([id, txt]) => {
+            const el = document.getElementById(id);
+            if (el && /loading/i.test(el.textContent)) el.textContent = txt;
+        });
+        // Add a small "Demo Mode" badge to the pool stats card header once.
+        const poolHeader = Array.from(document.querySelectorAll('h3')).find(h => /Live Liquidity Pool Stats/i.test(h.textContent));
+        if (poolHeader && !document.getElementById('demo-mode-badge')) {
+            const badge = document.createElement('span');
+            badge.id = 'demo-mode-badge';
+            badge.textContent = 'Demo Mode';
+            badge.style.cssText = 'margin-left:10px; font-size:11px; padding:3px 8px; border-radius:6px; background:#374151; color:#9ca3af; vertical-align:middle;';
+            poolHeader.appendChild(badge);
+        }
+    }, 2500);
 
     // ==================== DYNAMIC NAV PADDING (Includes Wallet Bar when visible) ====================
     function updateDynamicNavPadding() {
