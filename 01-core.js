@@ -419,26 +419,21 @@ const Lottery = {
     },
 
     async claimFreeTicket() {
-        // ON-CHAIN: a free ticket goes straight into the current DAILY round.
+        // ON-CHAIN: claiming BANKS a free ticket to your held balance (no round
+        // needed, no cooldown). Entering them into a draw is a separate action.
         if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
             try {
-                const cfg = await RuggyChain.config();
-                if (!cfg || !cfg.currentRound) {
-                    showToast("No open daily round", "error", "There's no active daily round to enter right now.");
-                    return;
-                }
-                showToast("Confirm in your wallet…", "success", "Claiming your free daily ticket on-chain.");
-                const sig = await RuggyChain.tx.claimFreeTicket(cfg.currentRound);
-                showToast("🎁 Free Ticket Claimed on-chain!", "success", "Entered the Daily draw. Tx: " + String(sig).slice(0, 8) + "…");
+                showToast("Confirm in your wallet…", "success", "Banking a free ticket to your balance.");
+                const sig = await RuggyChain.tx.claimFreeTicket();
+                showToast("🎁 Free Ticket Banked!", "success", "Held for you. Tx: " + String(sig).slice(0, 8) + "…");
                 try { await RuggyChain.refreshUI(); } catch (_) {}
+                if (typeof renderFreeTicketBalance === 'function') renderFreeTicketBalance();
                 renderTicketTables();
                 return;
             } catch (e) {
                 const msg = (e && e.message) ? e.message : "Transaction rejected.";
-                // surface the program's specific reasons nicely
-                if (/cooldown/i.test(msg)) showToast("Free ticket on cooldown", "error", "You can claim one free ticket every 24 hours.");
-                else if (/daily/i.test(msg)) showToast("Daily round only", "error", "Free tickets only work in the daily draw.");
-                else if (/eligible|stake/i.test(msg)) showToast("Staking required", "error", "You must be staked to claim a free ticket.");
+                if (/eligible|stake/i.test(msg)) showToast("Staking required", "error", "You must be staked to claim a free ticket.");
+                else if (/ban/i.test(msg)) showToast("Wallet banned", "error", "Banned wallets can't claim free tickets.");
                 else showToast("Free ticket failed", "error", msg);
                 return;
             }
@@ -472,6 +467,54 @@ function renderTicketTables() {
     const w = Lottery._wallet();
 
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+    // ON-CHAIN: show the connected wallet's REAL tickets in the current round,
+    // with their actual 5-number combos derived from the entry seed.
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured() && w) {
+        (async () => {
+            try {
+                const cfg = await RuggyChain.config();
+                if (!cfg || !cfg.currentRound) return;
+                const entry = await RuggyChain.entryInfo(cfg.currentRound, w);
+                const round = await RuggyChain.roundInfo(cfg.currentRound);
+                const isWeekly = round && round.drawType === 2;
+                const type = isWeekly ? 'weekly' : 'daily';
+                const paid = entry ? entry.paidCount : 0;
+                const free = entry ? entry.freeTickets : 0;
+                const total = entry ? entry.tickets : 0;
+
+                set('tickets-' + type + '-count', total);
+                set('tickets-' + (isWeekly ? 'daily' : 'weekly') + '-count', 0);
+
+                // render the real ticket rows with numbers
+                const tbody = document.getElementById(type + '-ticket-rows');
+                if (tbody) {
+                    if (!entry || !total) {
+                        tbody.innerHTML = '<tr><td colspan="2" style="padding:12px; text-align:center; color:#6b7280;">No tickets in the current round</td></tr>';
+                    } else {
+                        const winning = (round && round.drawn) ? round.winningNumbers : null;
+                        let rows = '';
+                        entry.ticketsNums.forEach((nums, k) => {
+                            const isFree = k >= paid;
+                            const numStr = nums.join(' · ');
+                            let badge = isFree ? '<span style="color:#a855f7;">FREE</span>' : '<span style="color:#86efac;">PAID</span>';
+                            if (winning) {
+                                const m = RuggyChain.countMatches(nums, winning);
+                                if (m >= 3) badge += ` <span style="color:#fbbf24;">★ ${m}/5</span>`;
+                            }
+                            rows += `<tr><td style="padding:8px; font-family:monospace; color:#e2e8f0;">${numStr}</td><td style="padding:8px;">${badge}</td></tr>`;
+                        });
+                        tbody.innerHTML = rows;
+                    }
+                }
+                set('free-tickets-available', entry ? '' : ''); // held balance handled separately
+            } catch (e) { /* fall through to local view */ }
+        })();
+        // also refresh the held balance
+        if (typeof renderFreeTicketBalance === 'function') renderFreeTicketBalance();
+        return;
+    }
+
     set('tickets-daily-count', l.daily);
     set('tickets-weekly-count', l.weekly);
     set('tickets-free-count', l.free);
@@ -557,12 +600,46 @@ async function enterFreeTickets() {
         if (typeof showWalletModal === 'function') showWalletModal();
         return;
     }
-    // ON-CHAIN: free tickets enter the daily round at claim time (one tx each),
-    // so there's no separate "enter" step. Each claim = one on-chain entry.
+    // ON-CHAIN: send up to 5 HELD free tickets into the current DAILY round.
     if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
-        showToast("Already entered on-chain", "success",
-            "On-chain, each free ticket you claim goes straight into the Daily draw — no separate step needed.");
-        return;
+        try {
+            const input = document.getElementById('free-ticket-enter-amount');
+            let n = parseInt(input?.value, 10) || 1;
+            n = Math.max(1, Math.min(5, n)); // hard cap of 5 per draw
+
+            const cfg = await RuggyChain.config();
+            if (!cfg || !cfg.currentRound) {
+                showToast("No open daily round", "error", "There's no active daily round to enter right now.");
+                return;
+            }
+            // check held balance
+            const wallet = window.ruggyWallet?.publicKey?.toString();
+            const pos = wallet ? await RuggyChain.stakeOf(wallet) : null;
+            const held = pos ? Number(pos.heldFreeTickets) : 0;
+            if (held < n) {
+                showToast("Not enough free tickets", "error",
+                    `You have ${held} held free ticket${held === 1 ? '' : 's'}. Claim more first.`);
+                return;
+            }
+            if (!(await showConfirm(
+                `Enter <strong>${n} free ticket${n === 1 ? '' : 's'}</strong> into the <strong>Daily draw</strong>?<br><br><span style="color:#9ca3af;font-size:13px;">Free tickets can win consolation (4/5, 3/5) but not the jackpot.</span>`,
+                { okText: 'Enter Daily Draw' }))) return;
+
+            showToast("Confirm in your wallet…", "success", `Entering ${n} free ticket(s) into the draw.`);
+            const sig = await RuggyChain.tx.enterFreeTickets(cfg.currentRound, n);
+            showToast(`🎟 Entered ${n} free ticket${n === 1 ? '' : 's'}!`, "success", "Tx: " + String(sig).slice(0, 8) + "…");
+            try { await RuggyChain.refreshUI(); } catch (_) {}
+            if (typeof renderFreeTicketBalance === 'function') renderFreeTicketBalance();
+            renderTicketTables();
+            return;
+        } catch (e) {
+            const msg = (e && e.message) ? e.message : "Transaction rejected.";
+            if (/not enough|free tickets/i.test(msg)) showToast("Not enough free tickets", "error", "Claim more free tickets first.");
+            else if (/daily/i.test(msg)) showToast("Daily round only", "error", "Free tickets only enter the daily draw.");
+            else if (/round/i.test(msg)) showToast("No open round", "error", "There's no open daily round right now.");
+            else showToast("Enter failed", "error", msg);
+            return;
+        }
     }
     const input = document.getElementById('free-ticket-enter-amount');
     let n = parseInt(input?.value, 10) || 1;
@@ -585,6 +662,25 @@ async function enterFreeTickets() {
     showToast(`Entered ${n} free ticket${n === 1 ? '' : 's'} into the Daily draw!`, "success", "Good luck!");
 }
 window.enterFreeTickets = enterFreeTickets;
+
+// Show the connected wallet's HELD free-ticket balance (from chain when live).
+async function renderFreeTicketBalance() {
+    const el = document.getElementById('free-tickets-available');
+    if (!el) return;
+    let held = 0;
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()
+        && window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey) {
+        try {
+            const pos = await RuggyChain.stakeOf(window.ruggyWallet.publicKey.toString());
+            held = pos ? Number(pos.heldFreeTickets) : 0;
+        } catch (_) {}
+    } else {
+        // local fallback
+        try { held = (Lottery.ledger().free) || 0; } catch (_) {}
+    }
+    el.textContent = held;
+}
+window.renderFreeTicketBalance = renderFreeTicketBalance;
 
 // ===================================================================
 // 5-NUMBER LOTTERY DRAW — spinner reveal + gold claim button
@@ -1652,23 +1748,55 @@ function refreshWalletUI() {
 // enough (or is banned), actively tell them via a toast. Tracked per wallet
 // so we don't nag on every UI refresh.
 let __lastNudgedWallet = null;
-function maybeNudgeStake() {
-    if (typeof getStakeEligibility !== 'function' || typeof showToast !== 'function') return;
-    const e = getStakeEligibility();
-    if (!e.connected) { __lastNudgedWallet = null; return; }
-    if (__lastNudgedWallet === e.wallet) return; // already nudged this wallet
-    __lastNudgedWallet = e.wallet;
+async function maybeNudgeStake() {
+    if (typeof showToast !== 'function') return;
+    const connected = !!(window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey);
+    if (!connected) { __lastNudgedWallet = null; return; }
+    const walletAddr = window.ruggyWallet.publicKey.toString();
+    if (__lastNudgedWallet === walletAddr) return; // already nudged this wallet
+    __lastNudgedWallet = walletAddr;
 
     const fmt = (n) => Number(n).toLocaleString();
+
+    // When chain is connected, read REAL on-chain stake before nudging — so we
+    // never falsely tell a properly-staked wallet they're under-staked.
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()
+        && typeof RuggyChain.stakeOf === 'function') {
+        try {
+            const [pos, ban, cfg] = await Promise.all([
+                RuggyChain.stakeOf(walletAddr),
+                RuggyChain.banOf(walletAddr),
+                RuggyChain.config(),
+            ]);
+            const staked = pos ? Number(pos.amount) / 1e6 : 0;
+            const commReq = cfg ? Number(cfg.communityThreshold) / 1e6 : 500000;
+            const antiReq = cfg ? Number(cfg.antirugThreshold) / 1e6 : 1000000;
+            if (ban) {
+                showToast(Number(ban.ruggedUsd) > 0 ? "Your wallet is on Locked Ban" : "Your wallet is temporarily banned",
+                    "error", "Banned wallets don't receive rewards or play the Lottery. Visit Absolution to clear it.");
+            } else if (staked >= antiReq) {
+                // fully eligible — no nag
+            } else if (staked >= commReq) {
+                // community tier — quiet success, optional
+            } else {
+                // genuinely under-staked (on-chain) — only then nudge
+                showToast("You're not staking enough for rewards", "error",
+                    `Stake ${fmt(Math.max(0, commReq - staked))} more $RUGGY to start earning Community rewards.`);
+            }
+            return;
+        } catch (_) { /* fall through to local only if chain read fails */ return; }
+    }
+
+    // Local/demo mode only (no chain): use local eligibility
+    if (typeof getStakeEligibility !== 'function') return;
+    const e = getStakeEligibility();
+    if (!e.connected) return;
     if (e.banned) {
         showToast(e.banned.type === 'Locked' ? "Your wallet is on Locked Ban" : "Your wallet is temporarily banned",
             "error", "Banned wallets don't receive rewards or play the Lottery. Visit Absolution to clear it.");
     } else if (e.tier === 'none') {
         showToast("You're not staking enough for rewards", "error",
-            `Stake ${fmt(e.toCommunity)} more $RUGGY to start earning. Not having enough staked disqualifies you from rewards.`);
-    } else if (e.tier === 'community') {
-        showToast("Staking enough for Community rewards", "success",
-            `Stake ${fmt(e.toAntiRug)} more to unlock Anti-Rug rewards too.`);
+            `Stake ${fmt(e.toCommunity)} more $RUGGY to start earning Community rewards.`);
     }
 }
 window.maybeNudgeStake = maybeNudgeStake;
