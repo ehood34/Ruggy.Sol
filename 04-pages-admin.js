@@ -67,7 +67,7 @@ function loadConfig() {
         hallBagworkersShown: 5,        // bagworker slots
         wallShown: 25,                 // wall rows per view
         absolutionStakePct: 20,        // stake % of pulled value
-        absolutionLockDays: 3,
+        absolutionLockDays: 1,
         lotteryDailyTime: '8:00 PM UTC',
         lotteryWeeklyDay: 'Sunday',
         lotteryWeeklyTime: '8:00 PM UTC',
@@ -898,7 +898,57 @@ document.addEventListener('DOMContentLoaded', function() {
     initRuggyHall();
 });
 
+// Render the Hall (Top Holders / Top Stakers tables) from LIVE on-chain stake
+// accounts. Called by the chain refresh; replaces the random demo data. Because
+// the program tracks staked amounts (not raw wallet balances), both tables are
+// driven by stake size — "top stakers" is exact; "top holders" uses the same
+// live set (holders that stake) since wallet token balances aren't enumerable
+// cheaply on devnet.
+function setHallFromChain(stakers) {
+    if (!Array.isArray(stakers)) return;
+    const fmtM = (base) => (Number(base) / 1e6 / 1e6).toFixed(2); // base units -> millions
+    const shorten = (w) => w.length > 12 ? w.slice(0, 4) + '...' + w.slice(-4) : w;
+
+    const topN = (CONFIG.metrics?.hallTopShown) || 12;
+    const longN = (CONFIG.metrics?.hallLongestShown) || 12;
+
+    const topHoldersBody = document.getElementById('top-holders-table');
+    if (topHoldersBody) {
+        topHoldersBody.innerHTML = '';
+        if (!stakers.length) {
+            topHoldersBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#6b7280;padding:12px;">No stakers yet</td></tr>';
+        } else {
+            stakers.slice(0, topN).forEach((s, i) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${i + 1}</td><td>${shorten(s.wallet)}</td><td>${fmtM(s.staked)}M</td>`;
+                topHoldersBody.appendChild(row);
+            });
+        }
+    }
+
+    const longestBody = document.getElementById('longest-holders-table');
+    if (longestBody) {
+        longestBody.innerHTML = '';
+        if (!stakers.length) {
+            longestBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#6b7280;padding:12px;">No stakers yet</td></tr>';
+        } else {
+            stakers.slice(0, longN).forEach((s, i) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${i + 1}</td><td>${shorten(s.wallet)}</td><td>🔒 ${fmtM(s.staked)}M</td>`;
+                longestBody.appendChild(row);
+            });
+        }
+    }
+    if (typeof renderBagworkers === 'function') renderBagworkers();
+}
+window.setHallFromChain = setHallFromChain;
+
 function initRuggyHall() {
+    // If live chain stakers are available, use them instead of demo data.
+    if (Array.isArray(window.ruggyChainStakers)) {
+        setHallFromChain(window.ruggyChainStakers);
+        return;
+    }
     let holdersPool = [];
     for (let i = 0; i < 200; i++) {
         holdersPool.push({
@@ -1516,7 +1566,7 @@ function saveDeveloperSettings() {
     mm.hallBagworkersShown = getAdminInputNumber('m-hall-bagworkers', 5);
     mm.wallShown = getAdminInputNumber('m-wall-shown', 25);
     mm.absolutionStakePct = getAdminInputNumber('m-abs-pct', 20);
-    mm.absolutionLockDays = getAdminInputNumber('m-abs-days', 3);
+    mm.absolutionLockDays = getAdminInputNumber('m-abs-days', 1);
     mm.lotteryDailyTime = getAdminInputValue('m-lotto-daily-time') || '8:00 PM UTC';
     mm.lotteryWeeklyDay = getAdminInputValue('m-lotto-weekly-day') || 'Sunday';
     mm.lotteryWeeklyTime = getAdminInputValue('m-lotto-weekly-time') || '8:00 PM UTC';
