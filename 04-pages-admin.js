@@ -1588,15 +1588,49 @@ window.importSiteConfig = importSiteConfig;
 async function resetSiteData() {
     const ok = await showConfirm(
         "Reset ALL site data in this browser?<br><br>" +
-        "<span style='color:#9ca3af;font-size:13px;'>Clears settings, stakes, lottery tickets, and the Wall. The admin login session is kept. This cannot be undone.</span>",
+        "<span style='color:#9ca3af;font-size:13px;'>Clears settings, stakes, lottery tickets, free-ticket timers, the Wall, dev panel settings, and all per-wallet data. This cannot be undone.</span>",
         { okText: 'Reset Everything', danger: true }
     );
     if (!ok) return;
-    ['ruggyConfig', 'ruggyStakes', 'ruggyLottoTickets', 'lastFreeLottoTicket',
-     'ruggyBannedWall', 'ruggyLastConnectedWallet'].forEach(k => {
-        try { localStorage.removeItem(k); } catch (_) {}
-    });
-    showToast("Site data reset", "success", "Reloading fresh\u2026");
+
+    const keepAdminSession = true;
+    const removeKey = (k) => { try { localStorage.removeItem(k); } catch (_) {} };
+
+    const fixed = [
+        'ruggyConfig', 'ruggy_dev_settings', 'ruggyStakes', 'ruggyLottoTickets',
+        'lastFreeLottoTicket', 'ruggyBannedWall', 'ruggyLastConnectedWallet',
+        'ruggyPendingWallet',
+    ];
+    if (!keepAdminSession) fixed.push('ruggyAdminLoggedIn');
+
+    const dynamic = [];
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (!k) continue;
+            const isRuggy = /^ruggy/i.test(k);
+            const isAdmin = k === 'ruggyAdminLoggedIn';
+            if (isRuggy && !(keepAdminSession && isAdmin)) dynamic.push(k);
+        }
+    } catch (_) {}
+
+    const all = Array.from(new Set([...fixed, ...dynamic]));
+    all.forEach(removeKey);
+
+    try {
+        const sk = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const k = sessionStorage.key(i);
+            if (k && /^ruggy/i.test(k) && !(keepAdminSession && k === 'ruggyAdminLoggedIn')) sk.push(k);
+        }
+        sk.forEach(k => { try { sessionStorage.removeItem(k); } catch (_) {} });
+    } catch (_) {}
+
+    try { window.ruggyStakes = null; } catch (_) {}
+    try { window.ruggyChainStakers = null; } catch (_) {}
+    try { window.ruggyChainBans = null; } catch (_) {}
+
+    showToast("Site data reset", "success", "Cleared " + all.length + " keys. Reloading fresh\u2026");
     setTimeout(() => location.reload(), 900);
 }
 window.resetSiteData = resetSiteData;
