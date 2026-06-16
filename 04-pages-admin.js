@@ -235,32 +235,53 @@ async function fetchAndUpdateLiveData(mint) {
     try {
         if (metricsDiv) metricsDiv.style.opacity = '0.6';
 
-        const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`);
-        const data = await res.json();
+        // ---- ON-CHAIN token data via the Solana RPC (same data Solana Explorer
+        // shows). Works on devnet, where there's no DEX/price yet. ----
+        const rpc = (window.RuggyChain && RuggyChain.settings && RuggyChain.settings.rpc)
+            ? RuggyChain.settings.rpc : 'https://api.devnet.solana.com';
+        const cluster = /devnet/.test(rpc) ? 'devnet' : /testnet/.test(rpc) ? 'testnet' : 'mainnet';
 
-        if (!data.pairs || data.pairs.length === 0) {
+        // getTokenSupply returns uiAmount + decimals for the mint
+        const res = await fetch(rpc, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0', id: 1, method: 'getTokenSupply', params: [mint],
+            }),
+        });
+        const data = await res.json();
+        const supplyInfo = data?.result?.value;
+
+        if (!supplyInfo) {
             if (noCaDiv) {
-                noCaDiv.innerHTML = `<p style="color:#f87171;">Token not found on Dexscreener yet.</p>`;
+                noCaDiv.innerHTML = `<p style="color:#f87171;">Couldn't read the mint on-chain. Check the CA.</p>`;
                 noCaDiv.style.display = 'block';
             }
             if (metricsDiv) metricsDiv.style.display = 'none';
             return;
         }
 
-        const pair = data.pairs[0];
+        const supply = Number(supplyInfo.uiAmount) || 0;
+        const decimals = supplyInfo.decimals;
 
-        const priceUsd = parseFloat(pair.priceUsd) || 0;
-        const volume24h = parseFloat(pair.volume?.h24) || 0;
-        const fdv = parseFloat(pair.fdv) || 0;
-
-        const priceEl = document.getElementById('home-price');
-        if (priceEl) priceEl.textContent = priceUsd > 0 ? `$${priceUsd.toFixed(8)}` : "—";
-
-        const volumeEl = document.getElementById('home-volume');
-        if (volumeEl) volumeEl.textContent = volume24h > 0 ? `$${(volume24h / 1e6).toFixed(2)}M` : "—";
-
+        // Supply where "market cap" used to be
         const mcEl = document.getElementById('home-market-cap');
-        if (mcEl) mcEl.textContent = fdv > 0 ? `$${(fdv / 1e6).toFixed(2)}M` : "—";
+        if (mcEl) {
+            mcEl.textContent = supply > 0
+                ? (supply >= 1e6 ? `${(supply / 1e6).toFixed(2)}M` : supply.toLocaleString())
+                : "—";
+        }
+
+        // Price / volume don't exist on devnet (no DEX) — show a clear placeholder
+        const priceEl = document.getElementById('home-price');
+        if (priceEl) priceEl.textContent = "— (devnet)";
+        const volumeEl = document.getElementById('home-volume');
+        if (volumeEl) volumeEl.textContent = "— (devnet)";
+
+        // Explorer link — point the CA / token name area at Solana Explorer
+        const explorerUrl = `https://explorer.solana.com/address/${mint}?cluster=${cluster}`;
+        const caLink = document.getElementById('home-explorer-link');
+        if (caLink) { caLink.href = explorerUrl; caLink.style.display = 'inline-block'; }
 
         if (metricsDiv) {
             metricsDiv.style.display = 'block';
@@ -272,7 +293,7 @@ async function fetchAndUpdateLiveData(mint) {
         if (metricsDiv) metricsDiv.style.display = 'none';
         if (noCaDiv) {
             noCaDiv.innerHTML = `
-                <p style="color:#f87171;">Failed to load live data.</p>
+                <p style="color:#f87171;">Failed to load on-chain token data.</p>
                 <button id="start-live-tracking-btn" data-action="startLiveTracking" class="buy-button" style="max-width:160px; margin-top:12px; padding:10px 16px; font-size:13px;">
                     Retry
                 </button>
