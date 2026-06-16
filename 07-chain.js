@@ -356,6 +356,53 @@
       }
     },
 
+    // ---- CLAIM HISTORY for a wallet, read from on-chain tx history. Looks at
+    //      recent transactions that touch this wallet's stake PDA and detects
+    //      claim_distribution calls (by instruction discriminator), returning
+    //      [{ sig, time, type }]. Amounts aren't parsed (would need full event
+    //      decode); type is 'Reward Claim'. Best-effort + capped for speed. ----
+    async claimHistoryOf(walletB58, limit) {
+      if (!(await this._ensureReady())) return [];
+      try {
+        const W = window.solanaWeb3;
+        const stakePda = this._pdas.stakeOf(walletB58);
+        const sigs = await this._conn.getSignaturesForAddress(stakePda, { limit: limit || 20 });
+        const out = [];
+        // discriminator bytes for claim_distribution, as a base58-free match:
+        const CLAIM = this._DISC.claim_distribution.join(',');
+        for (const s of sigs) {
+          if (s.err) continue;
+          try {
+            const tx = await this._conn.getTransaction(s.signature, { maxSupportedTransactionVersion: 0 });
+            if (!tx) continue;
+            const msg = tx.transaction.message;
+            const keys = (msg.staticAccountKeys || msg.accountKeys || []).map(k => k.toString());
+            const progIdx = keys.indexOf(this._pdas.programId.toString());
+            if (progIdx < 0) continue;
+            const ixs = msg.compiledInstructions || msg.instructions || [];
+            let isClaim = false;
+            for (const ix of ixs) {
+              if (ix.programIdIndex !== progIdx) continue;
+              const dataBytes = ix.data ? Array.from(typeof ix.data === 'string'
+                ? W.bs58 ? W.bs58.decode(ix.data) : [] : ix.data) : [];
+              if (dataBytes.slice(0, 8).join(',') === CLAIM) { isClaim = true; break; }
+            }
+            if (isClaim) {
+              out.push({
+                sig: s.signature,
+                time: s.blockTime ? new Date(s.blockTime * 1000) : null,
+                type: 'Reward Claim',
+              });
+            }
+          } catch (_) { /* skip */ }
+        }
+        return out;
+      } catch (e) {
+        console.warn('[Ruggy.Chain] claimHistoryOf failed:', e.message);
+        return [];
+      }
+    },
+
     // ---- Pool-wide totals for the donut / stats (live) ----
     async poolTotals() {
       const cfg = await this.config();
