@@ -920,7 +920,13 @@ async function stakeRuggy() {
             if (typeof renderActiveStakes === 'function') renderActiveStakes();
             return;
         } catch (e) {
-            showToast("Stake failed", "error", (e && e.message) ? e.message : "Transaction rejected.");
+            const msg = (e && e.message) ? e.message : "Transaction rejected.";
+            if (/deserialize|3003|beyond buffer|0x[0-9a-f]*bb/i.test(msg)) {
+                showToast("Stale stake account", "error",
+                    "Your old stake account needs clearing after the program update. Run 00b-force-close-stake once, then stake again.");
+            } else {
+                showToast("Stake failed", "error", msg);
+            }
             return;
         }
     }
@@ -1768,6 +1774,19 @@ async function maybeNudgeStake() {
                 RuggyChain.banOf(walletAddr),
                 RuggyChain.config(),
             ]);
+            // If we couldn't decode a stake position, don't assume 0 — the
+            // account may exist but be unreadable (e.g. stale layout after a
+            // redeploy). Only nag when we can CONFIRM the wallet has no stake.
+            if (!pos) {
+                let acctExists = false;
+                try {
+                    if (typeof RuggyChain._conn !== 'undefined' && RuggyChain._pdas && RuggyChain._pdas.stakeOf) {
+                        const info = await RuggyChain._conn.getAccountInfo(RuggyChain._pdas.stakeOf(walletAddr));
+                        acctExists = !!info;
+                    }
+                } catch (_) {}
+                if (acctExists) return; // account present but unreadable — stay quiet
+            }
             const staked = pos ? Number(pos.amount) / 1e6 : 0;
             const commReq = cfg ? Number(cfg.communityThreshold) / 1e6 : 500000;
             const antiReq = cfg ? Number(cfg.antirugThreshold) / 1e6 : 1000000;
@@ -1778,10 +1797,14 @@ async function maybeNudgeStake() {
                 // fully eligible — no nag
             } else if (staked >= commReq) {
                 // community tier — quiet success, optional
+            } else if (staked > 0) {
+                // staking but below community tier — gentle nudge
+                showToast("Almost there", "success",
+                    `You're staking ${fmt(staked)} $RUGGY. Stake ${fmt(Math.max(0, commReq - staked))} more for Community rewards.`);
             } else {
-                // genuinely under-staked (on-chain) — only then nudge
+                // genuinely zero staked on-chain
                 showToast("You're not staking enough for rewards", "error",
-                    `Stake ${fmt(Math.max(0, commReq - staked))} more $RUGGY to start earning Community rewards.`);
+                    `Stake ${fmt(commReq)} $RUGGY to start earning Community rewards.`);
             }
             return;
         } catch (_) { /* fall through to local only if chain read fails */ return; }
