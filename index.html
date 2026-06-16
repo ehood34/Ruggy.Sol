@@ -33,8 +33,8 @@
     <link rel="preconnect" href="https://i.ibb.co" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v60 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=60">
+    <!-- ASSET VERSION v66 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=66">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -42,13 +42,13 @@
          not on every page — see ensureChartJsLoaded() in 04-pages-admin.js. -->
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=60"></script>
-    <script defer src="02-banner-video.js?v=60"></script>
-    <script defer src="03-rewards-helpers.js?v=60"></script>
-    <script defer src="04-pages-admin.js?v=60"></script>
-    <script defer src="05-text-emoji.js?v=60"></script>
-    <script defer src="06-final-wiring.js?v=60"></script>
-    <script defer src="07-chain.js?v=60"></script>
+    <script defer src="01-core.js?v=66"></script>
+    <script defer src="02-banner-video.js?v=66"></script>
+    <script defer src="03-rewards-helpers.js?v=66"></script>
+    <script defer src="04-pages-admin.js?v=66"></script>
+    <script defer src="05-text-emoji.js?v=66"></script>
+    <script defer src="06-final-wiring.js?v=66"></script>
+    <script defer src="07-chain.js?v=66"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -697,7 +697,7 @@
         <div class="card" style="max-width: 700px; margin: 0 auto 35px;">
             <h3 style="margin-bottom: 12px; color: #ff00ff;">Check Your Reward Eligibility</h3>
             <p style="font-size:12px; color:#9ca3af; margin-bottom:8px;">
-                Automatic airdrops continue until <strong><span data-m="holderShutoff" data-fmt="num">500</span> stakers</strong>. After that, rewards are still sent to the vault every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes and accumulate for manual claiming.
+                Rewards accumulate from transfer fees, then are sent to the reward vault on the distribution timer (about every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes) — the admin can also push a distribution manually. Once in the vault, eligible stakers claim their share anytime.
             </p>
             
             <div id="rewards-ca-display" data-action="copyTokenCA" title="Click to copy"
@@ -735,9 +735,8 @@
             <h3 style="color: #22c55e; margin-bottom: 12px; text-align: center;">💰 Claim Directly From Vault</h3>
             
             <p style="text-align: center; font-size: 15px; margin-bottom: 20px; color: #d1fae5;">
-                After <strong><span data-m="holderShutoff" data-fmt="num">500</span>+ stakers</strong>, automatic distribution stops.<br>
-                However, rewards are <strong>still sent to the community vault every 30 minutes</strong> and will accumulate.<br>
-                Approved wallets can <strong>claim them whenever they like</strong> by connecting here.
+                Rewards accumulate from transfer fees and are sent to the reward vault on the distribution timer (about every <strong>30 minutes</strong>), with manual admin pushes as needed.<br>
+                Eligible stakers can <strong>claim their share whenever they like</strong> by connecting here.
             </p>
 
             <button data-action="claimFromVault" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); font-size: 18px; padding: 18px;">
@@ -1336,12 +1335,6 @@
                         <div data-action="select-lock" class="lock-option stat-box-green" data-days="1" data-multiplier="1.0">
                             <div class="bold">1 Day</div>
                             <div class="hint-green">1.0x</div>
-                        </div>
-                        <div data-action="select-lock" class="lock-option x238" data-days="1" data-multiplier="1.1"
-                             >
-                            <div class="bold">1 Day</div>
-                            <div style="font-size: 9px; color: #f59e0b;">(Absolution Forgiveness)</div>
-                            <div class="hint-green">1.1x</div>
                         </div>
                         <div data-action="select-lock" class="lock-option stat-box-green" data-days="7" data-multiplier="1.25">
                             <div class="bold">1 Week</div>
@@ -2087,10 +2080,12 @@
                             <input id="import-config-file" type="file" accept=".json,application/json" style="display:none;">
                         </label>
                         <button data-action="resetSiteData" class="buy-button admin-tool-btn" style="background:#7f1d1d; border:1px solid #ef4444; color:#fecaca;">🗑 Reset All Site Data</button>
+                        <button data-action="resetLiveChainView" class="buy-button admin-tool-btn" style="background:#1e3a8a; border:1px solid #3b82f6; color:#dbeafe;">↻ Reset Live Chain View</button>
                     </div>
                 </details>
 
                 <button id="save-dev-settings-btn" data-action="saveDeveloperSettings" class="buy-button" style="background: linear-gradient(to right, #22c55e, #16a34a); margin-bottom: 12px; width: 100%;">Save Settings</button>
+                <button data-action="pushAllConfigToChain" class="buy-button" style="background: linear-gradient(to right, #1e3a8a, #3b82f6); margin-bottom: 12px; width: 100%;">⛓ Push ALL Config to Chain (Live)</button>
                 
             </div>
         </div>
