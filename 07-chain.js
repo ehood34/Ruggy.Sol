@@ -299,15 +299,297 @@
         if (typeof window.setBannedWallFromChain === 'function') {
           window.setBannedWallFromChain(bans);
         } else {
-          // fallback: stash for whenever the renderer is ready
           window.ruggyChainBans = bans;
         }
       } catch (e) {
         console.warn('[Ruggy.Chain] wall sync failed:', e.message);
       }
 
+      // ---- Expose pool ATAs the write-path needs (same accounts the test
+      //      scripts derive). Reward pools: community = Config's ATA, anti-rug =
+      //      a Config-owned account via createWithSeed. Lottery: prize/burn/mdr. ----
+      try {
+        const W = window.solanaWeb3;
+        const TOK = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        const configAta = await this._ata(this._pdas.config);
+        // anti-rug Config-owned account via the same seed the scripts use
+        const owner = this._wallet() ? this._wallet().pubkey : null;
+        let antirugAta = null;
+        if (owner) {
+          antirugAta = await W.PublicKey.createWithSeed(owner, 'ruggy-antirug-v1', TOK);
+        }
+        window.ruggyRewardPools = {
+          communityAta: configAta.toBase58(),
+          antirugAta: antirugAta ? antirugAta.toBase58() : null,
+        };
+        // lottery pools
+        const [burnVaultPda] = W.PublicKey.findProgramAddressSync([W.Buffer.from('burn_vault')], this._pdas.programId);
+        const [prizeVaultPda] = W.PublicKey.findProgramAddressSync([W.Buffer.from('prize_vault')], this._pdas.programId);
+        const [mdrPda] = W.PublicKey.findProgramAddressSync([W.Buffer.from('mdr_pool')], this._pdas.programId);
+        const burnVaultAta = await this._ata(burnVaultPda);
+        const prizeVaultAta = await this._ata(prizeVaultPda);
+        const mdrAta = await this._ata(mdrPda);
+        window.ruggyLotteryPools = {
+          burnVaultAta: burnVaultAta.toBase58(),
+          prizeVaultAta: prizeVaultAta.toBase58(),
+          mdrAta: mdrAta.toBase58(),
+        };
+      } catch (e) {
+        console.warn('[Ruggy.Chain] pool ATA derive failed:', e.message);
+      }
+
       console.log('[Ruggy.Chain] UI refreshed with live data');
       return true;
+    },
+
+    // ========================================================================
+    // WRITE PATH — build, sign (via connected wallet), and send real on-chain
+    // transactions. Vanilla web3.js (no Anchor TS lib), so we encode Anchor
+    // instructions by hand: 8-byte discriminator + borsh args + account metas.
+    // ========================================================================
+
+    // Anchor discriminators (first 8 bytes of sha256("global:<name>")).
+    _DISC: {
+      open_stake:         [136, 215, 163, 130, 234, 194, 229, 229],
+      stake:              [206, 176, 202, 18, 200, 209, 179, 108],
+      extend_stake:       [70, 33, 150, 252, 104, 136, 238, 16],
+      unstake:            [90, 95, 107, 42, 205, 124, 50, 225],
+      buy_tickets:        [48, 16, 122, 137, 24, 214, 198, 58],
+      claim_distribution: [204, 156, 94, 85, 2, 125, 232, 180],
+      claim_prize:        [157, 233, 139, 121, 246, 62, 234, 235],
+    },
+
+    // ---- small borsh encoders ----
+    _encU64(n) {
+      const b = new Uint8Array(8); let v = BigInt(n);
+      for (let i = 0; i < 8; i++) { b[i] = Number(v & 0xffn); v >>= 8n; }
+      return b;
+    },
+    _encU32(n) {
+      const b = new Uint8Array(4); let v = n >>> 0;
+      for (let i = 0; i < 4; i++) { b[i] = v & 0xff; v >>>= 8; }
+      return b;
+    },
+    _concat(arrays) {
+      let len = 0; arrays.forEach(a => len += a.length);
+      const out = new Uint8Array(len); let off = 0;
+      arrays.forEach(a => { out.set(a, off); off += a.length; });
+      return out;
+    },
+
+    // ---- the connected wallet (provider + pubkey) ----
+    _wallet() {
+      const w = window.ruggyWallet;
+      if (!w || !w.connected || !w.publicKey || !w.provider) return null;
+      return { provider: w.provider, pubkey: w.publicKey };
+    },
+
+    // ---- associated token address for (mint, owner) ----
+    async _ata(ownerPk) {
+      const W = window.solanaWeb3;
+      const mint = new W.PublicKey(this.settings.mint);
+      const ATA_PROG = new W.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
+      const TOK_PROG = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+      const [addr] = W.PublicKey.findProgramAddressSync(
+        [ownerPk.toBuffer(), TOK_PROG.toBuffer(), mint.toBuffer()], ATA_PROG
+      );
+      return addr;
+    },
+
+    // ---- build a TransactionInstruction ----
+    _ix(disc, dataBytes, keys) {
+      const W = window.solanaWeb3;
+      const data = this._concat([new Uint8Array(disc), dataBytes || new Uint8Array(0)]);
+      return new W.TransactionInstruction({
+        programId: this._pdas.programId,
+        keys,
+        data: W.Buffer ? W.Buffer.from(data) : data,
+      });
+    },
+
+    // ---- sign + send + confirm a set of instructions ----
+    async _send(instructions) {
+      const W = window.solanaWeb3;
+      const wal = this._wallet();
+      if (!wal) throw new Error('Connect your wallet first.');
+      if (!(await this._ensureReady())) throw new Error('Chain not configured.');
+
+      const tx = new W.Transaction();
+      instructions.forEach(ix => tx.add(ix));
+      tx.feePayer = wal.pubkey;
+      const { blockhash } = await this._conn.getLatestBlockhash('finalized');
+      tx.recentBlockhash = blockhash;
+
+      // Phantom/Solflare style: signAndSendTransaction; fallback to signTransaction.
+      let sig;
+      if (wal.provider.signAndSendTransaction) {
+        const res = await wal.provider.signAndSendTransaction(tx);
+        sig = res.signature || res;
+      } else if (wal.provider.signTransaction) {
+        const signed = await wal.provider.signTransaction(tx);
+        sig = await this._conn.sendRawTransaction(signed.serialize());
+      } else {
+        throw new Error('Wallet does not support signing.');
+      }
+      await this._conn.confirmTransaction(sig, 'confirmed');
+      return sig;
+    },
+
+    // ---- ensure the user's stake account exists (open_stake if missing) ----
+    async _ensureStakeAccount(ownerPk, ixList) {
+      const stakePda = this._pdas.stakeOf(ownerPk.toBase58());
+      const info = await this._conn.getAccountInfo(stakePda);
+      if (!info) {
+        const W = window.solanaWeb3;
+        ixList.push(this._ix(this._DISC.open_stake, null, [
+          { pubkey: stakePda, isSigner: false, isWritable: true },
+          { pubkey: ownerPk, isSigner: true, isWritable: true },
+          { pubkey: W.SystemProgram.programId, isSigner: false, isWritable: false },
+        ]));
+      }
+      return stakePda;
+    },
+
+    // ===== USER ACTIONS =====
+    tx: {
+      // stake(amount, lockDays)
+      async stake(amountTokens, lockDays) {
+        const C = window.RuggyChain, W = window.solanaWeb3;
+        const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
+        const owner = wal.pubkey;
+        const TOK = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        const amount = C._encU64(Math.round(amountTokens * 1e6));
+        const lock = C._encU32(lockDays);
+        const ixList = [];
+        const stakePda = await C._ensureStakeAccount(owner, ixList);
+        const banPda = W.PublicKey.findProgramAddressSync(
+          [W.Buffer.from('ban'), owner.toBuffer()], C._pdas.programId)[0];
+        const stakerAta = await C._ata(owner);
+        const stakeVault = await C._ata(C._pdas.config); // config-owned vault
+        ixList.push(C._ix(C._DISC.stake, C._concat([amount, lock]), [
+          { pubkey: C._pdas.config, isSigner: false, isWritable: true },
+          { pubkey: banPda, isSigner: false, isWritable: false },
+          { pubkey: stakePda, isSigner: false, isWritable: true },
+          { pubkey: stakerAta, isSigner: false, isWritable: true },
+          { pubkey: stakeVault, isSigner: false, isWritable: true },
+          { pubkey: owner, isSigner: true, isWritable: true },
+          { pubkey: TOK, isSigner: false, isWritable: false },
+        ]));
+        return C._send(ixList);
+      },
+
+      // extend_stake(fromLockDays, toLockDays)
+      async extend(fromLockDays, toLockDays) {
+        const C = window.RuggyChain, W = window.solanaWeb3;
+        const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
+        const owner = wal.pubkey;
+        const stakePda = C._pdas.stakeOf(owner.toBase58());
+        const data = C._concat([C._encU32(fromLockDays), C._encU32(toLockDays)]);
+        return C._send([C._ix(C._DISC.extend_stake, data, [
+          { pubkey: stakePda, isSigner: false, isWritable: true },
+          { pubkey: owner, isSigner: true, isWritable: false },
+        ])]);
+      },
+
+      // unstake(amount, lockDays)
+      async unstake(amountTokens, lockDays) {
+        const C = window.RuggyChain, W = window.solanaWeb3;
+        const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
+        const owner = wal.pubkey;
+        const TOK = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        const stakePda = C._pdas.stakeOf(owner.toBase58());
+        const banPda = W.PublicKey.findProgramAddressSync(
+          [W.Buffer.from('ban'), owner.toBuffer()], C._pdas.programId)[0];
+        const stakerAta = await C._ata(owner);
+        const stakeVault = await C._ata(C._pdas.config);
+        const data = C._concat([C._encU64(Math.round(amountTokens * 1e6)), C._encU32(lockDays)]);
+        return C._send([C._ix(C._DISC.unstake, data, [
+          { pubkey: C._pdas.config, isSigner: false, isWritable: true },
+          { pubkey: banPda, isSigner: false, isWritable: false },
+          { pubkey: stakePda, isSigner: false, isWritable: true },
+          { pubkey: stakerAta, isSigner: false, isWritable: true },
+          { pubkey: stakeVault, isSigner: false, isWritable: true },
+          { pubkey: owner, isSigner: true, isWritable: true },
+          { pubkey: TOK, isSigner: false, isWritable: false },
+        ])]);
+      },
+
+      // claim_distribution() — pulls community (+ anti-rug) rewards
+      async claimRewards(communityPoolAta, antirugPoolAta) {
+        const C = window.RuggyChain, W = window.solanaWeb3;
+        const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
+        const owner = wal.pubkey;
+        const TOK = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        const stakePda = C._pdas.stakeOf(owner.toBase58());
+        const banPda = W.PublicKey.findProgramAddressSync(
+          [W.Buffer.from('ban'), owner.toBuffer()], C._pdas.programId)[0];
+        const claimantAta = await C._ata(owner);
+        const community = new W.PublicKey(communityPoolAta);
+        const antirug = new W.PublicKey(antirugPoolAta);
+        return C._send([C._ix(C._DISC.claim_distribution, null, [
+          { pubkey: C._pdas.config, isSigner: false, isWritable: false },
+          { pubkey: banPda, isSigner: false, isWritable: false },
+          { pubkey: stakePda, isSigner: false, isWritable: true },
+          { pubkey: community, isSigner: false, isWritable: true },
+          { pubkey: antirug, isSigner: false, isWritable: true },
+          { pubkey: claimantAta, isSigner: false, isWritable: true },
+          { pubkey: owner, isSigner: true, isWritable: true },
+          { pubkey: TOK, isSigner: false, isWritable: false },
+        ])]);
+      },
+
+      // buy_tickets(count) for the current round
+      async buyTickets(count, roundId, prizeVaultAta, mdrAta, burnVaultAta) {
+        const C = window.RuggyChain, W = window.solanaWeb3;
+        const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
+        const buyer = wal.pubkey;
+        const TOK = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        const roundPda = W.PublicKey.findProgramAddressSync(
+          [W.Buffer.from('round'), C._encU64(roundId)], C._pdas.programId)[0];
+        const entryPda = W.PublicKey.findProgramAddressSync(
+          [W.Buffer.from('entry'), roundPda.toBuffer(), buyer.toBuffer()], C._pdas.programId)[0];
+        const banPda = W.PublicKey.findProgramAddressSync(
+          [W.Buffer.from('ban'), buyer.toBuffer()], C._pdas.programId)[0];
+        const buyerAta = await C._ata(buyer);
+        return C._send([C._ix(C._DISC.buy_tickets, C._encU32(count), [
+          { pubkey: C._pdas.config, isSigner: false, isWritable: false },
+          { pubkey: banPda, isSigner: false, isWritable: false },
+          { pubkey: roundPda, isSigner: false, isWritable: true },
+          { pubkey: entryPda, isSigner: false, isWritable: true },
+          { pubkey: buyerAta, isSigner: false, isWritable: true },
+          { pubkey: new W.PublicKey(mdrAta), isSigner: false, isWritable: true },
+          { pubkey: new W.PublicKey(burnVaultAta), isSigner: false, isWritable: true },
+          { pubkey: new W.PublicKey(prizeVaultAta), isSigner: false, isWritable: true },
+          { pubkey: buyer, isSigner: true, isWritable: true },
+          { pubkey: TOK, isSigner: false, isWritable: false },
+          { pubkey: W.SystemProgram.programId, isSigner: false, isWritable: false },
+        ])]);
+      },
+
+      // claim_prize(entryStartIndex)
+      async claimPrize(roundId, entryStartIndex, prizeVaultAta) {
+        const C = window.RuggyChain, W = window.solanaWeb3;
+        const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
+        const claimant = wal.pubkey;
+        const TOK = new W.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        const roundPda = W.PublicKey.findProgramAddressSync(
+          [W.Buffer.from('round'), C._encU64(roundId)], C._pdas.programId)[0];
+        const entryPda = W.PublicKey.findProgramAddressSync(
+          [W.Buffer.from('entry'), roundPda.toBuffer(), claimant.toBuffer()], C._pdas.programId)[0];
+        const [prizeVaultPda] = W.PublicKey.findProgramAddressSync(
+          [W.Buffer.from('prize_vault')], C._pdas.programId);
+        const claimantAta = await C._ata(claimant);
+        return C._send([C._ix(C._DISC.claim_prize, C._encU64(entryStartIndex), [
+          { pubkey: C._pdas.config, isSigner: false, isWritable: false },
+          { pubkey: roundPda, isSigner: false, isWritable: true },
+          { pubkey: entryPda, isSigner: false, isWritable: false },
+          { pubkey: prizeVaultPda, isSigner: false, isWritable: false },
+          { pubkey: new W.PublicKey(prizeVaultAta), isSigner: false, isWritable: true },
+          { pubkey: claimantAta, isSigner: false, isWritable: true },
+          { pubkey: claimant, isSigner: true, isWritable: true },
+          { pubkey: TOK, isSigner: false, isWritable: false },
+        ])]);
+      },
     },
   };
 
