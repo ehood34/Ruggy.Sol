@@ -379,6 +379,37 @@ const Lottery = {
         if (await showConfirm(
             `Buy <strong>${amount} ${label} ticket${amount === 1 ? '' : 's'}</strong> for <strong>$${totalCost.toLocaleString()}</strong>?`,
             { okText: `Buy ${label} Tickets` })) {
+
+            // ON-CHAIN: buy tickets for the current round if chain is configured.
+            if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+                try {
+                    const cfg = await RuggyChain.config();
+                    if (!cfg || !cfg.currentRound) {
+                        showToast("No open round", "error", "There isn't an active lottery round on-chain right now.");
+                        return;
+                    }
+                    // pool ATAs (config-owned mdr/burn, prize_vault PDA's ATA) come
+                    // from window.ruggyLotteryPools, populated by the chain refresh.
+                    const pools = window.ruggyLotteryPools || {};
+                    if (!pools.prizeVaultAta || !pools.mdrAta || !pools.burnVaultAta) {
+                        showToast("Lottery pools not loaded", "error", "Pool accounts aren't available yet — try again in a moment.");
+                        return;
+                    }
+                    showToast("Confirm in your wallet…", "success", `Buying ${amount} ${label} ticket(s) on-chain.`);
+                    const sig = await RuggyChain.tx.buyTickets(
+                        amount, cfg.currentRound, pools.prizeVaultAta, pools.mdrAta, pools.burnVaultAta
+                    );
+                    showToast(`Bought ${amount} ${label} ticket(s) on-chain ✓`, "success", "Tx: " + String(sig).slice(0, 8) + "…");
+                    try { await RuggyChain.refreshUI(); } catch (_) {}
+                    renderTicketTables();
+                    return;
+                } catch (e) {
+                    showToast("Ticket purchase failed", "error", (e && e.message) ? e.message : "Transaction rejected.");
+                    return;
+                }
+            }
+
+            // Fallback: localStorage simulation
             const l = this.ledger();
             l[kind] += amount;
             this.saveLedger(l);
@@ -437,20 +468,31 @@ function renderTicketTables() {
     renderTicketRows('weekly', l.weekly, w);
 }
 
+// Deterministic short ticket ID from wallet + round + index → "TKT-9F3A2".
+// Mirrors the backend's identity model (entry = wallet+round, index = position),
+// so the same ticket always shows the same ID on-chain and on the site.
+function ticketId(wallet, round, index) {
+    const str = (wallet || 'guest') + ':' + (round || 0) + ':' + index;
+    let h = 0;
+    for (let i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; }
+    const hex = (h >>> 0).toString(16).toUpperCase().padStart(5, '0').slice(0, 5);
+    return 'TKT-' + hex;
+}
+
 // Build the rows for one draw type's ticket table. If a winning ticket for this
 // wallet exists (Lottery.winnerInfo), float it to the top and glow it by type:
 // weekly=gold, daily=green, consolation=blue. Also shows a withdraw prompt.
 function renderTicketRows(type, count, wallet) {
     const tbody = document.getElementById(type + '-ticket-rows');
     if (!tbody) return;
-    const shortW = wallet ? (wallet.slice(0, 4) + '…' + wallet.slice(-4)) : '—';
+    // current round id for this draw type (from chain if available, else 0)
+    const roundId = (window.ruggyRounds && window.ruggyRounds[type]) || 0;
 
     if (!count || count <= 0) {
         tbody.innerHTML = '<tr><td colspan="2" style="padding:12px; text-align:center; color:#6b7280;">No ' + type + ' tickets yet</td></tr>';
         return;
     }
 
-    // winner info (if any) for THIS draw type: { ticketNumber, drawType }
     const win = (typeof Lottery.winnerInfo === 'function') ? Lottery.winnerInfo(type) : null;
     const glowClass = win
         ? (win.drawType === 'weekly' ? 'winner-row-gold'
@@ -458,26 +500,26 @@ function renderTicketRows(type, count, wallet) {
         : '';
 
     let rows = '';
-    // winning row first (glowing) if present
     if (win && win.ticketNumber != null) {
-        rows += `<tr class="${glowClass}"><td style="padding:8px;">#${win.ticketNumber} 🏆</td><td style="padding:8px;">${shortW}</td></tr>`;
+        const wid = ticketId(wallet, roundId, win.ticketNumber);
+        rows += `<tr class="${glowClass}"><td style="padding:8px;">${wid} 🏆</td><td style="padding:8px;">WINNER</td></tr>`;
     }
-    // the rest of the wallet's tickets
     for (let i = 1; i <= count; i++) {
-        if (win && win.ticketNumber === i) continue; // already shown at top
-        rows += `<tr><td style="padding:8px; color:#cbd5e1;">#${i}</td><td style="padding:8px; color:#94a3b8;">${shortW}</td></tr>`;
+        if (win && win.ticketNumber === i) continue;
+        const tid = ticketId(wallet, roundId, i);
+        rows += `<tr><td style="padding:8px; color:#cbd5e1;">${tid}</td><td style="padding:8px; color:#94a3b8;">${type === 'weekly' ? 'Weekly' : 'Daily'} entry</td></tr>`;
     }
     tbody.innerHTML = rows;
 
-    // winner banner + withdraw prompt
     const banner = document.getElementById('ticket-winner-banner');
     if (banner && win && win.ticketNumber != null) {
         const colors = { weekly: ['#3a2e08', '#fde68a'], daily: ['#06301c', '#86efac'], consolation: ['#04293a', '#7dd3fc'] };
         const c = colors[win.drawType] || colors.weekly;
+        const wid = ticketId(wallet, roundId, win.ticketNumber);
         banner.style.display = 'block';
         banner.style.background = c[0];
         banner.style.color = c[1];
-        banner.innerHTML = `🏆 Ticket #${win.ticketNumber} won the ${win.drawType} draw! <span style="text-decoration:underline; cursor:pointer;" data-action="withdrawWinnings">Withdraw your winnings →</span>`;
+        banner.innerHTML = `🏆 ${wid} won the ${win.drawType} draw! <span style="text-decoration:underline; cursor:pointer;" data-action="withdrawWinnings">Withdraw your winnings →</span>`;
     }
 }
 window.renderTicketTables = renderTicketTables;
@@ -586,6 +628,23 @@ async function stakeRuggy() {
         : await showConfirm(`Stake <strong>${amount.toLocaleString()} $RUGGY</strong> for <strong>${label}</strong> at <strong>${multiplier}x</strong>?`, { okText: 'Confirm Stake' });
     if (!confirmed) return;
 
+    // ON-CHAIN write-path: if the chain is configured, sign a real stake tx.
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        try {
+            showToast("Confirm in your wallet…", "success", "Sending your stake to the chain.");
+            const sig = await RuggyChain.tx.stake(amount, days);
+            if (amountInput) amountInput.value = '';
+            showToast(`Staked ${amount.toLocaleString()} $RUGGY on-chain ✓`, "success", "Tx: " + String(sig).slice(0, 8) + "…");
+            try { await RuggyChain.refreshUI(); } catch (_) {}
+            if (typeof renderActiveStakes === 'function') renderActiveStakes();
+            return;
+        } catch (e) {
+            showToast("Stake failed", "error", (e && e.message) ? e.message : "Transaction rejected.");
+            return;
+        }
+    }
+
+    // Fallback: localStorage simulation (no chain configured / no wallet).
     const stakes = getStakes();
     stakes.push({ amount, days, multiplier, label, date: new Date().toISOString() });
     saveStakes(stakes);
@@ -598,7 +657,59 @@ async function stakeRuggy() {
 // Extend the lock on the connected wallet's most recent stake to the lock period
 // currently selected above. On-chain this calls extend_stake; here it updates the
 // local stake record's lock (the frontend write-path is simulated for now).
-async function extendStake() {
+async function unstakeOne(el) {
+    if (!window.ruggyWallet || !window.ruggyWallet.connected) {
+        showToast("Connect your wallet first to unstake.", "error");
+        showWalletModal();
+        return;
+    }
+    const stakes = getStakes();
+    if (!stakes.length) {
+        showToast("You have no active stake to unstake.", "error");
+        return;
+    }
+    let idx = stakes.length - 1;
+    if (el && el.dataset && el.dataset.stakeIndex != null) {
+        const parsed = parseInt(el.dataset.stakeIndex, 10);
+        if (!isNaN(parsed) && parsed >= 0 && parsed < stakes.length) idx = parsed;
+    }
+    const s = stakes[idx];
+    const days = Number(s.days) || 0;
+    if (days >= 9999) {
+        showToast("Permanent stakes can't be unstaked", "error", "Permanent locks are forever by design.");
+        return;
+    }
+    const amount = Number(s.amount) || 0;
+    const confirmed = await showConfirm(
+        `Unstake <strong>${amount.toLocaleString()} $RUGGY</strong> from your <strong>${s.label}</strong> lock?` +
+        `<br><br><span style="color:#9ca3af;font-size:13px;">If the lock period hasn't elapsed, the chain will reject this until it unlocks.</span>`,
+        { okText: 'Unstake', danger: true });
+    if (!confirmed) return;
+
+    // ON-CHAIN unstake
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        try {
+            showToast("Confirm in your wallet…", "success", "Unstaking on-chain.");
+            const sig = await RuggyChain.tx.unstake(amount, days);
+            showToast(`Unstaked ${amount.toLocaleString()} $RUGGY \u2713`, "success", "Tx: " + String(sig).slice(0, 8) + "…");
+            try { await RuggyChain.refreshUI(); } catch (_) {}
+            if (typeof renderActiveStakes === 'function') renderActiveStakes();
+            return;
+        } catch (e) {
+            showToast("Unstake failed", "error", (e && e.message) ? e.message : "Lock may not have elapsed yet.");
+            return;
+        }
+    }
+
+    // Fallback: localStorage simulation
+    stakes.splice(idx, 1);
+    saveStakes(stakes);
+    renderActiveStakes();
+    showToast(`Unstaked ${amount.toLocaleString()} $RUGGY`, "success");
+}
+window.unstakeOne = unstakeOne;
+
+async function extendStake(el) {
     if (!window.ruggyWallet || !window.ruggyWallet.connected) {
         showToast("Connect your wallet first to extend a stake.", "error");
         showWalletModal();
@@ -609,22 +720,43 @@ async function extendStake() {
         showToast("You have no active stake to extend. Stake first.", "error");
         return;
     }
+    // Which stake? If an Extend button was clicked it carries data-stake-index;
+    // otherwise default to the most recent stake.
+    let idx = stakes.length - 1;
+    if (el && el.dataset && el.dataset.stakeIndex != null) {
+        const parsed = parseInt(el.dataset.stakeIndex, 10);
+        if (!isNaN(parsed) && parsed >= 0 && parsed < stakes.length) idx = parsed;
+    }
     const newDays = parseInt(document.getElementById('stake-days')?.value) || 365;
     const newMult = parseFloat(document.getElementById('stake-multiplier')?.value) || 3.0;
-    // extend the LAST (most recent) stake; must be a longer lock
-    const idx = stakes.length - 1;
     const current = stakes[idx];
     if (newDays <= (current.days || 0)) {
-        showToast("Pick a LONGER lock period above than your current lock.", "error",
-            `Current lock is ${current.days} days — choose something longer to extend.`);
+        showToast("Pick a LONGER lock period above than this stake's lock.", "error",
+            `This stake is locked ${current.days} days — choose something longer to extend it.`);
         return;
     }
     const label = newDays >= 9999 ? 'Permanent' : (newDays >= 365 ? '1 Year' : newDays + ' Days');
     const confirmed = newDays >= 9999
-        ? await showConfirm("Extending to <strong>Permanent</strong> locks this stake <strong>forever</strong>. Continue?", { okText: 'Lock Forever', danger: true })
-        : await showConfirm(`Extend your lock from <strong>${current.days} days</strong> to <strong>${label}</strong> (${newMult}x)?`, { okText: 'Extend Lock' });
+        ? await showConfirm(`Extend this <strong>${Number(current.amount).toLocaleString()} $RUGGY</strong> stake to <strong>Permanent</strong> (locked forever)?`, { okText: 'Lock Forever', danger: true })
+        : await showConfirm(`Extend this <strong>${Number(current.amount).toLocaleString()} $RUGGY</strong> stake from <strong>${current.days} days</strong> to <strong>${label}</strong> (${newMult}x)?`, { okText: 'Extend Lock' });
     if (!confirmed) return;
 
+    // ON-CHAIN: extend a specific bucket (from current lock -> new longer lock).
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        try {
+            showToast("Confirm in your wallet…", "success", "Extending your lock on-chain.");
+            const sig = await RuggyChain.tx.extend(current.days, newDays);
+            showToast(`Lock extended to ${label} on-chain ✓`, "success", "Tx: " + String(sig).slice(0, 8) + "…");
+            try { await RuggyChain.refreshUI(); } catch (_) {}
+            if (typeof renderActiveStakes === 'function') renderActiveStakes();
+            return;
+        } catch (e) {
+            showToast("Extend failed", "error", (e && e.message) ? e.message : "Transaction rejected.");
+            return;
+        }
+    }
+
+    // Fallback: localStorage simulation
     stakes[idx].days = newDays;
     stakes[idx].multiplier = newMult;
     stakes[idx].label = label;
@@ -644,8 +776,31 @@ async function withdrawWinnings() {
         showWalletModal();
         return;
     }
+    // ON-CHAIN claim_prize
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        try {
+            const win = (window.ruggyWinners && (window.ruggyWinners.weekly || window.ruggyWinners.daily)) || null;
+            const pools = window.ruggyLotteryPools || {};
+            if (!win || win.roundId == null || win.entryStartIndex == null) {
+                showToast("No claimable prize found", "error", "Winner details aren't loaded yet.");
+                return;
+            }
+            if (!pools.prizeVaultAta) {
+                showToast("Prize vault not loaded", "error", "Try again in a moment.");
+                return;
+            }
+            showToast("Confirm in your wallet…", "success", "Claiming your prize on-chain.");
+            const sig = await RuggyChain.tx.claimPrize(win.roundId, win.entryStartIndex, pools.prizeVaultAta);
+            showToast("Prize claimed on-chain ✓", "success", "Tx: " + String(sig).slice(0, 8) + "…");
+            try { await RuggyChain.refreshUI(); } catch (_) {}
+            return;
+        } catch (e) {
+            showToast("Withdraw failed", "error", (e && e.message) ? e.message : "Transaction rejected.");
+            return;
+        }
+    }
     showToast("Withdraw winnings", "success",
-        "Your prize claim will be submitted on-chain. (Claim transaction wiring comes with the write-path step.)");
+        "Your prize claim will be submitted on-chain once a round you won is loaded.");
 }
 
 // Total $RUGGY currently staked by the connected wallet (sum of stake list).
@@ -730,7 +885,6 @@ function renderActiveStakes() {
     if (typeof renderStakeDonut === 'function') renderStakeDonut();
     if (!box) return;
 
-    // Stakes are wallet-scoped: show nothing (and a hint) when disconnected.
     const connected = !!(window.ruggyWallet && window.ruggyWallet.connected);
     if (!connected) {
         box.innerHTML = '<span style="color:#6b7280;">Connect your wallet to view your stakes.</span>';
@@ -743,14 +897,58 @@ function renderActiveStakes() {
         return;
     }
 
-    box.innerHTML = stakes.map(s => {
+    // ----- totals + per-lock-option breakdown -----
+    const total = stakes.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+    const byBucket = {};
+    stakes.forEach(s => {
+        const d = Number(s.days) || 0;
+        byBucket[d] = (byBucket[d] || 0) + (Number(s.amount) || 0);
+    });
+    const tierLabel = (d) => d >= 9999 ? 'Permanent' : d >= 365 ? '1 Year' : d >= 180 ? '6 Months'
+        : d >= 30 ? '1 Month' : d >= 7 ? '1 Week' : d >= 3 ? '3 Day' : d + ' Day';
+
+    let header = `
+        <div style="background:#04210f; border:1px solid #16a34a; border-radius:10px; padding:14px; margin-bottom:14px;">
+            <div style="text-align:center; margin-bottom:10px;">
+                <div class="muted-sm">Total Locked by This Wallet</div>
+                <div style="font-size:26px; font-weight:bold; color:#22c55e;">${total.toLocaleString()} $RUGGY</div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px;">`;
+    Object.keys(byBucket).sort((a,b)=>a-b).forEach(d => {
+        const isGold = Number(d) >= 9999, isGreen = Number(d) === 365;
+        const col = isGold ? '#fbbf24' : isGreen ? '#22c55e' : '#86efac';
+        header += `
+            <div style="background:#0a2a14; border-radius:8px; padding:8px; text-align:center;">
+                <div style="font-size:11px; color:#9ca3af;">${tierLabel(Number(d))}</div>
+                <div style="font-size:15px; font-weight:bold; color:${col};">${byBucket[d].toLocaleString()}</div>
+            </div>`;
+    });
+    header += `</div></div>`;
+
+    // ----- individual stake rows, each with its own Extend button -----
+    const rows = stakes.map((s, i) => {
         const tag = s.absolution ? ' <span style="color:#f59e0b;">(Absolution)</span>' : '';
+        const ext = s.extendedAt ? ' <span style="color:#0ea5e9; font-size:11px;">↑ extended</span>' : '';
+        const canExtend = (Number(s.days) || 0) < 9999;
+        const isPermanent = (Number(s.days) || 0) >= 9999;
+        const btn = canExtend
+            ? `<button data-action="extendStake" data-stake-index="${i}" class="buy-button" style="background:#0369a1; padding:5px 10px; font-size:11px; border-radius:6px;">⏱ Extend</button>`
+            : `<span style="color:#fbbf24; font-size:11px;">🔒 Permanent</span>`;
+        const unstakeBtn = isPermanent
+            ? ''
+            : `<button data-action="unstakeOne" data-stake-index="${i}" class="buy-button" style="background:#7f1d1d; padding:5px 10px; font-size:11px; border-radius:6px;">↩ Unstake</button>`;
         return `
-        <div style="display:flex; justify-content:space-between; padding:8px 10px; background:#0a2a14; border-radius:6px; margin-bottom:6px;">
-            <span>${Number(s.amount).toLocaleString()} $RUGGY${tag}</span>
-            <span style="color:#86efac;">${s.label} \u2022 ${s.multiplier}x</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:#0a2a14; border-radius:6px; margin-bottom:6px;">
+            <span>${Number(s.amount).toLocaleString()} $RUGGY${tag}${ext}</span>
+            <span style="display:flex; gap:10px; align-items:center;">
+                <span style="color:#86efac;">${s.label} \u2022 ${s.multiplier}x</span>
+                ${btn}
+                ${unstakeBtn}
+            </span>
         </div>`;
     }).join('');
+
+    box.innerHTML = header + rows;
 }
 window.addEventListener('load', renderActiveStakes);
 
@@ -2058,7 +2256,7 @@ document.addEventListener('keydown', function(e) {
 // delegated handler via data-action. The whitelist prevents data
 // attributes from invoking arbitrary global functions.
 const UI_ACTION_WHITELIST = new Set([
-    'stakeRuggy', 'extendStake', 'withdrawWinnings', 'buyLottoTickets', 'claimDailyFreeTicket', 'claimFromVault',
+    'stakeRuggy', 'extendStake', 'unstakeOne', 'withdrawWinnings', 'buyLottoTickets', 'claimDailyFreeTicket', 'claimFromVault',
     'checkRewardsEligibility', 'checkLockedBanStatus', 'calculateAbsolutionStake',
     'submitAbsolutionStake', 'buyOnPumpFun', 'copyTokenCA', 'scrollToTop',
     'closeImageModal', 'closeDeveloperModal', 'closeWalletConnectBar',
@@ -2120,7 +2318,7 @@ document.addEventListener('click', function(e) {
             break;
         default:
             if (UI_ACTION_WHITELIST.has(action) && typeof window[action] === 'function') {
-                window[action]();
+                window[action](el);
             }
     }
     } catch (err) {
