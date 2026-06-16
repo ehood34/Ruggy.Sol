@@ -274,7 +274,6 @@
       if (!(await this._ensureReady())) return [];
       try {
         const W = window.solanaWeb3;
-        // BanAccount LEN is 125; filter by dataSize so we only get ban accounts.
         const accts = await this._conn.getProgramAccounts(this._pdas.programId, {
           filters: [{ dataSize: 125 }],
         });
@@ -296,6 +295,34 @@
         return out;
       } catch (e) {
         console.warn('[Ruggy.Chain] allBans scan failed:', e.message);
+        return [];
+      }
+    },
+
+    // ---- ALL stakers (for the Hall). Scans every StakeAccount (dataSize 209)
+    //      and returns wallets + total staked, sorted high to low. ----
+    async allStakers() {
+      if (!(await this._ensureReady())) return [];
+      try {
+        const W = window.solanaWeb3;
+        const accts = await this._conn.getProgramAccounts(this._pdas.programId, {
+          filters: [{ dataSize: 209 }],   // StakeAccount::LEN
+        });
+        const out = [];
+        for (const { account } of accts) {
+          try {
+            const data = account.data;
+            const d = new DataView(data.buffer, data.byteOffset, data.byteLength);
+            const ownerBytes = new Uint8Array(d.buffer, d.byteOffset + 8, 32);
+            const owner = new W.PublicKey(ownerBytes).toBase58();
+            const amount = this._u64(d, 40); // total staked (base units)
+            if (amount > 0) out.push({ wallet: owner, staked: amount });
+          } catch (_) { /* skip malformed */ }
+        }
+        out.sort((a, b) => b.staked - a.staked);
+        return out;
+      } catch (e) {
+        console.warn('[Ruggy.Chain] allStakers scan failed:', e.message);
         return [];
       }
     },
@@ -364,6 +391,17 @@
         console.warn('[Ruggy.Chain] wall sync failed:', e.message);
       }
 
+      // ---- Sync the Hall (Top Holders / Stakers) from LIVE stake accounts ----
+      try {
+        const stakers = await this.allStakers();
+        window.ruggyChainStakers = stakers;
+        if (typeof window.setHallFromChain === 'function') {
+          window.setHallFromChain(stakers);
+        }
+      } catch (e) {
+        console.warn('[Ruggy.Chain] hall sync failed:', e.message);
+      }
+
       // ---- Expose pool ATAs the write-path needs (same accounts the test
       //      scripts derive). Reward pools: community = Config's ATA, anti-rug =
       //      a Config-owned account via createWithSeed. Lottery: prize/burn/mdr. ----
@@ -419,7 +457,7 @@
     // 5 distinct numbers 1..=35 from a 64-bit seed (matches lotto_numbers)
     lottoNumbers(seedBig) {
       let s = (seedBig === 0n) ? 0xD1B54A32D192ED03n : (seedBig & this._MASK64);
-      const out = []; const MAX = 35n;
+      const out = []; const MAX = 15n;
       while (out.length < 5) {
         s = this._xorshift(s);
         const n = Number((s % MAX) + 1n);
