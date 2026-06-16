@@ -333,6 +333,28 @@ async function claimFromVault() {
     );
 
     if (confirmed) {
+        // ON-CHAIN claim_distribution
+        if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+            try {
+                const pools = window.ruggyRewardPools || {};
+                if (!pools.communityAta || !pools.antirugAta) {
+                    showToast("Reward pools not loaded", "error", "Pool accounts aren't available yet — try again shortly.");
+                    return;
+                }
+                showToast("Confirm in your wallet…", "success", "Claiming your rewards on-chain.");
+                const sig = await RuggyChain.tx.claimRewards(pools.communityAta, pools.antirugAta);
+                claimHistory.unshift({ date: new Date().toLocaleString(), amount: 0, type: "Distribution", tx: String(sig).slice(0, 12) + "…" });
+                if (claimHistory.length > 8) claimHistory.pop();
+                renderClaimHistory();
+                try { await RuggyChain.refreshUI(); } catch (_) {}
+                showToast("Rewards claimed on-chain ✓", "success", "Tx: " + String(sig).slice(0, 8) + "…");
+                return;
+            } catch (e) {
+                showToast("Claim failed", "error", (e && e.message) ? e.message : "Transaction rejected.");
+                return;
+            }
+        }
+
         const amount = Math.floor(Math.random() * 85000) + 15000;
         const newClaim = {
             date: new Date().toLocaleString(),
