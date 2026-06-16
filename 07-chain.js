@@ -23,11 +23,15 @@
       const a = (window.RUGGY_SETTINGS && window.RUGGY_SETTINGS.chain) || {};
       const b = (window.CONFIG && window.CONFIG.chain) || {};
       const c = Object.assign({}, a, b); // b (CONFIG.chain) overrides a
+      // Deployed devnet program + mint (defaults so the site reads chain
+      // out-of-the-box; Admin panel can still override these).
+      const DEFAULT_PROGRAM = '7YFqpu3HbWWrsZTWdfYjh55Wy6b2baaaXBZXZiXB6wN3';
+      const DEFAULT_MINT = '2z3wVr3P6meXoWX9xjLjUBvCk283wgswqN5AvAt9jFcc';
       return {
-        enabled: !!c.enabled,
+        enabled: c.enabled !== undefined ? !!c.enabled : true,
         rpc: c.rpc || 'https://api.devnet.solana.com',
-        programId: c.programId || '',
-        mint: c.mint || '',
+        programId: c.programId || DEFAULT_PROGRAM,
+        mint: c.mint || DEFAULT_MINT,
       };
     },
 
@@ -107,39 +111,59 @@
       return hi * 4294967296 + lo;
     },
 
-    // ---- Config (offsets after 8-byte discriminator) ----
+    // ---- Config (offsets after 8-byte discriminator). Layout matches the
+    //      deployed program's Config struct (LEN 222). ----
     async config() {
       if (!(await this._ensureReady())) return null;
       const d = await this._account(this._pdas.config);
       if (!d) return null;
       return {
-        authority:          this._pk(d, 8),
-        mint:               this._pk(d, 40),
-        mdrWallet:          this._pk(d, 72),
-        communityThreshold: this._u64(d, 104),
-        antirugThreshold:   this._u64(d, 112),
-        burnBps:            d.getUint16(120, true),
-        communityBps:       d.getUint16(122, true),
-        antirugBps:         d.getUint16(124, true),
-        mdrBps:             d.getUint16(126, true),
-        burnStakeThreshold: this._u64(d, 128),
-        totalDistributed:   this._u64(d, 136),
-        totalStaked:        this._u64(d, 144),
-        paused:             d.getUint8(152) === 1,
+        authority:           this._pk(d, 8),
+        mint:                this._pk(d, 40),
+        mdrWallet:           this._pk(d, 72),
+        communityThreshold:  this._u64(d, 104),
+        antirugThreshold:    this._u64(d, 112),
+        burnBps:             d.getUint16(120, true),
+        communityBps:        d.getUint16(122, true),
+        antirugBps:          d.getUint16(124, true),
+        mdrBps:              d.getUint16(126, true),
+        burnStakeThreshold:  this._u64(d, 128),
+        absolutionStakeBps:  d.getUint16(136, true),
+        absolutionLockDays:  d.getUint32(138, true),
+        ticketPrice:         this._u64(d, 142),
+        lotteryMarketingBps: d.getUint16(150, true),
+        lotteryBurnBps:      d.getUint16(152, true),
+        roundCounter:        this._u64(d, 154),
+        currentRound:        this._u64(d, 162),
+        totalDistributed:    this._u64(d, 170),
+        totalStaked:         this._u64(d, 178),
+        // accumulators are u128 (16 bytes) — read as two u64 halves if needed
+        paused:              d.getUint8(218) === 1,
+        bump:                d.getUint8(219),
+        vaultBump:           d.getUint8(220),
+        prizeVaultBump:      d.getUint8(221),
       };
     },
 
-    // ---- A wallet's stake position (or null if none) ----
+    // ---- A wallet's stake position (or null if none). Bucketed layout (LEN 201). ----
     async stakeOf(walletB58) {
       if (!(await this._ensureReady())) return null;
       try {
         const d = await this._account(this._pdas.stakeOf(walletB58));
         if (!d) return null;
+        const TIERS = [1, 7, 30, 180, 365, 9999];
+        // buckets: [u64;6] at offset 48 (8 bytes each)
+        const buckets = [];
+        for (let i = 0; i < 6; i++) {
+          buckets.push({ lockDays: TIERS[i], amount: this._u64(d, 48 + i * 8) });
+        }
         return {
-          owner:      this._pk(d, 8),
-          amount:     this._u64(d, 40),
-          lockDays:   d.getUint32(48, true),
-          lastUpdate: this._u64(d, 52),
+          owner:            this._pk(d, 8),
+          amount:           this._u64(d, 40),        // total across buckets
+          buckets,                                    // per-tier breakdown
+          lastUpdate:       this._u64(d, 144),
+          pendingCommunity: this._u64(d, 184),
+          pendingAntirug:   this._u64(d, 192),
         };
       } catch (_) { return null; }
     },
@@ -164,6 +188,59 @@
       };
     },
 
+    // ---- A wallet's ban record (or null if not banned) ----
+    async banOf(walletB58) {
+      if (!(await this._ensureReady())) return null;
+      try {
+        const W = window.solanaWeb3;
+        const seed = (str) => (W.Buffer ? W.Buffer.from(str, 'utf8') : new TextEncoder().encode(str));
+        const banPda = W.PublicKey.findProgramAddressSync(
+          [seed('ban'), new W.PublicKey(walletB58).toBuffer()], this._pdas.programId
+        )[0];
+        const d = await this._account(banPda);
+        if (!d) return null; // no account = not banned
+        // BanAccount: wallet@8, rugged_usd@40, banned_at@48, reason(string)@56
+        const ruggedUsd = this._u64(d, 40);
+        const bannedAt = this._u64(d, 48);
+        const reasonLen = d.getUint32(56, true);
+        let reason = '';
+        for (let i = 0; i < reasonLen; i++) reason += String.fromCharCode(d.getUint8(60 + i));
+        return { wallet: walletB58, ruggedUsd, bannedAt, reason };
+      } catch (_) { return null; }
+    },
+
+    // ---- ALL banned wallets (for the Wall). Scans every BanAccount the
+    //      program owns via getProgramAccounts. Returns [] if none / on error.
+    async allBans() {
+      if (!(await this._ensureReady())) return [];
+      try {
+        const W = window.solanaWeb3;
+        // BanAccount LEN is 125; filter by dataSize so we only get ban accounts.
+        const accts = await this._conn.getProgramAccounts(this._pdas.programId, {
+          filters: [{ dataSize: 125 }],
+        });
+        const out = [];
+        for (const { account } of accts) {
+          try {
+            const data = account.data;
+            const d = new DataView(data.buffer, data.byteOffset, data.byteLength);
+            const walletBytes = new Uint8Array(d.buffer, d.byteOffset + 8, 32);
+            const wallet = new W.PublicKey(walletBytes).toBase58();
+            const ruggedUsd = this._u64(d, 40);
+            const bannedAt = this._u64(d, 48);
+            const reasonLen = d.getUint32(56, true);
+            let reason = '';
+            for (let i = 0; i < reasonLen && i < 64; i++) reason += String.fromCharCode(d.getUint8(60 + i));
+            out.push({ wallet, ruggedUsd, bannedAt, reason });
+          } catch (_) { /* skip malformed */ }
+        }
+        return out;
+      } catch (e) {
+        console.warn('[Ruggy.Chain] allBans scan failed:', e.message);
+        return [];
+      }
+    },
+
     // ---- Pool-wide totals for the donut / stats (live) ----
     async poolTotals() {
       const cfg = await this.config();
@@ -182,7 +259,24 @@
       const fmt = (n) => Number(n / 1e6).toLocaleString(undefined, { maximumFractionDigits: 0 });
       const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
 
-      // Pool page stats (were "Loading...")
+      // Make the homepage market-cap widget use our on-chain mint as the CA,
+      // and kick off its Dexscreener live tracking. (Price/mcap only appear once
+      // the token actually trades on a DEX — on devnet there's no pool, so those
+      // stay "—" until mainnet liquidity exists. The CA prompt clears though.)
+      const mint = this.settings.mint;
+      if (mint) {
+        try {
+          window.CONFIG = window.CONFIG || {};
+          if (CONFIG.tokenMint !== mint) {
+            CONFIG.tokenMint = mint;
+            if (typeof startLiveTracking === 'function') startLiveTracking();
+          }
+        } catch (_) {}
+        // show the CA on the page if there's a slot for it
+        set('home-token-name', (CONFIG && CONFIG.tokenName) ? CONFIG.tokenName : 'RUGGY');
+      }
+
+      // Pool page stats (were "Loading...") — these ARE on-chain
       set('pool-burned', fmt(cfg.totalDistributed * cfg.burnBps / 10000) + ' 🔥');
       set('pool-holders', fmt(cfg.totalStaked) + ' staked');
       set('pool-volume', fmt(cfg.totalDistributed));
@@ -198,6 +292,20 @@
       if (typeof window.renderStakeDonut === 'function') {
         try { window.renderStakeDonut(); } catch (_) {}
       }
+
+      // ---- Sync the Wall from LIVE on-chain bans (replaces localStorage) ----
+      try {
+        const bans = await this.allBans();
+        if (typeof window.setBannedWallFromChain === 'function') {
+          window.setBannedWallFromChain(bans);
+        } else {
+          // fallback: stash for whenever the renderer is ready
+          window.ruggyChainBans = bans;
+        }
+      } catch (e) {
+        console.warn('[Ruggy.Chain] wall sync failed:', e.message);
+      }
+
       console.log('[Ruggy.Chain] UI refreshed with live data');
       return true;
     },
