@@ -164,7 +164,66 @@
           lastUpdate:       this._u64(d, 144),
           pendingCommunity: this._u64(d, 184),
           pendingAntirug:   this._u64(d, 192),
+          lastFreeTicket:   this._u64(d, 200),
         };
+      } catch (_) { return null; }
+    },
+
+    // ---- A lottery round's live state (winning numbers + pools) ----
+    async roundInfo(roundId) {
+      if (!(await this._ensureReady())) return null;
+      try {
+        const W = window.solanaWeb3;
+        const roundPda = W.PublicKey.findProgramAddressSync(
+          [this._seed('round'), this._encU64(roundId)], this._pdas.programId)[0];
+        const d = await this._account(roundPda);
+        if (!d) return null;
+        const winningNumbers = [];
+        for (let i = 0; i < 5; i++) winningNumbers.push(d.getUint8(95 + i));
+        return {
+          id:              this._u64(d, 8),
+          drawType:        d.getUint8(16),     // 1=daily, 2=weekly
+          prizePool:       this._u64(d, 17),
+          ticketCount:     this._u64(d, 25),
+          entrantCount:    this._u64(d, 33),
+          startTs:         this._u64(d, 41),
+          endTs:           this._u64(d, 49),
+          state:           d.getUint8(57),     // 0 open,1 closed,2 drawn
+          consolationPool: this._u64(d, 100),
+          drawn:           d.getUint8(108) === 1,
+          winningNumbers,                      // [n,n,n,n,n] once drawn
+        };
+      } catch (_) { return null; }
+    },
+
+    // ---- A wallet's entry in a round (ticket count + seed for number derive) ----
+    async entryInfo(roundId, walletB58) {
+      if (!(await this._ensureReady())) return null;
+      try {
+        const W = window.solanaWeb3;
+        const roundPda = W.PublicKey.findProgramAddressSync(
+          [this._seed('round'), this._encU64(roundId)], this._pdas.programId)[0];
+        const wallet = new W.PublicKey(walletB58);
+        const entryPda = W.PublicKey.findProgramAddressSync(
+          [this._seed('entry'), roundPda.toBuffer(), wallet.toBuffer()], this._pdas.programId)[0];
+        const d = await this._account(entryPda);
+        if (!d) return null;
+        // EntryAccount: round@8, wallet@40, tickets@72, free_tickets@80,
+        //   ticket_seed@88, claimed@96, bump@97
+        const tickets = this._u64(d, 72);
+        const freeTickets = this._u64(d, 80);
+        const seedLo = d.getUint32(88, true), seedHi = d.getUint32(92, true);
+        const ticketSeedBig = (BigInt(seedHi) << 32n) | BigInt(seedLo);
+        const claimed = d.getUint8(96) === 1;
+        // derive this entry's ticket numbers (one set of 5 per ticket). Paid
+        // tickets come first, then free tickets (top indices).
+        const ticketsNums = [];
+        for (let k = 0; k < tickets; k++) {
+          const ts = this.ticketSeed(ticketSeedBig, k);
+          ticketsNums.push(this.lottoNumbers(ts));
+        }
+        const paidCount = tickets - freeTickets;
+        return { tickets, freeTickets, paidCount, ticketSeed: ticketSeedBig, claimed, ticketsNums };
       } catch (_) { return null; }
     },
 
@@ -348,6 +407,41 @@
     // instructions by hand: 8-byte discriminator + borsh args + account metas.
     // ========================================================================
 
+    // ---- 5-number lotto helpers (match the program EXACTLY via BigInt) ----
+    _MASK64: (1n << 64n) - 1n,
+    _xorshift(s) {
+      const M = this._MASK64;
+      s ^= (s << 13n) & M; s &= M;
+      s ^= (s >> 7n);      s &= M;
+      s ^= (s << 17n) & M; s &= M;
+      return s;
+    },
+    // 5 distinct numbers 1..=35 from a 64-bit seed (matches lotto_numbers)
+    lottoNumbers(seedBig) {
+      let s = (seedBig === 0n) ? 0xD1B54A32D192ED03n : (seedBig & this._MASK64);
+      const out = []; const MAX = 35n;
+      while (out.length < 5) {
+        s = this._xorshift(s);
+        const n = Number((s % MAX) + 1n);
+        if (!out.includes(n)) out.push(n);
+      }
+      return out;
+    },
+    // per-ticket seed (matches ticket_seed)
+    ticketSeed(entrySeedBig, ticketIndex) {
+      const M = this._MASK64;
+      let s = (entrySeedBig
+        + (BigInt(ticketIndex) * 0x9E3779B97F4A7C15n)) & M;
+      s = (s * 0xC2B2AE3D27D4EB4Fn) & M;
+      s ^= (s >> 33n); s &= M;
+      return (s === 0n) ? 0xABCDEF0123456789n : s;
+    },
+    countMatches(ticketNums, winningNums) {
+      let m = 0;
+      for (const n of ticketNums) if (winningNums.includes(n)) m++;
+      return m;
+    },
+
     // Anchor discriminators (first 8 bytes of sha256("global:<name>")).
     _DISC: {
       open_stake:         [136, 215, 163, 130, 234, 194, 229, 229],
@@ -355,6 +449,7 @@
       extend_stake:       [70, 33, 150, 252, 104, 136, 238, 16],
       unstake:            [90, 95, 107, 42, 205, 124, 50, 225],
       buy_tickets:        [48, 16, 122, 137, 24, 214, 198, 58],
+      claim_free_ticket:  [85, 181, 122, 25, 240, 20, 104, 82],
       claim_distribution: [204, 156, 94, 85, 2, 125, 232, 180],
       claim_prize:        [157, 233, 139, 121, 246, 62, 234, 235],
     },
@@ -576,8 +671,55 @@
         ])]);
       },
 
+      // claim_free_ticket() — one free DAILY ticket per 24h, staking required.
+      // roundId must be the current DAILY round.
+      async claimFreeTicket(roundId) {
+        const C = window.RuggyChain, W = window.solanaWeb3;
+        const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
+        const claimant = wal.pubkey;
+        const stakePda = C._pdas.stakeOf(claimant.toBase58());
+        const banPda = W.PublicKey.findProgramAddressSync(
+          [C._seed('ban'), claimant.toBuffer()], C._pdas.programId)[0];
+        const roundPda = W.PublicKey.findProgramAddressSync(
+          [C._seed('round'), C._encU64(roundId)], C._pdas.programId)[0];
+        const entryPda = W.PublicKey.findProgramAddressSync(
+          [C._seed('entry'), roundPda.toBuffer(), claimant.toBuffer()], C._pdas.programId)[0];
+        return C._send([C._ix(C._DISC.claim_free_ticket, null, [
+          { pubkey: C._pdas.config, isSigner: false, isWritable: false },
+          { pubkey: banPda, isSigner: false, isWritable: false },
+          { pubkey: stakePda, isSigner: false, isWritable: true },
+          { pubkey: roundPda, isSigner: false, isWritable: true },
+          { pubkey: entryPda, isSigner: false, isWritable: true },
+          { pubkey: claimant, isSigner: true, isWritable: true },
+          { pubkey: W.SystemProgram.programId, isSigner: false, isWritable: false },
+        ])]);
+      },
+
+      // claim_free_ticket() — one free DAILY ticket per 24h, staking required.
+      async claimFreeTicket(roundId) {
+        const C = window.RuggyChain, W = window.solanaWeb3;
+        const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
+        const claimant = wal.pubkey;
+        const stakePda = C._pdas.stakeOf(claimant.toBase58());
+        const banPda = W.PublicKey.findProgramAddressSync(
+          [C._seed('ban'), claimant.toBuffer()], C._pdas.programId)[0];
+        const roundPda = W.PublicKey.findProgramAddressSync(
+          [C._seed('round'), C._encU64(roundId)], C._pdas.programId)[0];
+        const entryPda = W.PublicKey.findProgramAddressSync(
+          [C._seed('entry'), roundPda.toBuffer(), claimant.toBuffer()], C._pdas.programId)[0];
+        return C._send([C._ix(C._DISC.claim_free_ticket, null, [
+          { pubkey: C._pdas.config, isSigner: false, isWritable: false },
+          { pubkey: banPda, isSigner: false, isWritable: false },
+          { pubkey: stakePda, isSigner: false, isWritable: true },
+          { pubkey: roundPda, isSigner: false, isWritable: true },
+          { pubkey: entryPda, isSigner: false, isWritable: true },
+          { pubkey: claimant, isSigner: true, isWritable: true },
+          { pubkey: W.SystemProgram.programId, isSigner: false, isWritable: false },
+        ])]);
+      },
+
       // claim_prize(entryStartIndex)
-      async claimPrize(roundId, entryStartIndex, prizeVaultAta) {
+      async claimPrize(roundId, ticketIndex, prizeVaultAta) {
         const C = window.RuggyChain, W = window.solanaWeb3;
         const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
         const claimant = wal.pubkey;
@@ -589,10 +731,10 @@
         const [prizeVaultPda] = W.PublicKey.findProgramAddressSync(
           [C._seed('prize_vault')], C._pdas.programId);
         const claimantAta = await C._ata(claimant);
-        return C._send([C._ix(C._DISC.claim_prize, C._encU64(entryStartIndex), [
+        return C._send([C._ix(C._DISC.claim_prize, C._encU64(ticketIndex), [
           { pubkey: C._pdas.config, isSigner: false, isWritable: false },
           { pubkey: roundPda, isSigner: false, isWritable: true },
-          { pubkey: entryPda, isSigner: false, isWritable: false },
+          { pubkey: entryPda, isSigner: false, isWritable: true },
           { pubkey: prizeVaultPda, isSigner: false, isWritable: false },
           { pubkey: new W.PublicKey(prizeVaultAta), isSigner: false, isWritable: true },
           { pubkey: claimantAta, isSigner: false, isWritable: true },
