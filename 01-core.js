@@ -1342,12 +1342,15 @@ function getPoolStakeTotals() {
             for (const s of list) add(s.days, s.amount);
         }
     } catch (_) {}
-    // 2) Representative demo pool baseline (only when NOT connected to chain),
-    //    so the wheel always shows a populated pool in local/demo mode.
-    const demo = (typeof CONFIG !== 'undefined' && CONFIG.demoPoolStakes) || {
-        1: 4200000, 7: 9800000, 30: 18500000, 180: 26000000, 365: 41000000, 9999: 63000000
-    };
-    for (const d in demo) add(d, demo[d]);
+    // 2) Demo baseline ONLY when NOT connected to chain. When chain is on, we
+    //    must show real data (even if zero) — never the demo numbers.
+    const chainOn = !!(window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured());
+    if (!chainOn) {
+        const demo = (typeof CONFIG !== 'undefined' && CONFIG.demoPoolStakes) || {
+            1: 4200000, 7: 9800000, 30: 18500000, 180: 26000000, 365: 41000000, 9999: 63000000
+        };
+        for (const d in demo) add(d, demo[d]);
+    }
     return totalsByDays;
 }
 
