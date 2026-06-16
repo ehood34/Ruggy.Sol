@@ -439,11 +439,37 @@
         set('home-token-name', (CONFIG && CONFIG.tokenName) ? CONFIG.tokenName : 'RUGGY');
       }
 
-      // Pool page stats (were "Loading...") — these ARE on-chain
-      set('pool-burned', fmt(cfg.totalDistributed * cfg.burnBps / 10000) + ' 🔥');
-      set('pool-holders', fmt(cfg.totalStaked) + ' staked');
-      set('pool-volume', fmt(cfg.totalDistributed));
-      set('pool-liquidity', fmt(cfg.totalStaked));
+      // Pool page stats — derive from the LIVE per-bucket totals (same data the
+      // donut uses) so the numbers MATCH the donut. All bucket values are base
+      // units (1e6), so divide to show whole tokens.
+      const fmtTok = (base) => fmt(Math.round(Number(base) / 1e6));
+      let buckets = window.ruggyPoolBuckets;
+      if (!buckets) { try { buckets = await this.poolBuckets(); window.ruggyPoolBuckets = buckets; } catch (_) {} }
+      if (buckets) {
+        const tiers = [1, 7, 30, 180, 365, 9999];
+        const totalStakedBase = tiers.reduce((s, t) => s + (Number(buckets[t]) || 0), 0);
+        const permanentBase = Number(buckets[9999]) || 0; // permanent stakes
+        // Burned/Staked in LP = permanent stakes + tokens sitting in the burn vault
+        let burnVaultBase = 0;
+        try {
+          const W = window.solanaWeb3;
+          const [bvPda] = W.PublicKey.findProgramAddressSync([this._seed('burn_vault')], this._pdas.programId);
+          const bvAta = await this._ata(bvPda);
+          const bal = await this._conn.getTokenAccountBalance(bvAta);
+          burnVaultBase = Number(bal?.value?.amount || 0);
+        } catch (_) {}
+        const burnedStakedBase = permanentBase + burnVaultBase;
+        set('pool-liquidity', fmtTok(totalStakedBase));
+        set('pool-holders', fmtTok(totalStakedBase) + ' staked');
+        set('pool-burned', fmtTok(burnedStakedBase) + ' 🔥');
+        set('pool-volume', fmt(Math.round(Number(cfg.totalDistributed) / 1e6)));
+      } else {
+        // fallback to config totals (scaled)
+        set('pool-liquidity', fmt(Math.round(Number(cfg.totalStaked) / 1e6)));
+        set('pool-holders', fmt(Math.round(Number(cfg.totalStaked) / 1e6)) + ' staked');
+        set('pool-burned', '0 🔥');
+        set('pool-volume', fmt(Math.round(Number(cfg.totalDistributed) / 1e6)));
+      }
 
       // Distribution split percentages (fee breakdown) from live bps
       set('fee-bd-liquidity', (cfg.burnBps / 100) + '%');
@@ -493,6 +519,11 @@
       // ---- Held free-ticket balance for the connected wallet ----
       try {
         if (typeof renderFreeTicketBalance === 'function') renderFreeTicketBalance();
+      } catch (_) {}
+
+      // ---- Stake eligibility notice (pool page) — live ----
+      try {
+        if (typeof renderStakeNotice === 'function') renderStakeNotice();
       } catch (_) {}
 
       // ---- Expose pool ATAs the write-path needs (same accounts the test
