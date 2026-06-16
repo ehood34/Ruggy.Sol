@@ -33,8 +33,8 @@
     <link rel="preconnect" href="https://i.ibb.co" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v67 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=67">
+    <!-- ASSET VERSION v70 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=70">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -42,13 +42,13 @@
          not on every page — see ensureChartJsLoaded() in 04-pages-admin.js. -->
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=67"></script>
-    <script defer src="02-banner-video.js?v=67"></script>
-    <script defer src="03-rewards-helpers.js?v=67"></script>
-    <script defer src="04-pages-admin.js?v=67"></script>
-    <script defer src="05-text-emoji.js?v=67"></script>
-    <script defer src="06-final-wiring.js?v=67"></script>
-    <script defer src="07-chain.js?v=67"></script>
+    <script defer src="01-core.js?v=70"></script>
+    <script defer src="02-banner-video.js?v=70"></script>
+    <script defer src="03-rewards-helpers.js?v=70"></script>
+    <script defer src="04-pages-admin.js?v=70"></script>
+    <script defer src="05-text-emoji.js?v=70"></script>
+    <script defer src="06-final-wiring.js?v=70"></script>
+    <script defer src="07-chain.js?v=70"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -1245,11 +1245,11 @@
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
                 <div>
-                    <div class="muted-sm">Total Liquidity (USD)</div>
+                    <div class="muted-sm">Total Staked ($RUGGY)</div>
                     <div id="pool-liquidity" class="u14">Loading...</div>
                 </div>
                 <div>
-                    <div class="muted-sm">24h Volume</div>
+                    <div class="muted-sm">Total Distributed</div>
                     <div id="pool-volume" class="stat-lg">Loading...</div>
                 </div>
                 <div>
@@ -1257,7 +1257,7 @@
                     <div id="pool-burned" style="font-size: 28px; font-weight: bold; color: #f59e0b;">Loading...</div>
                 </div>
                 <div>
-                    <div class="muted-sm">LP Token Holders</div>
+                    <div class="muted-sm">Total Staked</div>
                     <div id="pool-holders" class="stat-lg">Loading...</div>
                 </div>
             </div>
@@ -1279,7 +1279,7 @@
         </div>
 
         <div style="text-align: center; color: #6b7280; font-size: 13px;">
-            Data updates live from on-chain sources (Dexscreener / Jupiter).
+            Data updates live from on-chain program state.
         </div>
 
         <div class="card" style="max-width: 1000px; margin: 40px auto 0; border: 2px solid #3b82f6;">
