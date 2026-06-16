@@ -490,6 +490,12 @@
       claim_free_ticket:  [85, 181, 122, 25, 240, 20, 104, 82],
       claim_distribution: [204, 156, 94, 85, 2, 125, 232, 180],
       claim_prize:        [157, 233, 139, 121, 246, 62, 234, 235],
+      set_splits:               [175, 2, 86, 49, 225, 202, 232, 189],
+      set_thresholds:           [4, 43, 52, 220, 35, 12, 178, 232],
+      set_burn_stake_threshold: [142, 157, 93, 34, 131, 223, 211, 130],
+      set_absolution:           [62, 6, 219, 239, 28, 211, 14, 117],
+      set_paused:               [91, 60, 125, 192, 176, 225, 166, 218],
+      set_ticket_params:        [222, 33, 213, 47, 35, 237, 92, 45],
     },
 
     // ---- small borsh encoders ----
@@ -502,6 +508,14 @@
       const b = new Uint8Array(4); let v = n >>> 0;
       for (let i = 0; i < 4; i++) { b[i] = v & 0xff; v >>>= 8; }
       return b;
+    },
+    _encU16(n) {
+      const b = new Uint8Array(2); let v = n & 0xffff;
+      b[0] = v & 0xff; b[1] = (v >> 8) & 0xff;
+      return b;
+    },
+    _encBool(v) {
+      return new Uint8Array([v ? 1 : 0]);
     },
     _concat(arrays) {
       let len = 0; arrays.forEach(a => len += a.length);
@@ -780,6 +794,58 @@
           { pubkey: TOK, isSigner: false, isWritable: false },
         ])]);
       },
+
+      // ---- ADMIN SETTERS (authority only). Each uses the AdminOnly context:
+      //      config (writable) + authority (signer). They write Config fields
+      //      live on-chain — no redeploy. _adminIx wires the shared accounts. ----
+      _adminIx(disc, dataBytes) {
+        const C = window.RuggyChain;
+        const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
+        return C._ix(disc, dataBytes, [
+          { pubkey: C._pdas.config, isSigner: false, isWritable: true },
+          { pubkey: wal.pubkey, isSigner: true, isWritable: false },
+        ]);
+      },
+
+      // set_splits(burn, community, antirug, mdr) — all in BPS, must total 10000
+      async setSplits(burnBps, communityBps, antirugBps, mdrBps) {
+        const C = window.RuggyChain;
+        const data = C._concat([C._encU16(burnBps), C._encU16(communityBps), C._encU16(antirugBps), C._encU16(mdrBps)]);
+        return C._send([C.tx._adminIx(C._DISC.set_splits, data)]);
+      },
+
+      // set_thresholds(community, antirug) — token amounts (base units)
+      async setThresholds(communityBase, antirugBase) {
+        const C = window.RuggyChain;
+        const data = C._concat([C._encU64(communityBase), C._encU64(antirugBase)]);
+        return C._send([C.tx._adminIx(C._DISC.set_thresholds, data)]);
+      },
+
+      // set_burn_stake_threshold(threshold) — base units
+      async setBurnStakeThreshold(thresholdBase) {
+        const C = window.RuggyChain;
+        return C._send([C.tx._adminIx(C._DISC.set_burn_stake_threshold, C._encU64(thresholdBase))]);
+      },
+
+      // set_absolution(stake_bps, lock_days)
+      async setAbsolution(stakeBps, lockDays) {
+        const C = window.RuggyChain;
+        const data = C._concat([C._encU16(stakeBps), C._encU32(lockDays)]);
+        return C._send([C.tx._adminIx(C._DISC.set_absolution, data)]);
+      },
+
+      // set_paused(bool)
+      async setPaused(paused) {
+        const C = window.RuggyChain;
+        return C._send([C.tx._adminIx(C._DISC.set_paused, C._encBool(paused))]);
+      },
+
+      // set_ticket_params(ticket_price, marketing_bps, burn_bps)
+      async setTicketParams(priceBase, marketingBps, burnBps) {
+        const C = window.RuggyChain;
+        const data = C._concat([C._encU64(priceBase), C._encU16(marketingBps), C._encU16(burnBps)]);
+        return C._send([C.tx._adminIx(C._DISC.set_ticket_params, data)]);
+      },
     },
   };
 
@@ -889,7 +955,135 @@
     if (typeof showToast === 'function') showToast('Chain connected ✓', 'success', 'Live data is now showing on the site.');
   };
 
-  // Refresh live data periodically while chain mode is on.
+  // ---- ADMIN: push config values to the on-chain program ----
+  // Shared helper: validate chain is ready + show result, run a tx fn.
+  function _adminResult(html, kind) {
+    const box = document.getElementById('chain-admin-result');
+    if (!box) return;
+    box.style.display = 'block';
+    box.style.background = kind === 'ok' ? '#052e1a' : kind === 'warn' ? '#3f2d05' : '#3f0d0d';
+    box.style.border = '1px solid ' + (kind === 'ok' ? '#22c55e' : kind === 'warn' ? '#f59e0b' : '#ef4444');
+    box.style.color = kind === 'ok' ? '#bbf7d0' : kind === 'warn' ? '#fde68a' : '#fecaca';
+    box.textContent = html;
+  }
+  async function _adminGuard() {
+    if (!Chain.isConfigured || !Chain.isConfigured()) {
+      _adminResult('⛔ Enable Chain (above) first.', 'err'); return false;
+    }
+    if (!(window.ruggyWallet && window.ruggyWallet.connected)) {
+      _adminResult('⛔ Connect your wallet (must be the program authority).', 'err');
+      if (typeof showWalletModal === 'function') showWalletModal();
+      return false;
+    }
+    return true;
+  }
+  const _num = (id) => { const el = document.getElementById(id); return el ? parseFloat(el.value) : NaN; };
+  const _pctToBps = (p) => Math.round(p * 100); // 12.5% -> 1250 bps
+
+  window.pushSplitsToChain = async function () {
+    if (!(await _adminGuard())) return;
+    const burn = _pctToBps(_num('chain-burn-pct')), comm = _pctToBps(_num('chain-community-pct'));
+    const anti = _pctToBps(_num('chain-antirug-pct')), mdr = _pctToBps(_num('chain-mdr-pct'));
+    if ([burn, comm, anti, mdr].some(isNaN)) { _adminResult('⛔ Fill all four split %s.', 'err'); return; }
+    if (burn + comm + anti + mdr !== 10000) { _adminResult('⛔ Splits must total exactly 100% (got ' + ((burn+comm+anti+mdr)/100) + '%).', 'err'); return; }
+    _adminResult('Confirm in your wallet…', 'warn');
+    try {
+      const sig = await Chain.tx.setSplits(burn, comm, anti, mdr);
+      _adminResult('✅ Fee splits updated on-chain.\nTx: ' + String(sig).slice(0, 24) + '…', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('❌ ' + (e.message || e), 'err'); }
+  };
+
+  window.pushThresholdsToChain = async function () {
+    if (!(await _adminGuard())) return;
+    const comm = _num('chain-community-threshold'), anti = _num('chain-antirug-threshold');
+    if (isNaN(comm) || isNaN(anti)) { _adminResult('⛔ Fill both thresholds.', 'err'); return; }
+    _adminResult('Confirm in your wallet…', 'warn');
+    try {
+      const sig = await Chain.tx.setThresholds(Math.round(comm * 1e6), Math.round(anti * 1e6));
+      _adminResult('✅ Thresholds updated on-chain.\nTx: ' + String(sig).slice(0, 24) + '…', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('❌ ' + (e.message || e), 'err'); }
+  };
+
+  window.pushTicketParamsToChain = async function () {
+    if (!(await _adminGuard())) return;
+    const price = _num('chain-ticket-price'), mdr = _pctToBps(_num('chain-ticket-mdr')), burn = _pctToBps(_num('chain-ticket-burn'));
+    if (isNaN(price) || isNaN(mdr) || isNaN(burn)) { _adminResult('⛔ Fill price, MDR %, and burn %.', 'err'); return; }
+    if (mdr + burn > 10000) { _adminResult('⛔ MDR % + Burn % can\u2019t exceed 100%.', 'err'); return; }
+    _adminResult('Confirm in your wallet…', 'warn');
+    try {
+      const sig = await Chain.tx.setTicketParams(Math.round(price * 1e6), mdr, burn);
+      _adminResult('✅ Ticket params updated on-chain.\nTx: ' + String(sig).slice(0, 24) + '…', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('❌ ' + (e.message || e), 'err'); }
+  };
+
+  window.pushAbsolutionToChain = async function () {
+    if (!(await _adminGuard())) return;
+    const pct = _pctToBps(_num('chain-absolution-pct')), days = _num('chain-absolution-days');
+    if (isNaN(pct) || isNaN(days)) { _adminResult('⛔ Fill stake % and lock days.', 'err'); return; }
+    _adminResult('Confirm in your wallet…', 'warn');
+    try {
+      const sig = await Chain.tx.setAbsolution(pct, Math.round(days));
+      _adminResult('✅ Absolution params updated on-chain.\nTx: ' + String(sig).slice(0, 24) + '…', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('❌ ' + (e.message || e), 'err'); }
+  };
+
+  window.pushBurnStakeThresholdToChain = async function () {
+    if (!(await _adminGuard())) return;
+    const t = _num('chain-burn-stake-threshold');
+    if (isNaN(t)) { _adminResult('⛔ Enter a threshold.', 'err'); return; }
+    _adminResult('Confirm in your wallet…', 'warn');
+    try {
+      const sig = await Chain.tx.setBurnStakeThreshold(Math.round(t * 1e6));
+      _adminResult('✅ Burn-stake threshold updated on-chain.\nTx: ' + String(sig).slice(0, 24) + '…', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('❌ ' + (e.message || e), 'err'); }
+  };
+
+  window.pushPauseToChain = async function () {
+    if (!(await _adminGuard())) return;
+    _adminResult('Confirm in your wallet…', 'warn');
+    try {
+      const sig = await Chain.tx.setPaused(true);
+      _adminResult('⏸ Protocol PAUSED on-chain.\nTx: ' + String(sig).slice(0, 24) + '…', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('❌ ' + (e.message || e), 'err'); }
+  };
+
+  window.pushUnpauseToChain = async function () {
+    if (!(await _adminGuard())) return;
+    _adminResult('Confirm in your wallet…', 'warn');
+    try {
+      const sig = await Chain.tx.setPaused(false);
+      _adminResult('▶ Protocol UNPAUSED on-chain.\nTx: ' + String(sig).slice(0, 24) + '…', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('❌ ' + (e.message || e), 'err'); }
+  };
+
+  // Load the live on-chain config into the admin inputs (so you edit from truth)
+  window.loadChainConfigToPanel = async function () {
+    if (!Chain.isConfigured || !Chain.isConfigured()) { _adminResult('⛔ Enable Chain first.', 'err'); return; }
+    _adminResult('Reading on-chain config…', 'warn');
+    try {
+      const c = await Chain.config();
+      if (!c) { _adminResult('❌ Config not found on-chain (is it initialized?).', 'err'); return; }
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      set('chain-burn-pct', (c.burnBps / 100)); set('chain-community-pct', (c.communityBps / 100));
+      set('chain-antirug-pct', (c.antirugBps / 100)); set('chain-mdr-pct', (c.mdrBps / 100));
+      set('chain-community-threshold', Math.round(Number(c.communityThreshold) / 1e6));
+      set('chain-antirug-threshold', Math.round(Number(c.antirugThreshold) / 1e6));
+      set('chain-ticket-price', Math.round(Number(c.ticketPrice) / 1e6));
+      set('chain-ticket-mdr', (c.lotteryMarketingBps / 100)); set('chain-ticket-burn', (c.lotteryBurnBps / 100));
+      set('chain-absolution-pct', (c.absolutionStakeBps / 100)); set('chain-absolution-days', c.absolutionLockDays);
+      set('chain-burn-stake-threshold', Math.round(Number(c.burnStakeThreshold) / 1e6));
+      _adminResult('✅ Loaded current on-chain values into the form. Paused: ' + (c.paused ? 'YES' : 'no'), 'ok');
+    } catch (e) { _adminResult('❌ ' + (e.message || e), 'err'); }
+  };
+
+
   Chain.startAutoRefresh = function () {
     if (Chain._refreshTimer) return;
     Chain._refreshTimer = setInterval(() => {
