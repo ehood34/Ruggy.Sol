@@ -920,12 +920,15 @@ async function stakeRuggy() {
             if (typeof renderActiveStakes === 'function') renderActiveStakes();
             return;
         } catch (e) {
+            console.error('[Ruggy] STAKE ERROR (full):', e);
+            console.error('[Ruggy] stake error message:', e && e.message);
+            if (e && e.logs) console.error('[Ruggy] program logs:', e.logs);
             const msg = (e && e.message) ? e.message : "Transaction rejected.";
             if (/deserialize|3003|beyond buffer|0x[0-9a-f]*bb/i.test(msg)) {
                 showToast("Stale stake account", "error",
                     "Your old stake account needs clearing after the program update. Run 00b-force-close-stake once, then stake again.");
             } else {
-                showToast("Stake failed", "error", msg);
+                showToast("Stake failed", "error", msg + " — see console (F12) for details.");
             }
             return;
         }
@@ -1126,41 +1129,64 @@ window.getStakedTotal = getStakedTotal;
 // Lightweight banner shown on the Rewards/Pool pages when the connected
 // wallet isn't staking enough (or is banned). Re-renders on connect,
 // stake, absolve, and disconnect via refreshWalletUI/renderActiveStakes.
-function renderStakeNotice() {
+async function renderStakeNotice() {
+    // Only the POOL page shows this notice now (removed from the Rewards page).
     const els = [
-        document.getElementById('stake-eligibility-notice'),
         document.getElementById('stake-eligibility-notice-pool')
     ].filter(Boolean);
+    // Hide the rewards-page notice entirely if it exists.
+    const rewardsNotice = document.getElementById('stake-eligibility-notice');
+    if (rewardsNotice) rewardsNotice.style.display = 'none';
     if (!els.length) return;
-    const e = getStakeEligibility();
 
-    const set = (html, border, bg) => els.forEach(el => {
-        el.style.display = e.connected ? 'block' : 'none';
-        if (!e.connected) return;
-        el.innerHTML = html; el.style.borderLeft = '5px solid ' + border; el.style.background = bg;
-    });
-    if (!e.connected) { els.forEach(el => el.style.display = 'none'); return; }
+    const connected = !!(window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey);
+    if (!connected) { els.forEach(el => el.style.display = 'none'); return; }
+
+    // Read LIVE on-chain stake so the notice flips to "eligible" as soon as you
+    // stake over the threshold.
+    let staked = 0, commReq = 500000, antiReq = 1000000, banned = null;
+    let gotChain = false;
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()
+        && typeof RuggyChain.stakeOf === 'function') {
+        try {
+            const wallet = window.ruggyWallet.publicKey.toString();
+            const [pos, ban, cfg] = await Promise.all([
+                RuggyChain.stakeOf(wallet), RuggyChain.banOf(wallet), RuggyChain.config(),
+            ]);
+            staked = pos ? Number(pos.amount) / 1e6 : 0;
+            commReq = cfg ? Number(cfg.communityThreshold) / 1e6 : 500000;
+            antiReq = cfg ? Number(cfg.antirugThreshold) / 1e6 : 1000000;
+            banned = ban ? { type: Number(ban.ruggedUsd) > 0 ? 'Locked' : 'Temporary' } : null;
+            gotChain = true;
+        } catch (_) {}
+    }
+    if (!gotChain) {
+        const e = getStakeEligibility();
+        staked = e.staked; commReq = e.communityReq; antiReq = e.antiRugReq; banned = e.banned;
+    }
 
     const fmt = (n) => Number(n).toLocaleString();
-    if (e.banned) {
-        const locked = e.banned.type === 'Locked';
+    const set = (html, border, bg) => els.forEach(el => {
+        el.style.display = 'block';
+        el.innerHTML = html; el.style.borderLeft = '5px solid ' + border; el.style.background = bg;
+    });
+
+    if (banned) {
+        const locked = banned.type === 'Locked';
         set(`<strong style="color:${locked ? '#ef4444' : '#fbbf24'};">${locked ? '🚫 Locked Ban' : '⚠️ Temporary Ban'}</strong> —
             banned wallets <strong>do not receive rewards</strong> and <strong>cannot participate in the Lottery</strong>.
             ${locked ? 'Visit the <strong>Absolution</strong> page to clear it.' : 'Reduce your holdings and meet the stake requirement to requalify.'}`,
             locked ? '#ef4444' : '#fbbf24', locked ? '#3f1f1f' : '#3f2a1f');
-        return;
-    }
-    if (e.tier === 'antiRug') {
-        set(`<strong style="color:#22c55e;">✅ Fully staked & eligible</strong> — you're staking <strong>${fmt(e.staked)}</strong> $RUGGY and qualify for <strong>Community + Anti-Rug</strong> rewards.`,
+    } else if (staked >= antiReq) {
+        set(`<strong style="color:#22c55e;">✅ Fully staked & eligible</strong> — you're staking <strong>${fmt(staked)}</strong> $RUGGY and qualify for <strong>Community + Anti-Rug</strong> rewards.`,
             '#22c55e', '#052e16');
-    } else if (e.tier === 'community') {
-        set(`<strong style="color:#fbbf24;">✅ Community eligible</strong> — staking <strong>${fmt(e.staked)}</strong> $RUGGY.
-            Stake <strong>${fmt(e.toAntiRug)}</strong> more to unlock <strong>Anti-Rug</strong> rewards too.`,
+    } else if (staked >= commReq) {
+        set(`<strong style="color:#fbbf24;">✅ Community eligible</strong> — staking <strong>${fmt(staked)}</strong> $RUGGY.
+            Stake <strong>${fmt(Math.max(0, antiReq - staked))}</strong> more to unlock <strong>Anti-Rug</strong> rewards too.`,
             '#eab308', '#3f2a1f');
     } else {
-        set(`<strong style="color:#f87171;">❌ Not staking enough for rewards</strong> — you're staking <strong>${fmt(e.staked)}</strong> $RUGGY.
-            <strong>Not having enough staked disqualifies you from receiving rewards</strong> until you reach the required stake.
-            Stake <strong>${fmt(e.toCommunity)}</strong> more to start earning Community rewards.`,
+        set(`<strong style="color:#f87171;">❌ Not staking enough for rewards</strong> — you're staking <strong>${fmt(staked)}</strong> $RUGGY.
+            Stake <strong>${fmt(Math.max(0, commReq - staked))}</strong> more to start earning Community rewards.`,
             '#ef4444', '#3f1f1f');
     }
 }
