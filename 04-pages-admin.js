@@ -347,11 +347,31 @@ async function claimFromVault() {
         return;
     }
 
-    const confirmed = await showConfirm(
-        "This will claim your eligible rewards from the vault.<br><br>" +
-        "<span style='color:#9ca3af;font-size:13px;'>Note: full on-chain claiming is being finalized — for now this confirms your eligibility.</span>",
-        { okText: 'Claim Rewards' }
-    );
+    // Read live pending rewards so the confirm dialog shows the real amount.
+    let pendingMsg = "This will claim your eligible rewards from <strong>both</strong> the Community and Anti-Rug vaults in one transaction.";
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured() && window.ruggyWallet?.publicKey) {
+        try {
+            const [pos, cfg] = await Promise.all([
+                RuggyChain.stakeOf(window.ruggyWallet.publicKey.toString()),
+                RuggyChain.config(),
+            ]);
+            if (pos) {
+                const antiReq = cfg ? Number(cfg.antirugThreshold) : 0;
+                const pc = Number(pos.pendingCommunity) / 1e6;
+                const pa = (Number(pos.amount) >= antiReq) ? Number(pos.pendingAntirug) / 1e6 : 0;
+                const fmtN = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+                if (pc > 0 || pa > 0) {
+                    pendingMsg = `Claim <strong>${fmtN(pc + pa)}</strong> $RUGGY from your vaults:<br>` +
+                        `<span style="color:#86efac;">Community ${fmtN(pc)} + Anti-Rug ${fmtN(pa)}</span><br><br>` +
+                        `<span style="color:#9ca3af;font-size:13px;">Both vaults are claimed in a single transaction.</span>`;
+                } else {
+                    pendingMsg = "You have <strong>no rewards pending</strong> right now. Rewards accrue as transfer fees are distributed — check back after the next distribution.";
+                }
+            }
+        } catch (_) { /* keep default msg */ }
+    }
+
+    const confirmed = await showConfirm(pendingMsg, { okText: 'Claim Rewards' });
 
     if (confirmed) {
         // ON-CHAIN claim_distribution
@@ -710,12 +730,38 @@ async function checkRewardsEligibility() {
     const addrEl = document.getElementById('wallet-address');
     if (addrEl) addrEl.textContent = walletAddress.slice(0,4) + "..." + walletAddress.slice(-4);
 
-    // Eligibility is now based on STAKED amount, not holdings.
-    const e = getStakeEligibility();
+    // ---- LIVE eligibility from chain when configured ----
+    let e;
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        try {
+            const [pos, ban, cfg] = await Promise.all([
+                RuggyChain.stakeOf(walletAddress),
+                RuggyChain.banOf(walletAddress),
+                RuggyChain.config(),
+            ]);
+            const staked = pos ? Number(pos.amount) / 1e6 : 0;
+            const communityReq = cfg ? Number(cfg.communityThreshold) / 1e6 : 500000;
+            const antiRugReq = cfg ? Number(cfg.antirugThreshold) / 1e6 : 1000000;
+            const banned = ban ? { type: (Number(ban.ruggedUsd) > 0 ? 'Locked' : 'Temporary'), reason: ban.reason || 'On the Wall' } : null;
+            e = {
+                connected: true, wallet: walletAddress, staked, communityReq, antiRugReq,
+                community: staked >= communityReq, antiRug: staked >= antiRugReq, banned,
+                pendingCommunity: pos ? Number(pos.pendingCommunity) / 1e6 : 0,
+                pendingAntirug: pos ? Number(pos.pendingAntirug) / 1e6 : 0,
+                toCommunity: Math.max(0, communityReq - staked),
+                toAntiRug: Math.max(0, antiRugReq - staked),
+            };
+        } catch (err) {
+            e = getStakeEligibility(); // fallback
+        }
+    } else {
+        e = getStakeEligibility();
+    }
+
     const staked = e.staked;
     const communityReq = e.communityReq;
     const antiRugReq = e.antiRugReq;
-    const fmt = (n) => Number(n).toLocaleString();
+    const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
 
     const balEl = document.getElementById('wallet-balance');
     if (balEl) balEl.textContent = fmt(staked) + " $RUGGY staked";
@@ -749,18 +795,24 @@ async function checkRewardsEligibility() {
     if (e.antiRug) {
         eligibilityMsg.style.borderLeft = '5px solid #22c55e';
         eligibilityMsg.style.background = '#052e16';
+        const pendingLine = (e.pendingCommunity != null && (e.pendingCommunity > 0 || e.pendingAntirug > 0))
+            ? `<br><br><span style="color:#86efac;">💰 Claimable now: <strong>${fmt(e.pendingCommunity + e.pendingAntirug)}</strong> $RUGGY (Community ${fmt(e.pendingCommunity)} + Anti-Rug ${fmt(e.pendingAntirug)})</span>`
+            : (e.pendingCommunity != null ? `<br><br><span style="color:#9ca3af;">No rewards pending yet — they accrue as fees are distributed.</span>` : '');
         eligibilityMsg.innerHTML = `
             <strong style="color:#22c55e;">✅ Fully Eligible for Anti-Rug Rewards!</strong><br><br>
             You are <strong>staking ${fmt(staked)}</strong> $RUGGY.<br>
-            You qualify for <strong>Community</strong> + <strong>Anti-Rug</strong> rewards = the full reward tier.
+            You qualify for <strong>Community</strong> + <strong>Anti-Rug</strong> rewards = the full reward tier.${pendingLine}
         `;
     } else if (e.community) {
         eligibilityMsg.style.borderLeft = '5px solid #eab308';
         eligibilityMsg.style.background = '#3f2a1f';
+        const pendingLine = (e.pendingCommunity != null && e.pendingCommunity > 0)
+            ? `<br><br><span style="color:#fde68a;">💰 Claimable now: <strong>${fmt(e.pendingCommunity)}</strong> $RUGGY (Community)</span>`
+            : '';
         eligibilityMsg.innerHTML = `
             <strong style="color:#fbbf24;">✅ Eligible for Community Rewards</strong><br><br>
             You are <strong>staking ${fmt(staked)}</strong> $RUGGY.<br>
-            Stake <strong>${fmt(e.toAntiRug)}</strong> more (total ${fmt(antiRugReq)}) to also unlock <strong>Anti-Rug</strong> rewards.
+            Stake <strong>${fmt(e.toAntiRug)}</strong> more (total ${fmt(antiRugReq)}) to also unlock <strong>Anti-Rug</strong> rewards.${pendingLine}
         `;
     } else {
         eligibilityMsg.style.borderLeft = '5px solid #ef4444';
