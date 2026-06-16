@@ -1182,6 +1182,22 @@ const CIRCULATING_BUCKET = { label: 'Circulating (Unstaked)', color: '#6b7280', 
 // browser) plus a representative demo baseline so the wheel reflects pool-wide
 // activity, not just the connected wallet. Returns { [days]: totalAmount }.
 function getPoolStakeTotals() {
+    // Prefer LIVE on-chain pool buckets (summed across every stake account).
+    // The chain refresh caches them in window.ruggyPoolBuckets. When present and
+    // non-empty, use ONLY chain data (no demo baseline) for accurate live stats.
+    const live = window.ruggyPoolBuckets;
+    if (live && typeof live === 'object') {
+        const anyLive = Object.values(live).some(v => Number(v) > 0);
+        if (anyLive) {
+            const out = {};
+            for (const d in live) {
+                const a = Number(live[d]) / 1e6; // base units -> whole tokens
+                if (a > 0) out[Number(d)] = a;
+            }
+            return out;
+        }
+    }
+
     const totalsByDays = {};
     const add = (days, amt) => {
         const d = Number(days) || 0;
@@ -1198,8 +1214,8 @@ function getPoolStakeTotals() {
             for (const s of list) add(s.days, s.amount);
         }
     } catch (_) {}
-    // 2) Representative demo pool baseline (until on-chain pool data is wired),
-    //    so the wheel always shows a populated pool. These are POOL-WIDE figures.
+    // 2) Representative demo pool baseline (only when NOT connected to chain),
+    //    so the wheel always shows a populated pool in local/demo mode.
     const demo = (typeof CONFIG !== 'undefined' && CONFIG.demoPoolStakes) || {
         1: 4200000, 7: 9800000, 30: 18500000, 180: 26000000, 365: 41000000, 9999: 63000000
     };
@@ -1224,12 +1240,11 @@ function renderStakeDonut() {
         if (amt <= 0) continue;
         const d = Number(dStr);
         const bucket = STAKE_DURATION_BUCKETS.find(b => b.key === d)
-            || (d >= 9999 ? STAKE_DURATION_BUCKETS[6]
-            : d >= 365 ? STAKE_DURATION_BUCKETS[5]
-            : d >= 180 ? STAKE_DURATION_BUCKETS[4]
-            : d >= 30 ? STAKE_DURATION_BUCKETS[3]
-            : d >= 7 ? STAKE_DURATION_BUCKETS[2]
-            : d >= 3 ? STAKE_DURATION_BUCKETS[1]
+            || (d >= 9999 ? STAKE_DURATION_BUCKETS[5]
+            : d >= 365 ? STAKE_DURATION_BUCKETS[4]
+            : d >= 180 ? STAKE_DURATION_BUCKETS[3]
+            : d >= 30 ? STAKE_DURATION_BUCKETS[2]
+            : d >= 7 ? STAKE_DURATION_BUCKETS[1]
             : STAKE_DURATION_BUCKETS[0]);
         totals[bucket.key] = (totals[bucket.key] || 0) + amt;
         totalStaked += amt;
