@@ -439,32 +439,29 @@
         set('home-token-name', (CONFIG && CONFIG.tokenName) ? CONFIG.tokenName : 'RUGGY');
       }
 
-      // Pool page stats — derive from the LIVE per-bucket totals (same data the
-      // donut uses) so the numbers MATCH the donut. All bucket values are base
-      // units (1e6), so divide to show whole tokens.
-      const fmtTok = (base) => fmt(Math.round(Number(base) / 1e6));
-      let buckets = window.ruggyPoolBuckets;
-      if (!buckets) { try { buckets = await this.poolBuckets(); window.ruggyPoolBuckets = buckets; } catch (_) {} }
-      if (buckets) {
+      // Pool page stats — use the EXACT same source as the donut
+      // (getPoolStakeTotals returns WHOLE TOKENS per tier), so the top numbers
+      // can never diverge from the donut below.
+      let totalsTok = null;
+      try { totalsTok = (typeof getPoolStakeTotals === 'function') ? getPoolStakeTotals() : null; } catch (_) {}
+      if (totalsTok) {
         const tiers = [1, 7, 30, 180, 365, 9999];
-        const totalStakedBase = tiers.reduce((s, t) => s + (Number(buckets[t]) || 0), 0);
-        const permanentBase = Number(buckets[9999]) || 0; // permanent stakes
-        // Burned/Staked in LP = permanent stakes + tokens sitting in the burn vault
-        let burnVaultBase = 0;
+        const totalStakedTok = tiers.reduce((s, t) => s + (Number(totalsTok[t]) || 0), 0);
+        const permanentTok = Number(totalsTok[9999]) || 0; // permanent stakes (whole tokens)
+        // Burned/Staked in LP = permanent stakes + burn-vault balance (tokens)
+        let burnVaultTok = 0;
         try {
           const W = window.solanaWeb3;
           const [bvPda] = W.PublicKey.findProgramAddressSync([this._seed('burn_vault')], this._pdas.programId);
           const bvAta = await this._ata(bvPda);
           const bal = await this._conn.getTokenAccountBalance(bvAta);
-          burnVaultBase = Number(bal?.value?.amount || 0);
+          burnVaultTok = Number(bal?.value?.uiAmount || 0);
         } catch (_) {}
-        const burnedStakedBase = permanentBase + burnVaultBase;
-        set('pool-liquidity', fmtTok(totalStakedBase));
-        set('pool-holders', fmtTok(totalStakedBase) + ' staked');
-        set('pool-burned', fmtTok(burnedStakedBase) + ' 🔥');
+        set('pool-liquidity', fmt(Math.round(totalStakedTok)));
+        set('pool-holders', fmt(Math.round(totalStakedTok)) + ' staked');
+        set('pool-burned', fmt(Math.round(permanentTok + burnVaultTok)) + ' 🔥');
         set('pool-volume', fmt(Math.round(Number(cfg.totalDistributed) / 1e6)));
       } else {
-        // fallback to config totals (scaled)
         set('pool-liquidity', fmt(Math.round(Number(cfg.totalStaked) / 1e6)));
         set('pool-holders', fmt(Math.round(Number(cfg.totalStaked) / 1e6)) + ' staked');
         set('pool-burned', '0 🔥');
