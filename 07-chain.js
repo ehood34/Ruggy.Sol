@@ -165,6 +165,7 @@
           pendingCommunity: this._u64(d, 184),
           pendingAntirug:   this._u64(d, 192),
           lastFreeTicket:   this._u64(d, 200),
+          heldFreeTickets:  this._u64(d, 208),
         };
       } catch (_) { return null; }
     },
@@ -306,7 +307,7 @@
       try {
         const W = window.solanaWeb3;
         const accts = await this._conn.getProgramAccounts(this._pdas.programId, {
-          filters: [{ dataSize: 209 }],   // StakeAccount::LEN
+          filters: [{ dataSize: 217 }],   // StakeAccount::LEN
         });
         const out = [];
         for (const { account } of accts) {
@@ -334,7 +335,7 @@
       if (!(await this._ensureReady())) return null;
       try {
         const accts = await this._conn.getProgramAccounts(this._pdas.programId, {
-          filters: [{ dataSize: 209 }],   // StakeAccount::LEN
+          filters: [{ dataSize: 217 }],   // StakeAccount::LEN
         });
         const TIERS = [1, 7, 30, 180, 365, 9999];
         const totals = { 1: 0, 7: 0, 30: 0, 180: 0, 365: 0, 9999: 0 };
@@ -489,6 +490,11 @@
         console.warn('[Ruggy.Chain] pool buckets sync failed:', e.message);
       }
 
+      // ---- Held free-ticket balance for the connected wallet ----
+      try {
+        if (typeof renderFreeTicketBalance === 'function') renderFreeTicketBalance();
+      } catch (_) {}
+
       // ---- Expose pool ATAs the write-path needs (same accounts the test
       //      scripts derive). Reward pools: community = Config's ATA, anti-rug =
       //      a Config-owned account via createWithSeed. Lottery: prize/burn/mdr. ----
@@ -575,6 +581,7 @@
       unstake:            [90, 95, 107, 42, 205, 124, 50, 225],
       buy_tickets:        [48, 16, 122, 137, 24, 214, 198, 58],
       claim_free_ticket:  [85, 181, 122, 25, 240, 20, 104, 82],
+      enter_free_tickets: [56, 251, 253, 60, 33, 104, 163, 138],
       claim_distribution: [204, 156, 94, 85, 2, 125, 232, 180],
       claim_prize:        [157, 233, 139, 121, 246, 62, 234, 235],
       set_splits:               [175, 2, 86, 49, 225, 202, 232, 189],
@@ -810,32 +817,26 @@
         ])]);
       },
 
-      // claim_free_ticket() — one free DAILY ticket per 24h, staking required.
-      // roundId must be the current DAILY round.
-      async claimFreeTicket(roundId) {
+      // claim_free_ticket() — bank ONE free ticket to your held balance.
+      // No round needed, no cooldown (stack freely). Staking required.
+      async claimFreeTicket() {
         const C = window.RuggyChain, W = window.solanaWeb3;
         const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
         const claimant = wal.pubkey;
         const stakePda = C._pdas.stakeOf(claimant.toBase58());
         const banPda = W.PublicKey.findProgramAddressSync(
           [C._seed('ban'), claimant.toBuffer()], C._pdas.programId)[0];
-        const roundPda = W.PublicKey.findProgramAddressSync(
-          [C._seed('round'), C._encU64(roundId)], C._pdas.programId)[0];
-        const entryPda = W.PublicKey.findProgramAddressSync(
-          [C._seed('entry'), roundPda.toBuffer(), claimant.toBuffer()], C._pdas.programId)[0];
         return C._send([C._ix(C._DISC.claim_free_ticket, null, [
           { pubkey: C._pdas.config, isSigner: false, isWritable: false },
           { pubkey: banPda, isSigner: false, isWritable: false },
           { pubkey: stakePda, isSigner: false, isWritable: true },
-          { pubkey: roundPda, isSigner: false, isWritable: true },
-          { pubkey: entryPda, isSigner: false, isWritable: true },
           { pubkey: claimant, isSigner: true, isWritable: true },
-          { pubkey: W.SystemProgram.programId, isSigner: false, isWritable: false },
         ])]);
       },
 
-      // claim_free_ticket() — one free DAILY ticket per 24h, staking required.
-      async claimFreeTicket(roundId) {
+      // enter_free_tickets(count) — move up to 5 HELD free tickets into the
+      // current DAILY round's draw.
+      async enterFreeTickets(roundId, count) {
         const C = window.RuggyChain, W = window.solanaWeb3;
         const wal = C._wallet(); if (!wal) throw new Error('Connect your wallet first.');
         const claimant = wal.pubkey;
@@ -846,7 +847,8 @@
           [C._seed('round'), C._encU64(roundId)], C._pdas.programId)[0];
         const entryPda = W.PublicKey.findProgramAddressSync(
           [C._seed('entry'), roundPda.toBuffer(), claimant.toBuffer()], C._pdas.programId)[0];
-        return C._send([C._ix(C._DISC.claim_free_ticket, null, [
+        const data = new Uint8Array([count & 0xff]); // u8 count
+        return C._send([C._ix(C._DISC.enter_free_tickets, data, [
           { pubkey: C._pdas.config, isSigner: false, isWritable: false },
           { pubkey: banPda, isSigner: false, isWritable: false },
           { pubkey: stakePda, isSigner: false, isWritable: true },
