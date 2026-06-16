@@ -2049,6 +2049,41 @@ async function disconnectWallet() {
 
 window.disconnectWallet = disconnectWallet;
 
+// Switch to a DIFFERENT Phantom (or other) account. Phantom only exposes the
+// account that's CURRENTLY active in the extension, and it won't show a picker
+// to dApps. So switching is a 2-step dance: fully disconnect + clear trust here,
+// then the user selects the other account inside their wallet extension, and we
+// reconnect to whatever is now active.
+async function switchWallet() {
+    // 1) Fully disconnect + clear our stored "last wallet" so we don't auto-snap back
+    try {
+        const wallet = window.ruggyWallet?.provider || window.solana;
+        if (wallet && typeof wallet.disconnect === 'function') await wallet.disconnect();
+    } catch (_) {}
+    try { clearWalletState(); } catch (_) {}
+    try {
+        localStorage.removeItem('ruggyLastConnectedWallet');
+        localStorage.removeItem('ruggyPendingWallet');
+    } catch (_) {}
+
+    // 2) Tell the user how to pick the other account, then reconnect.
+    const ok = await showConfirm(
+        "<strong>Switch wallet account</strong><br><br>" +
+        "Phantom only shows the website your <em>currently active</em> account. To use a different one:<br><br>" +
+        "1. Open your Phantom extension<br>" +
+        "2. Click the account name at the top<br>" +
+        "3. Select the account you want<br>" +
+        "4. Come back and tap <strong>Connect</strong> below<br><br>" +
+        "<span style='color:#9ca3af;font-size:13px;'>Tip: in Phantom you can also disable \u201cAuto-Connect\u201d for this site (Settings \u2192 Connected Apps) so it always asks which account to use.</span>",
+        { okText: 'Open Connect' }
+    );
+    if (ok) {
+        // force a fresh prompt (not onlyIfTrusted) so Phantom re-evaluates the active account
+        try { await connectWallet(null, true); } catch (_) {}
+    }
+}
+window.switchWallet = switchWallet;
+
 // ==================== DOM CACHE ====================
 // Cached lookups for elements that exist for the page's whole lifetime.
 // Dynamic elements (admin login modal, toasts, confirm overlay) must NOT
@@ -2481,6 +2516,7 @@ document.addEventListener('keydown', function(e) {
 // delegated handler via data-action. The whitelist prevents data
 // attributes from invoking arbitrary global functions.
 const UI_ACTION_WHITELIST = new Set([
+    'switchWallet',
     'stakeRuggy', 'extendStake', 'unstakeOne', 'withdrawWinnings', 'buyLottoTickets', 'claimDailyFreeTicket', 'claimFromVault',
     'checkRewardsEligibility', 'checkLockedBanStatus', 'calculateAbsolutionStake',
     'submitAbsolutionStake', 'buyOnPumpFun', 'copyTokenCA', 'scrollToTop',
@@ -2489,6 +2525,7 @@ const UI_ACTION_WHITELIST = new Set([
     'pushSplitsToChain', 'pushThresholdsToChain', 'pushTicketParamsToChain', 'pushAbsolutionToChain',
     'pushBurnStakeThresholdToChain', 'pushPauseToChain', 'pushUnpauseToChain', 'loadChainConfigToPanel',
     'pushAllConfigToChain',
+    'resetLiveChainView',
     'triggerDistribution', 'toggleRewardsPause', 'connectDevWalletForHome',
     'startLiveTracking', 'scanWalletForWall', 'scanWalletForHall',
     'runAutomatedWallScan', 'runAutomatedHallScan', 'startMoneyRain',
@@ -2511,6 +2548,7 @@ document.addEventListener('input', function(e) {
 });
 
 document.addEventListener('click', function(e) {
+    window.__lastClickTarget = e.target;   // for sub-element clicks (e.g. ⇄ switch icon)
     const el = e.target.closest('[data-action]');
     if (!el) return;
 
@@ -2536,6 +2574,12 @@ document.addEventListener('click', function(e) {
             // ONE handler owns the connect button. State decided at click time:
             // connected -> confirm + disconnect; otherwise open the wallet modal.
             (async () => {
+                // If the user clicked the ⇄ switch icon, switch accounts instead.
+                if (window.__lastClickTarget && window.__lastClickTarget.classList &&
+                    window.__lastClickTarget.classList.contains('switch-icon')) {
+                    if (typeof switchWallet === 'function') switchWallet();
+                    return;
+                }
                 if (window.ruggyWallet && window.ruggyWallet.connected) {
                     if (await showConfirm('Disconnect wallet?', { okText: 'Disconnect', danger: true })) {
                         disconnectWallet();
@@ -2648,7 +2692,8 @@ function updateConnectWalletButton() {
         btn.innerHTML = `
             <span style="font-weight:700; letter-spacing:0.5px;">${short}</span>
             ${walletName ? `<span style="font-size:10px; opacity:0.85; margin-left:6px;">• ${walletName}</span>` : ''}
-            <span class="disconnect-icon" title="Disconnect wallet" style="margin-left:8px; font-size:13px;">✕</span>
+            <span class="switch-icon" title="Switch wallet account" style="margin-left:8px; font-size:13px; cursor:pointer;">⇄</span>
+            <span class="disconnect-icon" title="Disconnect wallet" style="margin-left:6px; font-size:13px;">✕</span>
         `;
 
         btn.classList.add('connected');
