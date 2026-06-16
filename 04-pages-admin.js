@@ -417,6 +417,40 @@ function renderClaimHistory() {
     const tbody = document.getElementById('claim-history-body');
     if (!tbody) return;
 
+    // When chain is connected + a wallet is present, load LIVE claim history.
+    const wallet = (window.ruggyWallet && window.ruggyWallet.connected && window.ruggyWallet.publicKey)
+        ? window.ruggyWallet.publicKey.toString() : null;
+    if (wallet && window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()
+        && typeof RuggyChain.claimHistoryOf === 'function') {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding:16px; text-align:center; color:#6b7280;">Loading claim history from chain…</td></tr>';
+        RuggyChain.claimHistoryOf(wallet, 20).then(rows => {
+            tbody.innerHTML = '';
+            if (!rows || rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="padding:20px; text-align:center; color:#6b7280;">No on-chain claims yet for this wallet.</td></tr>';
+                return;
+            }
+            rows.forEach(r => {
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid #374151';
+                const when = r.time ? r.time.toLocaleString() : '—';
+                const shortSig = r.sig.slice(0, 8) + '…' + r.sig.slice(-6);
+                const url = 'https://explorer.solana.com/tx/' + r.sig + '?cluster=' +
+                    (/devnet/.test((RuggyChain.settings && RuggyChain.settings.rpc) || 'devnet') ? 'devnet' : 'mainnet');
+                row.innerHTML = `
+                    <td style="padding:10px; font-size:12px;">${when}</td>
+                    <td style="padding:10px; color:#22c55e; font-weight:bold;">on-chain</td>
+                    <td style="padding:10px;"><span style="background:#166534; padding:2px 8px; border-radius:4px; font-size:11px;">${r.type}</span></td>
+                    <td style="padding:10px; font-family:monospace; font-size:11px;"><a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#60a5fa;">${shortSig}</a></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }).catch(() => {
+            tbody.innerHTML = '<tr><td colspan="4" style="padding:20px; text-align:center; color:#6b7280;">Could not load chain history.</td></tr>';
+        });
+        return;
+    }
+
+    // Fallback: local claim history (demo / not connected to chain)
     tbody.innerHTML = '';
 
     if (claimHistory.length === 0) {
@@ -730,9 +764,14 @@ async function checkRewardsEligibility() {
     const addrEl = document.getElementById('wallet-address');
     if (addrEl) addrEl.textContent = walletAddress.slice(0,4) + "..." + walletAddress.slice(-4);
 
-    // ---- LIVE eligibility from chain when configured ----
+    // ---- LIVE eligibility from chain. Try chain whenever the connector exists
+    // and can resolve PDAs (don't depend solely on the enabled toggle, so the
+    // check still reads real stake even if the toggle state is stale). ----
     let e;
-    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+    const chainReady = !!(window.RuggyChain && typeof RuggyChain.stakeOf === 'function'
+        && ((RuggyChain.isConfigured && RuggyChain.isConfigured())
+            || (RuggyChain.settings && RuggyChain.settings.programId && RuggyChain.settings.mint)));
+    if (chainReady) {
         try {
             const [pos, ban, cfg] = await Promise.all([
                 RuggyChain.stakeOf(walletAddress),
