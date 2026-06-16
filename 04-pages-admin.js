@@ -1635,6 +1635,69 @@ async function resetSiteData() {
 }
 window.resetSiteData = resetSiteData;
 
+// Reset what the SITE shows from chain: clears the cached chain data, empties
+// the Hall / stakers / Wall / lottery tables and spinner, then forces a fresh
+// re-read from the chain (so they repopulate from current on-chain truth —
+// e.g. right after running the 00-NUKE backend script).
+async function resetLiveChainView() {
+    const ok = await showConfirm(
+        "Reset the live chain view?<br><br>" +
+        "<span style='color:#9ca3af;font-size:13px;'>Clears the on-screen Hall, stakers, Wall, lottery numbers and tickets table, then re-reads fresh from the chain. (Does NOT change on-chain data — run 00-NUKE for that.)</span>",
+        { okText: 'Reset Chain View' }
+    );
+    if (!ok) return;
+
+    // 1) Clear cached chain state
+    try { window.ruggyChainStakers = null; } catch (_) {}
+    try { window.ruggyChainBans = null; } catch (_) {}
+    try { window.ruggyWinningTicket = null; } catch (_) {}
+
+    // 2) Empty the visible tables
+    const empty = (id, cols, msg) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;color:#6b7280;padding:12px;">${msg}</td></tr>`;
+    };
+    empty('top-holders-table', 3, 'Loading…');
+    empty('longest-holders-table', 3, 'Loading…');
+    // Wall: clear the bannedWallets array + re-render via its own function
+    try { if (typeof bannedWallets !== 'undefined') bannedWallets = []; } catch (_) {}
+    if (typeof renderBannedTable === 'function') { try { renderBannedTable(); } catch (_) {} }
+
+    // 3) Reset the lottery spinner + hide the gold claim button
+    document.querySelectorAll('#lotto-spinner .lotto-reel').forEach(r => {
+        r.classList.remove('landed', 'spinning');
+        const sp = r.querySelector('span'); if (sp) sp.textContent = '—';
+    });
+    const claimBtn = document.getElementById('claim-lotto-btn');
+    if (claimBtn) claimBtn.style.display = 'none';
+    const note = document.getElementById('claim-lotto-note'); if (note) note.textContent = '';
+    const status = document.getElementById('lotto-draw-status'); if (status) status.textContent = 'Waiting for the next draw…';
+
+    // 4) Clear any locally-stored ticket cache (per-wallet) so the tickets table empties
+    try {
+        const kill = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && /^ruggyTickets/i.test(k)) kill.push(k);
+        }
+        kill.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+    } catch (_) {}
+    if (typeof renderLottoTicketsTable === 'function') { try { renderLottoTicketsTable(); } catch (_) {} }
+
+    // 5) Force a fresh chain re-read to repopulate from current on-chain state
+    if (window.RuggyChain && RuggyChain.isConfigured && RuggyChain.isConfigured()) {
+        try {
+            await RuggyChain.refreshUI();
+            showToast("Chain view reset", "success", "Tables re-read from current on-chain state.");
+        } catch (e) {
+            showToast("Re-read failed", "error", e.message || String(e));
+        }
+    } else {
+        showToast("Chain view cleared", "success", "Enable Chain to re-read live data.");
+    }
+}
+window.resetLiveChainView = resetLiveChainView;
+
 // Import file input wiring (delegated change listener)
 document.addEventListener('change', (e) => {
     if (e.target && e.target.id === 'import-config-file' && e.target.files && e.target.files[0]) {
