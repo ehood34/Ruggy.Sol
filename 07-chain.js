@@ -450,6 +450,8 @@
         if (freshBuckets) window.ruggyPoolBuckets = freshBuckets;
       } catch (_) {}
       const fmtWhole = (n) => Number(Math.round(n)).toLocaleString('en-US');
+      // We have live chain data now — drop any "Demo Mode" badge.
+      try { const b = document.getElementById('demo-mode-badge'); if (b) b.remove(); } catch (_) {}
       let totalsTok = null;
       try { totalsTok = (typeof getPoolStakeTotals === 'function') ? getPoolStakeTotals() : null; } catch (_) {}
       if (totalsTok) {
