@@ -56,7 +56,6 @@ function loadConfig() {
     // [data-m] spans, and the JS rules read them too — change once, updates
     // everywhere. Splits + thresholds reuse their existing CONFIG fields.
     CONFIG.metrics = Object.assign({
-        holderShutoff: 500,            // auto-distribution stops after N STAKERS (key name kept for saved-config compat)
         distributionEnabled: true,     // manual master shutoff
         roiTakeProfit: 200,            // % ROI that opens the take-profit window
         roiSafeSellPct: 50,            // % you may take in that window
@@ -1574,7 +1573,6 @@ function populateDevPanel() {
     // Rules & Metrics
     const mv = CONFIG.metrics || {};
     check('m-dist-enabled', mv.distributionEnabled !== false);
-    set('m-holder-shutoff', mv.holderShutoff);
     set('m-community-threshold', CONFIG.airdropThreshold);
     set('m-antirug-threshold', CONFIG.antiRugThreshold);
     set('m-roi-takeprofit', mv.roiTakeProfit);
@@ -1848,6 +1846,32 @@ async function pushAllConfigToChain() {
         await step("Burn-stake threshold", () => RuggyChain.tx.setBurnStakeThreshold(Math.round(bst * 1e6)));
     }
 
+    // 6) Consolation tiers (payout % + match counts)
+    const hiMatch = Math.round(numId('m-consol-higher-match', 4));
+    const loMatch = Math.round(numId('m-consol-lower-match', 3));
+    if (loMatch < hiMatch) {
+        await step("Consolation tiers", () => RuggyChain.tx.setConsolation(
+            bps(numId('m-consol-higher-pct', 20)), bps(numId('m-consol-lower-pct', 10)), hiMatch, loMatch));
+    } else {
+        results.push("⏭ Consolation SKIPPED — lower match must be < higher match.");
+    }
+
+    // 7) Weekly ticket price
+    const wkPrice = numId('m-weekly-ticket-price', NaN);
+    if (!isNaN(wkPrice)) {
+        await step("Weekly ticket price", () => RuggyChain.tx.setWeeklyTicketPrice(Math.round(wkPrice * 1e6)));
+    }
+
+    // 8) Free-ticket cooldown (hours -> secs)
+    await step("Free-ticket cooldown", () => RuggyChain.tx.setFreeTicketCooldown(
+        Math.round(numId('m-free-ticket-hours', 0) * 3600)));
+
+    // 9) Heuristics + cadence
+    await step("Heuristics + cadence", () => RuggyChain.tx.setHeuristics(
+        bps(numId('m-overhold-pct', 3)), bps(numId('m-lockedban-pct', 30)),
+        bps(numId('m-roi-takeprofit', 200)), bps(numId('m-roi-safesell', 50)),
+        bps(numId('m-daily-max', 50)), Math.round(numId('dev-interval', 30))));
+
     try { await RuggyChain.refreshUI(); } catch (_) {}
     showToast("Config pushed to chain", "success", results.join("  •  "));
     // also drop the detail into the chain-admin result box if present
@@ -1908,7 +1932,6 @@ function saveDeveloperSettings() {
     CONFIG.metrics = CONFIG.metrics || {};
     const mm = CONFIG.metrics;
     mm.distributionEnabled = !!document.getElementById('m-dist-enabled')?.checked;
-    mm.holderShutoff = getAdminInputNumber('m-holder-shutoff', 500);
     CONFIG.airdropThreshold = getAdminInputNumber('m-community-threshold', 500000);
     CONFIG.antiRugThreshold = getAdminInputNumber('m-antirug-threshold', 1000000);
     mm.roiTakeProfit = getAdminInputNumber('m-roi-takeprofit', 200);
@@ -2313,7 +2336,6 @@ function metricsView() {
         communityThreshold: CONFIG.airdropThreshold,
         antiRugThreshold: CONFIG.antiRugThreshold,
         intervalMinutes: CONFIG.distributionIntervalMinutes,
-        holderShutoff: m.holderShutoff,
         distributionStatus: m.distributionEnabled ? 'ACTIVE' : 'PAUSED BY ADMIN',
         // ROI / ban rules
         roiTakeProfit: m.roiTakeProfit,
