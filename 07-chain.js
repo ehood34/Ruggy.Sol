@@ -112,7 +112,7 @@
     },
 
     // ---- Config (offsets after 8-byte discriminator). Layout matches the
-    //      deployed program's Config struct (LEN 222). ----
+    //      deployed program Config struct (LEN 258). ----
     async config() {
       if (!(await this._ensureReady())) return null;
       const d = await this._account(this._pdas.config);
@@ -142,6 +142,19 @@
         bump:                d.getUint8(219),
         vaultBump:           d.getUint8(220),
         prizeVaultBump:      d.getUint8(221),
+        // section-B economic + heuristic params
+        consolationHigherBps: d.getUint16(222, true),
+        consolationLowerBps:  d.getUint16(224, true),
+        consolationHigherMatch: d.getUint8(226),
+        consolationLowerMatch:  d.getUint8(227),
+        weeklyTicketPrice:    this._u64(d, 228),
+        freeTicketCooldownSecs: this._u64(d, 236),
+        dailyMaxOfWeeklyBps:  d.getUint16(244, true),
+        overholdBps:          d.getUint16(246, true),
+        lockedBanSellBps:     d.getUint16(248, true),
+        roiTakeProfitBps:     d.getUint16(250, true),
+        roiSafeSellBps:       d.getUint16(252, true),
+        distributionIntervalMins: d.getUint32(254, true),
       };
     },
 
@@ -477,6 +490,19 @@
           CONFIG.metrics.dailyTicketPrice = Math.round(Number(cfg.ticketPrice) / 1e6);
           CONFIG.metrics.lottoMdrPct  = cfg.lotteryMarketingBps / 100;
           CONFIG.metrics.lottoBurnPct = cfg.lotteryBurnBps / 100;
+          // section-B economic + heuristic params (now live from chain)
+          if (cfg.weeklyTicketPrice != null) CONFIG.metrics.weeklyTicketPrice = Math.round(Number(cfg.weeklyTicketPrice) / 1e6);
+          if (cfg.consolationHigherBps != null) CONFIG.metrics.consolationHigherPct = cfg.consolationHigherBps / 100;
+          if (cfg.consolationLowerBps != null) CONFIG.metrics.consolationLowerPct = cfg.consolationLowerBps / 100;
+          if (cfg.consolationHigherMatch != null) CONFIG.metrics.consolationHigherMatch = cfg.consolationHigherMatch;
+          if (cfg.consolationLowerMatch != null) CONFIG.metrics.consolationLowerMatch = cfg.consolationLowerMatch;
+          if (cfg.dailyMaxOfWeeklyBps != null) CONFIG.metrics.dailyMaxOfWeeklyPct = cfg.dailyMaxOfWeeklyBps / 100;
+          if (cfg.overholdBps != null) CONFIG.metrics.overholdPct = cfg.overholdBps / 100;
+          if (cfg.lockedBanSellBps != null) CONFIG.metrics.lockedBanSellPct = cfg.lockedBanSellBps / 100;
+          if (cfg.roiTakeProfitBps != null) CONFIG.metrics.roiTakeProfit = cfg.roiTakeProfitBps / 100;
+          if (cfg.roiSafeSellBps != null) CONFIG.metrics.roiSafeSellPct = cfg.roiSafeSellBps / 100;
+          if (cfg.distributionIntervalMins != null) CONFIG.distributionIntervalMinutes = cfg.distributionIntervalMins;
+          if (cfg.freeTicketCooldownSecs != null) CONFIG.metrics.freeTicketCooldownHours = Math.round(Number(cfg.freeTicketCooldownSecs) / 3600);
           // paused state
           CONFIG.metrics.distributionEnabled = !cfg.paused;
           if (typeof applyMetrics === 'function') applyMetrics();
@@ -656,6 +682,10 @@
       set_absolution:           [62, 6, 219, 239, 28, 211, 14, 117],
       set_paused:               [91, 60, 125, 192, 176, 225, 166, 218],
       set_ticket_params:        [222, 33, 213, 47, 35, 237, 92, 45],
+      set_consolation:          [236, 168, 2, 114, 140, 177, 97, 170],
+      set_weekly_ticket_price:  [109, 252, 79, 73, 203, 80, 184, 110],
+      set_free_ticket_cooldown: [194, 242, 151, 194, 203, 219, 154, 69],
+      set_heuristics:           [48, 10, 21, 69, 159, 33, 140, 141],
     },
 
     // ---- small borsh encoders ----
@@ -1001,6 +1031,41 @@
         const data = C._concat([C._encU64(priceBase), C._encU16(marketingBps), C._encU16(burnBps)]);
         return C._send([C.tx._adminIx(C._DISC.set_ticket_params, data)]);
       },
+
+      // set_consolation(higher_bps, lower_bps, higher_match, lower_match)
+      async setConsolation(higherBps, lowerBps, higherMatch, lowerMatch) {
+        const C = window.RuggyChain;
+        const data = C._concat([
+          C._encU16(higherBps), C._encU16(lowerBps),
+          new Uint8Array([higherMatch & 0xff]), new Uint8Array([lowerMatch & 0xff]),
+        ]);
+        return C._send([C.tx._adminIx(C._DISC.set_consolation, data)]);
+      },
+
+      // set_weekly_ticket_price(price)  (base units; 0 = use daily price)
+      async setWeeklyTicketPrice(priceBase) {
+        const C = window.RuggyChain;
+        return C._send([C.tx._adminIx(C._DISC.set_weekly_ticket_price, C._encU64(priceBase))]);
+      },
+
+      // set_free_ticket_cooldown(secs)  (i64; 0 = none)
+      async setFreeTicketCooldown(secs) {
+        const C = window.RuggyChain;
+        // i64 little-endian
+        const buf = new ArrayBuffer(8); new DataView(buf).setBigInt64(0, BigInt(Math.round(secs)), true);
+        return C._send([C.tx._adminIx(C._DISC.set_free_ticket_cooldown, new Uint8Array(buf))]);
+      },
+
+      // set_heuristics(overhold_bps, locked_ban_sell_bps, roi_take_profit_bps, roi_safe_sell_bps, daily_max_of_weekly_bps, distribution_interval_mins)
+      async setHeuristics(overholdBps, lockedBanSellBps, roiTakeProfitBps, roiSafeSellBps, dailyMaxOfWeeklyBps, distIntervalMins) {
+        const C = window.RuggyChain;
+        const data = C._concat([
+          C._encU16(overholdBps), C._encU16(lockedBanSellBps),
+          C._encU16(roiTakeProfitBps), C._encU16(roiSafeSellBps),
+          C._encU16(dailyMaxOfWeeklyBps), C._encU32(distIntervalMins),
+        ]);
+        return C._send([C.tx._adminIx(C._DISC.set_heuristics, data)]);
+      },
     },
   };
 
@@ -1216,6 +1281,63 @@
       _adminResult('▶ Protocol UNPAUSED on-chain.\nTx: ' + String(sig).slice(0, 24) + '…', 'ok');
       try { await Chain.refreshUI(); } catch (_) {}
     } catch (e) { _adminResult('❌ ' + (e.message || e), 'err'); }
+  };
+
+  // ---- Section-B setters (read from the main admin m-* fields) ----
+  const _mnum = (id, d) => { const el = document.getElementById(id); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? d : v; };
+
+  window.pushConsolationToChain = async function () {
+    if (!(await _adminGuard())) return;
+    const hiBps = Math.round(_mnum('m-consol-higher-pct', 20) * 100);
+    const loBps = Math.round(_mnum('m-consol-lower-pct', 10) * 100);
+    const hiMatch = Math.round(_mnum('m-consol-higher-match', 4));
+    const loMatch = Math.round(_mnum('m-consol-lower-match', 3));
+    if (loMatch >= hiMatch) { _adminResult('\u26d4 Lower match must be less than higher match.', 'err'); return; }
+    _adminResult('Confirm in your wallet\u2026', 'warn');
+    try {
+      const sig = await Chain.tx.setConsolation(hiBps, loBps, hiMatch, loMatch);
+      _adminResult('\u2705 Consolation tiers updated on-chain.\nTx: ' + String(sig).slice(0, 24) + '\u2026', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('\u274c ' + (e.message || e), 'err'); }
+  };
+
+  window.pushWeeklyPriceToChain = async function () {
+    if (!(await _adminGuard())) return;
+    const price = _mnum('m-weekly-ticket-price', NaN);
+    if (isNaN(price)) { _adminResult('\u26d4 Enter a weekly ticket price.', 'err'); return; }
+    _adminResult('Confirm in your wallet\u2026', 'warn');
+    try {
+      const sig = await Chain.tx.setWeeklyTicketPrice(Math.round(price * 1e6));
+      _adminResult('\u2705 Weekly ticket price updated on-chain.\nTx: ' + String(sig).slice(0, 24) + '\u2026', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('\u274c ' + (e.message || e), 'err'); }
+  };
+
+  window.pushFreeCooldownToChain = async function () {
+    if (!(await _adminGuard())) return;
+    const hours = _mnum('m-free-ticket-hours', 0);
+    _adminResult('Confirm in your wallet\u2026', 'warn');
+    try {
+      const sig = await Chain.tx.setFreeTicketCooldown(Math.round(hours * 3600));
+      _adminResult('\u2705 Free-ticket cooldown set to ' + hours + 'h on-chain.\nTx: ' + String(sig).slice(0, 24) + '\u2026', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('\u274c ' + (e.message || e), 'err'); }
+  };
+
+  window.pushHeuristicsToChain = async function () {
+    if (!(await _adminGuard())) return;
+    const overhold = Math.round(_mnum('m-overhold-pct', 3) * 100);
+    const lockedSell = Math.round(_mnum('m-lockedban-pct', 30) * 100);
+    const roiTp = Math.round(_mnum('m-roi-takeprofit', 200) * 100);
+    const roiSafe = Math.round(_mnum('m-roi-safesell', 50) * 100);
+    const dailyMax = Math.round(_mnum('m-daily-max', 50) * 100);
+    const interval = Math.round(_mnum('dev-interval', 30));
+    _adminResult('Confirm in your wallet\u2026', 'warn');
+    try {
+      const sig = await Chain.tx.setHeuristics(overhold, lockedSell, roiTp, roiSafe, dailyMax, interval);
+      _adminResult('\u2705 Heuristics + cadence updated on-chain.\nTx: ' + String(sig).slice(0, 24) + '\u2026', 'ok');
+      try { await Chain.refreshUI(); } catch (_) {}
+    } catch (e) { _adminResult('\u274c ' + (e.message || e), 'err'); }
   };
 
   // Load the live on-chain config into the admin inputs (so you edit from truth)
