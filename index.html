@@ -33,8 +33,8 @@
     <link rel="preconnect" href="https://i.ibb.co" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v75 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=75">
+    <!-- ASSET VERSION v76 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=76">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -42,13 +42,13 @@
          not on every page — see ensureChartJsLoaded() in 04-pages-admin.js. -->
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=75"></script>
-    <script defer src="02-banner-video.js?v=75"></script>
-    <script defer src="03-rewards-helpers.js?v=75"></script>
-    <script defer src="04-pages-admin.js?v=75"></script>
-    <script defer src="05-text-emoji.js?v=75"></script>
-    <script defer src="06-final-wiring.js?v=75"></script>
-    <script defer src="07-chain.js?v=75"></script>
+    <script defer src="01-core.js?v=76"></script>
+    <script defer src="02-banner-video.js?v=76"></script>
+    <script defer src="03-rewards-helpers.js?v=76"></script>
+    <script defer src="04-pages-admin.js?v=76"></script>
+    <script defer src="05-text-emoji.js?v=76"></script>
+    <script defer src="06-final-wiring.js?v=76"></script>
+    <script defer src="07-chain.js?v=76"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -565,7 +565,7 @@
                     <h3 class="u9">📡 Distribution Mode</h3>
                     <p style="font-size: 13px; line-height: 1.6; margin: 0;">
                         <strong>Automatic Sending:</strong> Rewards are sent automatically to qualified wallets when the timer ends.<br><br>
-                        <strong>After <span data-m="holderShutoff" data-fmt="num">500</span> stakers:</strong> Automatic distribution stops, but rewards are <strong>still sent to the community vault every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes</strong>. They accumulate in the vault for approved <strong>stakers</strong> to <strong>claim whenever they like</strong> by connecting their wallet on this site.
+                        <strong>Rewards accumulate from fees</strong> and are sent to the community vault on the distribution timer (about every <span data-m="intervalMinutes" data-fmt="raw">30</span> minutes), with optional manual admin pushes. They accumulate in the vault for approved <strong>stakers</strong> to <strong>claim whenever they like</strong> by connecting their wallet on this site.
                     </p>
                 </div>
 
@@ -1862,8 +1862,6 @@
 
                         <h5 class="u3">Distribution</h5>
                         <label class="admin-check"><input id="m-dist-enabled" type="checkbox" checked> Distributions enabled (manual master switch)</label>
-                        <label class="label-sm">Auto-distribution shutoff (stakers)</label>
-                        <input id="m-holder-shutoff" type="number" min="1" class="dev-input" placeholder="500">
                         <label class="label-sm">Community group: tokens required</label>
                         <input id="m-community-threshold" type="number" min="0" class="dev-input" placeholder="500000">
                         <label class="label-sm">Anti-Rug group: tokens required</label>
@@ -2069,6 +2067,11 @@
                             <button data-action="pushPauseToChain" class="buy-button" style="background:#7f1d1d; border:1px solid #ef4444; color:#fecaca; flex:1;">⏸ Pause</button>
                             <button data-action="pushUnpauseToChain" class="buy-button" style="background:#14532d; border:1px solid #22c55e; color:#bbf7d0; flex:1;">▶ Unpause</button>
                         </div>
+
+                        <button data-action="pushConsolationToChain" class="buy-button" style="background:#1e3a8a; border:1px solid #3b82f6; color:#dbeafe; width:100%; margin-top:8px;">⛓ Push Consolation Tiers</button>
+                        <button data-action="pushWeeklyPriceToChain" class="buy-button" style="background:#1e3a8a; border:1px solid #3b82f6; color:#dbeafe; width:100%; margin-top:8px;">⛓ Push Weekly Ticket Price</button>
+                        <button data-action="pushFreeCooldownToChain" class="buy-button" style="background:#1e3a8a; border:1px solid #3b82f6; color:#dbeafe; width:100%; margin-top:8px;">⛓ Push Free-Ticket Cooldown</button>
+                        <button data-action="pushHeuristicsToChain" class="buy-button" style="background:#1e3a8a; border:1px solid #3b82f6; color:#dbeafe; width:100%; margin-top:8px;">⛓ Push Ban/ROI Heuristics</button>
 
                         <button data-action="loadChainConfigToPanel" class="buy-button" style="background:#374151; width:100%; margin-top:14px;">↻ Load Current On-Chain Values</button>
                         <div id="chain-admin-result" style="margin-top:10px; padding:10px; border-radius:8px; font-size:13px; line-height:1.5; display:none; white-space:pre-wrap; font-family:monospace;"></div>
