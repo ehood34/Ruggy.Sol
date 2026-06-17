@@ -205,6 +205,9 @@
           state:           d.getUint8(57),     // 0 open,1 closed,2 drawn
           consolationPool: this._u64(d, 100),
           drawn:           d.getUint8(108) === 1,
+          jackpotWon:      d.getUint8(109) === 1,
+          higherWinners:   d.getUint8(110),
+          lowerWinners:    d.getUint8(111),
           winningNumbers,                      // [n,n,n,n,n] once drawn
         };
       } catch (_) { return null; }
@@ -501,7 +504,16 @@
           if (cfg.lockedBanSellBps != null) CONFIG.metrics.lockedBanSellPct = cfg.lockedBanSellBps / 100;
           if (cfg.roiTakeProfitBps != null) CONFIG.metrics.roiTakeProfit = cfg.roiTakeProfitBps / 100;
           if (cfg.roiSafeSellBps != null) CONFIG.metrics.roiSafeSellPct = cfg.roiSafeSellBps / 100;
-          if (cfg.distributionIntervalMins != null) CONFIG.distributionIntervalMinutes = cfg.distributionIntervalMins;
+          if (cfg.distributionIntervalMins != null) {
+            const newInterval = cfg.distributionIntervalMins;
+            const changed = CONFIG.distributionIntervalMinutes !== newInterval;
+            CONFIG.distributionIntervalMinutes = newInterval;
+            // If the live interval differs from what the countdown was started
+            // with, restart the timer so the CLOCK matches the TEXT.
+            if (changed && typeof forceStartDistributionTimer === 'function') {
+              try { CONFIG.nextDistributionTime = null; forceStartDistributionTimer(); } catch (_) {}
+            }
+          }
           if (cfg.freeTicketCooldownSecs != null) CONFIG.metrics.freeTicketCooldownHours = Math.round(Number(cfg.freeTicketCooldownSecs) / 3600);
           // paused state
           CONFIG.metrics.distributionEnabled = !cfg.paused;
