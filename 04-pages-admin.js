@@ -2380,13 +2380,15 @@ function metricsView() {
         consolationLowerPct: m.consolationLowerPct,
         consolationHigherMatch: m.consolationHigherMatch,
         consolationLowerMatch: m.consolationLowerMatch,
+        // ---- NEW model: ONE main pool = all sales after mdr+burn. Consolation
+        // is paid AS A % OF THE MAIN POOL (higher + lower bps), and only when no
+        // 5/5 jackpot is won that draw. So the "main pool % of sales" is the full
+        // post-fee remainder; consolation is a payout from it, not a sales slice.
+        mainPoolPct: (() => {
+            return Math.max(0, 100 - (Number(m.lottoMdrPct) || 0) - (Number(m.lottoBurnPct) || 0));
+        })(),
+        // consolationTotalPct = higher + lower (% OF the main pool)
         consolationTotalPct: (Number(m.consolationHigherPct) || 0) + (Number(m.consolationLowerPct) || 0),
-        // Main pool is the remainder so the allocation always sums to 100%:
-        // 100 - consolation - MDR - burn
-        mainPoolPct: Math.max(0, 100
-            - ((Number(m.consolationHigherPct) || 0) + (Number(m.consolationLowerPct) || 0))
-            - (Number(m.lottoMdrPct) || 0)
-            - (Number(m.lottoBurnPct) || 0)),
         lotteryWallet: m.lotteryWallet,
         lotteryWalletShort: m.lotteryWallet ? (m.lotteryWallet.slice(0, 4) + '…' + m.lotteryWallet.slice(-4)) : 'Not set'
     };
