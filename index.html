@@ -33,8 +33,8 @@
     <link rel="preconnect" href="https://i.ibb.co" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/Dfyk19B8/grok-image-7117a15e-b973-4517-a098-e981cc27fecc.jpg" fetchpriority="high">
 
-    <!-- ASSET VERSION v76 — bump the v= number on every deploy to bust caches -->
-    <link rel="stylesheet" href="styles.css?v=76">
+    <!-- ASSET VERSION v79 — bump the v= number on every deploy to bust caches -->
+    <link rel="stylesheet" href="styles.css?v=79">
 
     <!-- Neon Glow for Navigation + Page Titles -->
 
@@ -42,13 +42,13 @@
          not on every page — see ensureChartJsLoaded() in 04-pages-admin.js. -->
     <!-- App JS: numeric order is load+execution order (defer preserves it).
          All files sit in the SAME folder as index.html. -->
-    <script defer src="01-core.js?v=76"></script>
-    <script defer src="02-banner-video.js?v=76"></script>
-    <script defer src="03-rewards-helpers.js?v=76"></script>
-    <script defer src="04-pages-admin.js?v=76"></script>
-    <script defer src="05-text-emoji.js?v=76"></script>
-    <script defer src="06-final-wiring.js?v=76"></script>
-    <script defer src="07-chain.js?v=76"></script>
+    <script defer src="01-core.js?v=79"></script>
+    <script defer src="02-banner-video.js?v=79"></script>
+    <script defer src="03-rewards-helpers.js?v=79"></script>
+    <script defer src="04-pages-admin.js?v=79"></script>
+    <script defer src="05-text-emoji.js?v=79"></script>
+    <script defer src="06-final-wiring.js?v=79"></script>
+    <script defer src="07-chain.js?v=79"></script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -1721,15 +1721,11 @@
                     <span class="gold" style="font-weight:bold; font-size:18px;" id="lottery-wallet-total">$124,850</span>
                 </div>
 
-                <p class="muted-sm" style="margin:0 0 10px;">How the lottery wallet is allocated each draw:</p>
+                <p class="muted-sm" style="margin:0 0 10px;">How each ticket sale is allocated:</p>
                 <div style="display: grid; gap: 12px; font-size: 15px;">
                     <div class="u28">
-                        <span><strong class="gold"><span data-m="mainPoolPct" data-fmt="pct">50%</span></strong> → <span class="gold">Main Prize Pool</span></span>
-                        <span class="gold" style="font-weight: bold;">Match all numbers</span>
-                    </div>
-                    <div class="u28">
-                        <span><strong style="color:#3b82f6;"><span data-m="consolationTotalPct" data-fmt="pct">30%</span></strong> → <span style="color:#3b82f6;">Consolation Pool</span></span>
-                        <span style="color: #3b82f6; font-weight: bold;">Active • all draws</span>
+                        <span><strong class="gold"><span data-m="mainPoolPct" data-fmt="pct">80%</span></strong> → <span class="gold">Main Prize Pool</span></span>
+                        <span class="gold" style="font-weight: bold;">Jackpot + consolation</span>
                     </div>
                     <div class="u28">
                         <span><strong style="color:#a855f7;"><span data-m="lottoMdrPct" data-fmt="pct">10%</span></strong> → <span style="color:#a855f7;">MDR Fund</span></span>
@@ -1745,21 +1741,27 @@
                     </div>
                 </div>
                 <div style="margin-top:14px; padding-top:12px; border-top:1px solid #374151; font-size:13.5px; color:#d1d5db; line-height:1.6;">
-                    <p style="margin:0 0 6px;"><strong class="gold">Unwon prize money rolls over.</strong> If the Main Prize Pool isn't won, it carries into the next draw and grows.</p>
-                    <p style="margin:0;"><strong class="green">Daily draws pay at most <span data-m="dailyMaxOfWeeklyPct" data-fmt="pct">50%</span> of the Main Prize Pool</strong> — daily winners take a capped share while the big Weekly jackpot keeps building.</p>
+                    <p style="margin:0 0 8px;"><strong class="gold">From the Main Prize Pool:</strong></p>
+                    <p style="margin:0 0 4px;">• <strong class="gold">5/5 jackpot</strong> wins <strong><span data-m="mainPoolPct" data-fmt="raw">50</span>%</strong> of the pool (daily) / 80% (weekly).</p>
+                    <p style="margin:0 0 4px;">• <strong style="color:#3b82f6;">Consolation = <span data-m="consolationTotalPct" data-fmt="pct">30%</span> of the pool</strong> (<span data-m="consolationHigherPct" data-fmt="pct">20%</span> for <span data-m="consolationHigherMatch" data-fmt="raw">4</span>/5 + <span data-m="consolationLowerPct" data-fmt="pct">10%</span> for <span data-m="consolationLowerMatch" data-fmt="raw">3</span>/5), <strong>max 3 winners per tier</strong>.</p>
+                    <p style="margin:0 0 8px; color:#fbbf24;">• <strong>If the 5/5 jackpot is won, consolation does NOT pay that draw.</strong></p>
+                    <p style="margin:0;"><strong class="gold">Unwon prize money rolls over</strong> and grows the next draw.</p>
                 </div>
             </div>
 
             <!-- Consolation Pool -->
             <div class="card" style="border: 3px solid #3b82f6;">
-                <h3 class="u13">Consolation Pool (<span data-m="consolationTotalPct" data-fmt="pct">30%</span>)</h3>
+                <h3 class="u13">Consolation (<span data-m="consolationTotalPct" data-fmt="pct">30%</span> of the main pool)</h3>
                 <p class="text-15">
-                    If you match <strong><span data-m="consolationLowerMatch" data-fmt="raw">2</span> or <span data-m="consolationHigherMatch" data-fmt="raw">3</span> numbers</strong>, you still win from the <strong><span data-m="consolationTotalPct" data-fmt="pct">30%</span> Consolation Pool</strong>!
+                    Match <strong><span data-m="consolationLowerMatch" data-fmt="raw">3</span> or <span data-m="consolationHigherMatch" data-fmt="raw">4</span> numbers</strong> and you win a share of the <strong>Main Prize Pool</strong> — paid out only when nobody hits the full 5/5 jackpot that draw.
                 </p>
                 <div style="margin-top: 15px; font-size: 14px; color: #9ca3af;">
-                    • <strong class="green"><span data-m="consolationHigherPct" data-fmt="pct">20%</span></strong> goes to <strong>match <span data-m="consolationHigherMatch" data-fmt="raw">3</span> numbers</strong> (the larger matches)<br>
-                    • <strong class="gold"><span data-m="consolationLowerPct" data-fmt="pct">10%</span></strong> goes to <strong>match <span data-m="consolationLowerMatch" data-fmt="raw">2</span> numbers</strong> (the lower matches)<br>
-                    • This pool rolls over if not fully claimed
+                    Paid from the main pool:<br>
+                    • <strong class="green"><span data-m="consolationHigherPct" data-fmt="pct">20%</span></strong> of the pool for matching <strong><span data-m="consolationHigherMatch" data-fmt="raw">4</span> numbers</strong><br>
+                    • <strong class="gold"><span data-m="consolationLowerPct" data-fmt="pct">10%</span></strong> of the pool for matching <strong><span data-m="consolationLowerMatch" data-fmt="raw">3</span> numbers</strong><br>
+                    • <strong style="color:#fbbf24;">If the 5/5 jackpot is won, consolation does not pay that draw</strong><br>
+                    • <strong style="color:#60a5fa;">Max 3 winners per tier</strong> — first 3 to claim each tier (4/5 and 3/5) win<br>
+                    • Unwon pool rolls over to the next draw
                 </div>
             </div>
         </div>
