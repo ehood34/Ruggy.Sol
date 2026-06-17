@@ -2720,6 +2720,7 @@ const UI_ACTION_WHITELIST = new Set([
     'pushSplitsToChain', 'pushThresholdsToChain', 'pushTicketParamsToChain', 'pushAbsolutionToChain',
     'pushBurnStakeThresholdToChain', 'pushPauseToChain', 'pushUnpauseToChain', 'loadChainConfigToPanel',
     'pushAllConfigToChain',
+    'pushConsolationToChain', 'pushWeeklyPriceToChain', 'pushFreeCooldownToChain', 'pushHeuristicsToChain',
     'resetLiveChainView',
     'triggerDistribution', 'toggleRewardsPause', 'connectDevWalletForHome',
     'startLiveTracking', 'scanWalletForWall', 'scanWalletForHall',
