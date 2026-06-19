@@ -25,8 +25,8 @@
       const c = Object.assign({}, a, b); // b (CONFIG.chain) overrides a
       // Deployed devnet program + mint (defaults so the site reads chain
       // out-of-the-box; Admin panel can still override these).
-      const DEFAULT_PROGRAM = '7YFqpu3HbWWrsZTWdfYjh55Wy6b2baaaXBZXZiXB6wN3';
-      const DEFAULT_MINT = '2z3wVr3P6meXoWX9xjLjUBvCk283wgswqN5AvAt9jFcc';
+      const DEFAULT_PROGRAM = '7fY5BCLHWbyFtBuMDSoaL5ufxsHcwwD9W4EudyFPeLhP';
+      const DEFAULT_MINT = '4hA7CsZJV2awoTppAi9gN6jZkPA2KbfDtAS78DaNghqR';
       return {
         enabled: c.enabled !== undefined ? !!c.enabled : true,
         rpc: c.rpc || 'https://api.devnet.solana.com',
