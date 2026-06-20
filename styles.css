@@ -96,20 +96,8 @@
 }
 
 /* Very Small Screens (iPhone SE, older devices) */
-@media (max-width: 360px) {
-    .card {
-        padding: 16px 14px !important;
-    }
-
-    .card h3 {
-        font-size: 0.98rem !important;
-    }
-
-    #mobile-menu .nav-link {
-        padding: 14px 16px;
-        font-size: 15px;
-    }
-}
+/* (very-small-screen ≤360px rules are consolidated into one comprehensive
+   block lower in this file) */
 
 /* Toast Notification Styles */
 .toast {
@@ -1218,19 +1206,13 @@ h1, h2, h3, .neon-text,
 
 /* Extra small screens (iPhone SE, older Android) */
 @media (max-width: 360px) {
-    .card {
-        padding: 11px !important;
-    }
-    
-    .card h3 {
-        font-size: 14.5px !important;
-    }
-    
+    /* button + nav-link sizing for ≤360px (card/option spacing is in the
+       consolidated block below) */
     button {
         font-size: 13px !important;
-        padding: 9px 14px !important;
+        padding: 10px 14px !important;
     }
-    
+
     .nav-link {
         font-size: 12.5px !important;
         padding: 6px 8px !important;
@@ -1907,6 +1889,8 @@ select:focus-visible {
    extra breathing room so cards/buttons don't feel cramped.
    ============================================ */
 @media (max-width: 360px) {
+    /* ---- Consolidated very-small-screen polish (≤360px) ---- */
+    /* Cards: generous internal padding + breathing room between cards */
     .card,
     .explore-card {
         padding: 18px 16px !important;
@@ -1917,6 +1901,8 @@ select:focus-visible {
         font-size: 15.5px !important;
         margin-bottom: 10px !important;
     }
+
+    /* Tap targets: buttons + selectable options get comfortable size */
     .buy-button,
     .wallet-option,
     .lock-option {
@@ -1924,8 +1910,36 @@ select:focus-visible {
         font-size: 14px !important;
         min-height: 48px; /* stronger tap target on tiny screens */
     }
+
+    /* Lock-period grid: more gap so the 6 options don't feel packed */
     #lock-period-options {
-        gap: 10px !important;
+        gap: 12px !important;
+    }
+
+    /* Mobile menu links: slightly more padding on the smallest screens */
+    #mobile-menu .nav-link {
+        padding: 15px 18px;
+        font-size: 15px;
+    }
+
+    /* Absolution: the $ value input is .x240; widen it to full width on tiny
+       screens so it doesn't get squeezed next to the Calculate button */
+    .x240 {
+        width: 100% !important;
+        min-width: 0 !important;
+        margin-bottom: 4px !important;
+    }
+
+    /* Admin panel: space out fields/buttons inside expanded <details> */
+    details[open] input,
+    details[open] button {
+        margin-bottom: 10px !important;
+    }
+
+    /* Generic number/text inputs: comfortable height on tiny screens */
+    input[type="text"],
+    input[type="number"] {
+        padding: 12px 14px !important;
     }
 }
 
