@@ -25,8 +25,8 @@
       const c = Object.assign({}, a, b); // b (CONFIG.chain) overrides a
       // Deployed devnet program + mint (defaults so the site reads chain
       // out-of-the-box; Admin panel can still override these).
-      const DEFAULT_PROGRAM = '7fY5BCLHWbyFtBuMDSoaL5ufxsHcwwD9W4EudyFPeLhP';
-      const DEFAULT_MINT = '4hA7CsZJV2awoTppAi9gN6jZkPA2KbfDtAS78DaNghqR';
+      const DEFAULT_PROGRAM = 'EkSE6rFBx1Pz97iDgqdavWwgxhQ2ZaQjTb6hAemxKkPz';
+      const DEFAULT_MINT = 'EdBFoWPAbDn4wxTD7zAM5g9T1X4kShd5AYjwUP9agNdr';
       return {
         enabled: c.enabled !== undefined ? !!c.enabled : true,
         rpc: c.rpc || 'https://api.devnet.solana.com',
@@ -112,7 +112,7 @@
     },
 
     // ---- Config (offsets after 8-byte discriminator). Layout matches the
-    //      deployed program Config struct (LEN 258). ----
+    //      deployed program Config struct (LEN 274). ----
     async config() {
       if (!(await this._ensureReady())) return null;
       const d = await this._account(this._pdas.config);
@@ -155,6 +155,9 @@
         roiTakeProfitBps:     d.getUint16(250, true),
         roiSafeSellBps:       d.getUint16(252, true),
         distributionIntervalMins: d.getUint32(254, true),
+        // section-C: dual concurrent rounds (daily + weekly). 0 = none open.
+        currentDailyRound:    this._u64(d, 258),
+        currentWeeklyRound:   this._u64(d, 266),
       };
     },
 
