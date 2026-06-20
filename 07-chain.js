@@ -26,7 +26,7 @@
       // Deployed devnet program + mint (defaults so the site reads chain
       // out-of-the-box; Admin panel can still override these).
       const DEFAULT_PROGRAM = 'EkSE6rFBx1Pz97iDgqdavWwgxhQ2ZaQjTb6hAemxKkPz';
-      const DEFAULT_MINT = 'EdBFoWPAbDn4wxTD7zAM5g9T1X4kShd5AYjwUP9agNdr';
+      const DEFAULT_MINT = 'EgHMXx89BJXuwDGQrzpHZKq6h8awvWqiN3bbB1NYMFkN';
       return {
         enabled: c.enabled !== undefined ? !!c.enabled : true,
         rpc: c.rpc || 'https://api.devnet.solana.com',
