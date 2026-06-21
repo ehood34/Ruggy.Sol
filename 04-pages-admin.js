@@ -89,8 +89,8 @@ function loadConfig() {
         weeklyTicketPrice: 6,
         consolationHigherPct: 20,   // % to the higher number-match tier
         consolationLowerPct: 10,    // % to the lower number-match tier
-        consolationHigherMatch: 3,  // "match N numbers" for the higher tier
-        consolationLowerMatch: 2,   // "match N numbers" for the lower tier
+        consolationHigherMatch: 4,  // "match N numbers" for the higher tier (matches program default)
+        consolationLowerMatch: 3,   // "match N numbers" for the lower tier (matches program default)
         lotteryWallet: ''           // dedicated lottery wallet (set in admin / from chain)
     }, CONFIG.metrics || {});
 
@@ -1961,8 +1961,8 @@ function saveDeveloperSettings() {
     mm.weeklyTicketPrice = parseFloat(document.getElementById('m-weekly-ticket-price')?.value) || 6;
     mm.consolationHigherPct = getAdminInputNumber('m-consol-higher-pct', 20);
     mm.consolationLowerPct = getAdminInputNumber('m-consol-lower-pct', 10);
-    mm.consolationHigherMatch = getAdminInputNumber('m-consol-higher-match', 3);
-    mm.consolationLowerMatch = getAdminInputNumber('m-consol-lower-match', 2);
+    mm.consolationHigherMatch = getAdminInputNumber('m-consol-higher-match', 4);
+    mm.consolationLowerMatch = getAdminInputNumber('m-consol-lower-match', 3);
     mm.lotteryWallet = getAdminInputValue('m-lottery-wallet');
 
     // Chain
@@ -1979,12 +1979,21 @@ function saveDeveloperSettings() {
             `Your four fee splits add to ${splitTotal}%. The site will display them as entered — adjust so they total 100%.`);
     }
 
-    // Lottery allocation sanity: consolation + MDR + burn must leave room for Main
+    // Lottery allocation sanity. MDR + Burn must leave room for the Main
+    // Prize Pool (everything else flows there). Consolation is paid OUT OF
+    // that Main Prize Pool at claim time — it's not a separate slice of
+    // ticket sales, so it doesn't compete with MDR/Burn for room here.
+    const feesTotal = (mm.lottoMdrPct || 0) + (mm.lottoBurnPct || 0);
+    if (feesTotal > 100) {
+        showToast("Lottery fees over 100%", "error",
+            `MDR + Burn = ${feesTotal}%, leaving nothing for the Main Prize Pool. Lower them so they total under 100%.`);
+    }
+    // Consolation tiers (the 4/5 + 3/5 shares) are themselves a % OF the
+    // Main Prize Pool, so they independently shouldn't exceed it either.
     const consol = (mm.consolationHigherPct || 0) + (mm.consolationLowerPct || 0);
-    const nonMain = consol + (mm.lottoMdrPct || 0) + (mm.lottoBurnPct || 0);
-    if (nonMain > 100) {
-        showToast("Lottery allocation over 100%", "error",
-            `Consolation + MDR + Burn = ${nonMain}%, leaving nothing for the Main Prize Pool. Lower them so they total under 100%.`);
+    if (consol > 100) {
+        showToast("Consolation tiers over 100%", "error",
+            `4/5 + 3/5 consolation = ${consol}% of the Main Prize Pool — lower them so they total under 100%.`);
     }
 
     saveConfig();
