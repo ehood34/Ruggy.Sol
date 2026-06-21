@@ -25,9 +25,9 @@
     <meta name="twitter:image" content="https://i.ibb.co/q39t3LXn/IMG-4616.webp">
 
     <!-- Performance -->
-    <link rel="preconnect" href="https://api.devnet.solana.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://api.devnet.solana.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
           media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"></noscript>
@@ -1598,10 +1598,11 @@
             <p class="muted-sm" style="margin-bottom:18px;">
                 Match the 5 drawn numbers (1–15).
                 <strong class="gold">5/5</strong> wins the Jackpot
-                (<strong style="color:#22c55e;">Daily 50%</strong> / <strong style="color:#fbbf24;">Weekly 80%</strong> of the main pool),
-                <strong style="color:#a855f7;">4/5</strong> wins 20% of Consolation,
-                <strong style="color:#38bdf8;">3/5</strong> wins 10% of Consolation.
-                <br><span class="muted-sm">Consolation pays on every draw. Daily runs 6 days a week; the Weekly draw replaces the daily on its day.</span>
+                (<strong style="color:#22c55e;">Daily 50%</strong> / <strong style="color:#fbbf24;">Weekly 100%</strong> of the main pool).
+                If no one hits 5/5, consolation opens:
+                <strong style="color:#a855f7;">4/5</strong> wins 20% of the main pool,
+                <strong style="color:#38bdf8;">3/5</strong> wins 10%.
+                <br><span class="muted-sm">Consolation only pays when nobody hits the jackpot that draw. Daily runs 6 days a week; the Weekly draw replaces the daily on its day.</span>
             </p>
 
             <!-- the spinner: 5 reels -->
@@ -1632,7 +1633,10 @@
             </button>
             <div id="claim-lotto-note" class="muted-sm" style="margin-top:8px;"></div>
         </div>
-                
+
+        <!-- Ticket purchase + Daily Free Ticket + Prize Breakdown + Consolation Pool, side by side -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; align-items:start; margin-top: 30px;">
+            <div class="card">
                 <div class="center-mb25">
                     <div class="u2">Ticket Price</div>
                     <div id="lotto-ticket-price-display" style="font-size: 38px; font-weight: bold; color: #22c55e;">$3 USD</div>
@@ -1661,7 +1665,7 @@
                         <strong id="lotto-total-cost">$15.00</strong>
                     </div>
                     <div class="muted-12">
-                        <span data-m="mainPoolPct" data-fmt="pct">50%</span> Prize Pool • <span data-m="consolationTotalPct" data-fmt="pct">30%</span> Consolation • <span data-m="lottoMdrPct" data-fmt="pct">10%</span> MDR • <span data-m="lottoBurnPct" data-fmt="pct">10%</span> Burn
+                        <span data-m="mainPoolPct" data-fmt="pct">80%</span> Prize Pool (Jackpot + Consolation) • <span data-m="lottoMdrPct" data-fmt="pct">10%</span> MDR • <span data-m="lottoBurnPct" data-fmt="pct">10%</span> Burn
                     </div>
                 </div>
 
@@ -1689,7 +1693,7 @@
                     </div>
 
                     <!-- Two ticket tables: this round's DAILY and WEEKLY tickets -->
-                    <div id="ticket-tables-wrap" style="margin-top:18px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                    <div id="ticket-tables-wrap" style="margin-top:18px; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
                         <div>
                             <h5 style="color:#22c55e; margin:0 0 8px; text-align:center;">Daily Round — My Tickets</h5>
                             <div style="background:#0b1220; border:1px solid #16331f; border-radius:10px; overflow:hidden;">
@@ -1791,7 +1795,7 @@
                 </div>
                 <div style="margin-top:14px; padding-top:12px; border-top:1px solid #374151; font-size:13.5px; color:#d1d5db; line-height:1.6;">
                     <p style="margin:0 0 8px;"><strong class="gold">From the Main Prize Pool:</strong></p>
-                    <p style="margin:0 0 4px;">• <strong class="gold">5/5 jackpot</strong> wins <strong><span data-m="mainPoolPct" data-fmt="raw">50</span>%</strong> of the pool (daily) / 80% (weekly).</p>
+                    <p style="margin:0 0 4px;">• <strong class="gold">5/5 jackpot</strong> wins <strong>50%</strong> of the pool (daily) / <strong>100%</strong> (weekly).</p>
                     <p style="margin:0 0 4px;">• <strong style="color:#3b82f6;">Consolation = <span data-m="consolationTotalPct" data-fmt="pct">30%</span> of the pool</strong> (<span data-m="consolationHigherPct" data-fmt="pct">20%</span> for <span data-m="consolationHigherMatch" data-fmt="raw">4</span>/5 + <span data-m="consolationLowerPct" data-fmt="pct">10%</span> for <span data-m="consolationLowerMatch" data-fmt="raw">3</span>/5), <strong>max 3 winners per tier</strong>.</p>
                     <p style="margin:0 0 8px; color:#fbbf24;">• <strong>If the 5/5 jackpot is won, consolation does NOT pay that draw.</strong></p>
                     <p style="margin:0;"><strong class="gold">Unwon prize money rolls over</strong> and grows the next draw.</p>
