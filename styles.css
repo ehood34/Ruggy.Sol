@@ -1038,12 +1038,21 @@ h1.neon-text, h2.neon-text, .section h2 {
     --radius-lg: 20px;
 }
 
-#home {
-    padding-top: calc(var(--nav-height) + 20px) !important;
-}
+/* #home intentionally excluded from dynamic nav padding — the full-width
+   banner is designed to work with the fixed nav overlaid on top of it.
+   Pushing it down via padding-top causes CLS when the nav height is
+   measured and updated by JS on mobile vs desktop. */
 
 #tokenomics, #lore, #rewards, #gallery, #hall, #wall, #pool, #absolution, #lotto {
     padding-top: calc(var(--nav-height) + 16px) !important;
+}
+
+/* Mobile nav is shorter (no desktop nav row) — pre-set to avoid CLS
+   when JS measures and updates --nav-height after first paint. */
+@media (max-width: 768px) {
+    :root {
+        --nav-height: 90px;
+    }
 }
 
 /* ============================================
