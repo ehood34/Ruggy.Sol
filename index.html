@@ -11,7 +11,7 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://ruggy.fun">
+    <meta property="og:url" content="https://ruggy.net">
     <meta property="og:title" content="Ruggy Rewards • pump.fun | Anti-Rug Tokenomics & Community Rewards">
     <meta property="og:description" content="Hold Ruggy and earn real rewards. Transparent fee distribution with 40% Liquidity Burns, 30% Community Airdrops, and strong anti-rug mechanics.">
     <meta property="og:image" content="https://i.ibb.co/q39t3LXn/IMG-4616.webp">
@@ -27,10 +27,9 @@
     <!-- Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://api.devnet.solana.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
-          media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"></noscript>
+          media="print" onload="this.media='all'" crossorigin>
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" crossorigin></noscript>
     <link rel="preconnect" href="https://i.ibb.co" crossorigin>
     <link rel="preload" as="image" href="https://i.ibb.co/nMjHpcT8/IMG-4615.webp" fetchpriority="high">
 
@@ -50,6 +49,25 @@
     <script defer src="05-text-emoji.js?v=89"></script>
     <script defer src="06-final-wiring.js?v=89"></script>
     <script defer src="07-chain.js?v=89"></script>
+
+    <!-- LCP/FCP optimisation: load the timer-bar video AFTER the page has
+         painted so it doesn't compete with the hero poster image (LCP element).
+         Uses requestIdleCallback so it fires during browser idle time. -->
+    <script>
+      (function() {
+        function loadTimerVideo() {
+          var v = document.getElementById('timer-video');
+          if (!v) return;
+          var src = v.querySelector('source[data-src]');
+          if (src) { src.src = src.getAttribute('data-src'); v.load(); }
+        }
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(loadTimerVideo, { timeout: 3000 });
+        } else {
+          setTimeout(loadTimerVideo, 1500);
+        }
+      })();
+    </script>
 
     <!-- ==================== GLOBAL WALLET CONNECTION (Multi-wallet support) ==================== -->
     
@@ -108,9 +126,9 @@
                                     loop 
                                     muted 
                                     playsinline
-                                    preload="metadata"
+                                    preload="none"
                                     style="width: 100%; height: 100%; object-fit: cover; display: block;">
-                                    <source src="https://cdn.ruggy.net/IMG_4382-ezgif.com-gif-maker.webm" type="video/webm">
+                                    <source data-src="https://cdn.ruggy.net/IMG_4382-ezgif.com-gif-maker.webm" type="video/webm">
                                 </video>
                             </div>
                         </div>
@@ -216,35 +234,35 @@
             <!-- Mobile Navigation Links -->
             <div style="display: flex; flex-direction: column; gap: 10px; font-size: 17px; padding: 12px 20px 40px 20px;">
                 
-                <a href="#home" data-page="home" class="nav-link active home-cycling" 
+                <a data-page="home" class="nav-link active home-cycling" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.08); font-weight: 700; text-align: center;">HOME</a>
                 
-                <a href="#tokenomics" data-page="tokenomics" class="nav-link" 
+                <a data-page="tokenomics" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #9ca3af; text-align: center;">TOKENOMICS</a>
                 
-                <a href="#lore" data-page="lore" class="nav-link" 
+                <a data-page="lore" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #c084fc; text-align: center;">LORE</a>
                 
-                <a href="#rewards" data-page="rewards" class="nav-link" 
+                <a data-page="rewards" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #22c55e; text-align: center;">REWARDS</a>
                 
-                <a href="#gallery" data-page="gallery" class="nav-link" 
+                <a data-page="gallery" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #ff00ff; text-align: center;">GALLERY</a>
                 
-                <a href="#hall" data-page="hall" class="nav-link" 
+                <a data-page="hall" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #f59e0b; text-align: center;">HALL</a>
                 
-                <a href="#wall" data-page="wall" class="nav-link" 
+                <a data-page="wall" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #ef4444; text-align: center;">WALL</a>
                 
-                <a href="#pool" data-page="pool" class="nav-link" 
+                <a data-page="pool" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #3b82f6; text-align: center;">POOL</a>
                 
-                <a href="#absolution" data-page="absolution" class="nav-link" 
+                <a data-page="absolution" class="nav-link" 
                    style="padding: 16px 20px; border-radius: 14px; background: rgba(255,255,255,0.04); color: #e5e7eb; text-align: center;">ABSOLUTION</a>
                 
                 <!-- LOTTERY button - Exact same shape & background as others + flashing green/gold text -->
-                <a href="#lotto" data-page="lotto" class="nav-link x217"
+                <a data-page="lotto" class="nav-link x217"
                    >
                     LOTTERY
                 </a>
@@ -288,7 +306,7 @@
     <section id="home" class="section active" style="padding-top: 0; padding-bottom: 60px;">
 
         <!-- Banner with MP4 Video -->
-        <div style="position: relative; width: 100%; height: 520px; overflow: hidden; margin-bottom: 40px; border-bottom: 1px solid #374151;">
+        <div style="position: relative; width: 100%; height: 520px; overflow: hidden; margin-bottom: 40px; border-bottom: 1px solid #374151; contain: layout size;">
             <video 
                 id="home-banner-video"
                 autoplay 
@@ -1598,11 +1616,10 @@
             <p class="muted-sm" style="margin-bottom:18px;">
                 Match the 5 drawn numbers (1–15).
                 <strong class="gold">5/5</strong> wins the Jackpot
-                (<strong style="color:#22c55e;">Daily 50%</strong> / <strong style="color:#fbbf24;">Weekly 100%</strong> of the main pool).
-                If no one hits 5/5, consolation opens:
-                <strong style="color:#a855f7;">4/5</strong> wins 20% of the main pool,
-                <strong style="color:#38bdf8;">3/5</strong> wins 10%.
-                <br><span class="muted-sm">Consolation only pays when nobody hits the jackpot that draw. Daily runs 6 days a week; the Weekly draw replaces the daily on its day.</span>
+                (<strong style="color:#22c55e;">Daily 50%</strong> / <strong style="color:#fbbf24;">Weekly 80%</strong> of the main pool),
+                <strong style="color:#a855f7;">4/5</strong> wins 20% of Consolation,
+                <strong style="color:#38bdf8;">3/5</strong> wins 10% of Consolation.
+                <br><span class="muted-sm">Consolation pays on every draw. Daily runs 6 days a week; the Weekly draw replaces the daily on its day.</span>
             </p>
 
             <!-- the spinner: 5 reels -->
@@ -1633,10 +1650,7 @@
             </button>
             <div id="claim-lotto-note" class="muted-sm" style="margin-top:8px;"></div>
         </div>
-
-        <!-- Ticket purchase + Daily Free Ticket + Prize Breakdown + Consolation Pool, side by side -->
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; align-items:start; margin-top: 30px;">
-            <div class="card">
+                
                 <div class="center-mb25">
                     <div class="u2">Ticket Price</div>
                     <div id="lotto-ticket-price-display" style="font-size: 38px; font-weight: bold; color: #22c55e;">$3 USD</div>
@@ -1665,7 +1679,7 @@
                         <strong id="lotto-total-cost">$15.00</strong>
                     </div>
                     <div class="muted-12">
-                        <span data-m="mainPoolPct" data-fmt="pct">80%</span> Prize Pool (Jackpot + Consolation) • <span data-m="lottoMdrPct" data-fmt="pct">10%</span> MDR • <span data-m="lottoBurnPct" data-fmt="pct">10%</span> Burn
+                        <span data-m="mainPoolPct" data-fmt="pct">50%</span> Prize Pool • <span data-m="consolationTotalPct" data-fmt="pct">30%</span> Consolation • <span data-m="lottoMdrPct" data-fmt="pct">10%</span> MDR • <span data-m="lottoBurnPct" data-fmt="pct">10%</span> Burn
                     </div>
                 </div>
 
@@ -1693,7 +1707,7 @@
                     </div>
 
                     <!-- Two ticket tables: this round's DAILY and WEEKLY tickets -->
-                    <div id="ticket-tables-wrap" style="margin-top:18px; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
+                    <div id="ticket-tables-wrap" style="margin-top:18px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
                         <div>
                             <h5 style="color:#22c55e; margin:0 0 8px; text-align:center;">Daily Round — My Tickets</h5>
                             <div style="background:#0b1220; border:1px solid #16331f; border-radius:10px; overflow:hidden;">
@@ -1795,7 +1809,7 @@
                 </div>
                 <div style="margin-top:14px; padding-top:12px; border-top:1px solid #374151; font-size:13.5px; color:#d1d5db; line-height:1.6;">
                     <p style="margin:0 0 8px;"><strong class="gold">From the Main Prize Pool:</strong></p>
-                    <p style="margin:0 0 4px;">• <strong class="gold">5/5 jackpot</strong> wins <strong>50%</strong> of the pool (daily) / <strong>100%</strong> (weekly).</p>
+                    <p style="margin:0 0 4px;">• <strong class="gold">5/5 jackpot</strong> wins <strong><span data-m="mainPoolPct" data-fmt="raw">50</span>%</strong> of the pool (daily) / 80% (weekly).</p>
                     <p style="margin:0 0 4px;">• <strong style="color:#3b82f6;">Consolation = <span data-m="consolationTotalPct" data-fmt="pct">30%</span> of the pool</strong> (<span data-m="consolationHigherPct" data-fmt="pct">20%</span> for <span data-m="consolationHigherMatch" data-fmt="raw">4</span>/5 + <span data-m="consolationLowerPct" data-fmt="pct">10%</span> for <span data-m="consolationLowerMatch" data-fmt="raw">3</span>/5), <strong>max 3 winners per tier</strong>.</p>
                     <p style="margin:0 0 8px; color:#fbbf24;">• <strong>If the 5/5 jackpot is won, consolation does NOT pay that draw.</strong></p>
                     <p style="margin:0;"><strong class="gold">Unwon prize money rolls over</strong> and grows the next draw.</p>
