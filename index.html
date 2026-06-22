@@ -326,9 +326,11 @@
                 Your browser does not support the video tag.
             </video>
 
-            <!-- Fallback image, shown only if the video fails to load entirely -->
+            <!-- Fallback image, shown only if the video fails to load entirely.
+                 data-src instead of src prevents eager loading and stops it
+                 being treated as a late LCP candidate before JS shows it. -->
             <img id="home-banner-fallback"
-                 src="https://i.ibb.co/nMjHpcT8/IMG-4615.webp"
+                 data-src="https://i.ibb.co/nMjHpcT8/IMG-4615.webp"
                  alt="RUGGY"
                  style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:1;">
             
