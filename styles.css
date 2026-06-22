@@ -234,11 +234,11 @@
 /* ===== STYLE BLOCK 3 ===== */
 body { font-family: 'Press Start 2P', system-ui, sans-serif; background: linear-gradient(135deg, #0a0a0a, #1a0033); color: white; margin: 0; padding: 0; }
 
-/* ── PERFORMANCE: font-display swap so text renders immediately with fallback
-   font while Press Start 2P loads — eliminates blank-text FCP on mobile ── */
+/* ── PERFORMANCE: font-display optional so text renders immediately with fallback
+   font while Press Start 2P loads — eliminates font-swap CLS entirely ── */
 @font-face {
     font-family: 'Press Start 2P';
-    font-display: swap;
+    font-display: optional;
     src: local('Press Start 2P');
 }
 
@@ -1593,7 +1593,7 @@ p, li, td, th, input, button, .muted-sm, .muted-sm-flat, .label-xs {
 .x221 { background: linear-gradient(145deg, #fbbf24, #d97706); color: white; border: none; padding: 7px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s ease; }
 .x222 { background: linear-gradient(145deg, #4ade80, #16a34a); color: white; border: none; padding: 7px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s ease; }
 .x223 { background: #374151; color: #e5e7eb; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 18px; line-height: 1; }
-.x224 { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; object-fit: cover; object-position: center 30%; z-index: 1; pointer-events: none; -webkit-touch-callout: none; user-select: none; }
+.x224 { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; object-fit: cover; object-position: center 30%; z-index: 1; pointer-events: none; -webkit-touch-callout: none; user-select: none; contain: layout size; }
 .x225 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; align-items: stretch; justify-content: center; }
 .x226 { position: relative; width: 100%; max-width: 520px; margin: 0 auto; background: #111827; border-radius: 20px; padding: 24px 20px; border: 1px solid #374151; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3); overflow: hidden; box-sizing: border-box; contain: layout; }
 .x227 { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #9ca3af; font-size: 14px; z-index: 1; display: none; text-align: center; }
