@@ -17,7 +17,16 @@ setTimeout(() => {
             // If the video fails to load/play, reveal the still image so the hero
             // never shows a black box. (poster covers the loading gap; this covers
             // total failure — bad network, blocked R2, codec issues.)
-            const showFallback = () => { if (fallback) fallback.style.display = 'block'; };
+            // data-src is used on the fallback img so it isn't loaded eagerly —
+            // we set .src here only when we actually need it.
+            const showFallback = () => {
+                if (fallback) {
+                    if (fallback.dataset.src && !fallback.src) {
+                        fallback.src = fallback.dataset.src;
+                    }
+                    fallback.style.display = 'block';
+                }
+            };
             bannerVideo.addEventListener('error', showFallback);
             const srcEl = bannerVideo.querySelector('source');
             if (srcEl) srcEl.addEventListener('error', showFallback);
