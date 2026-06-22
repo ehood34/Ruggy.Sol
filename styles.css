@@ -990,7 +990,7 @@ h1.neon-text, h2.neon-text, .section h2 {
    Works on both mobile and desktop
    ============================================ */
 :root {
-    --nav-height: 170px;
+    --nav-height: 145px;
 
     /* ============================================
        DESIGN TOKENS — change the theme in one place.
