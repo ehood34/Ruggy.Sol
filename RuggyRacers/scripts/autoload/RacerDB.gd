@@ -185,6 +185,32 @@ const CUPS := {
 const GP_POINTS := [15, 12, 10, 8, 6, 4, 2, 1]
 
 # ---------------------------------------------------------------------------
+# CUSTOM 3D MODELS (optional, drop-in)
+# ---------------------------------------------------------------------------
+# Put a model file (FBX/GLB/GLTF + textures) in each folder below and it auto-
+# loads onto that racer, replacing the placeholder box. ModelMount.gd measures
+# and scales it to `size` (metres, largest dimension), then applies the tweaks.
+# Leave a folder empty/absent to keep the placeholder.
+#
+# TUNING: after you see it in-game, adjust `size`, `scale`, `rot_y` (turn to
+# face forward = -Z), and `offset` (Vector3, metres). These are the only knobs
+# you should ever need. The character `offset` lifts/seats the driver.
+
+const MODELS := {
+	"lambo": {
+		"vehicle":   {"dir": "res://assets/models/lambo/vehicle",   "size": 3.0, "scale": 1.0, "rot_y": 0.0,   "offset": Vector3(0, 0, 0)},
+		"character": {"dir": "res://assets/models/lambo/character", "size": 1.3, "scale": 1.0, "rot_y": 180.0, "offset": Vector3(0, 0.5, -0.1)},
+	},
+	"trench": {
+		"vehicle":   {"dir": "res://assets/models/trench/vehicle",   "size": 3.0, "scale": 1.0, "rot_y": 0.0,   "offset": Vector3(0, 0, 0)},
+		"character": {"dir": "res://assets/models/trench/character", "size": 1.3, "scale": 1.0, "rot_y": 180.0, "offset": Vector3(0, 0.5, -0.1)},
+	},
+}
+
+func get_models(id: String) -> Dictionary:
+	return MODELS.get(id, {})
+
+# ---------------------------------------------------------------------------
 # Accessors
 # ---------------------------------------------------------------------------
 

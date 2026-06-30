@@ -86,9 +86,37 @@ func _ready() -> void:
 		r.enabled = true
 		r.target_position = Vector3(0, -GROUND_SNAP_LEN - 0.4, 0)
 
-## Tints the placeholder kart + Ruggy meshes from RacerDB colors. Replace this
-## with per-racer materials/models once art is in (see README "Theming").
+## Tints the placeholder kart + Ruggy meshes from RacerDB colors, and mounts any
+## custom 3D models the racer has (see RacerDB.MODELS / ModelMount.gd).
 func apply_theme(rid: String) -> void:
+	_mount_models(rid)
+	_apply_tint(rid)
+
+## Loads custom vehicle/character models if present and hides the placeholders
+## they replace. Falls back silently to the tinted boxes when no files exist.
+func _mount_models(rid: String) -> void:
+	if model == null:
+		return
+	var cfg: Dictionary = RacerDB.get_models(rid)
+	if cfg.is_empty():
+		return
+	var got_vehicle := false
+	var got_char := false
+	if cfg.has("vehicle"):
+		got_vehicle = ModelMount.mount(model, cfg["vehicle"]) != null
+	if cfg.has("character"):
+		got_char = ModelMount.mount(model, cfg["character"]) != null
+	if got_vehicle:
+		for n in ["BodyMesh", "WheelFL", "WheelFR", "WheelRL", "WheelRR"]:
+			var m := model.get_node_or_null(n)
+			if m:
+				(m as Node3D).visible = false
+	if got_char:
+		var f := model.get_node_or_null("FurMesh")
+		if f:
+			(f as Node3D).visible = false
+
+func _apply_tint(rid: String) -> void:
 	var r: Dictionary = RacerDB.get_racer(rid)
 	var body := find_child("BodyMesh", true, false)
 	if body and body is MeshInstance3D:
