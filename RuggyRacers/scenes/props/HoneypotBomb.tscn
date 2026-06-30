@@ -1,0 +1,24 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/race/props/Hazard.gd" id="1"]
+
+[sub_resource type="SphereShape3D" id="Shape"]
+radius = 0.5
+
+[sub_resource type="SphereMesh" id="Mesh"]
+radius = 0.4
+height = 0.8
+
+[node name="HoneypotBomb" type="Area3D"]
+collision_layer = 4
+collision_mask = 2
+script = ExtResource("1")
+item_id = "honeypot_bomb"
+fuse = 3.0
+blast_radius = 4.5
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("Shape")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh")

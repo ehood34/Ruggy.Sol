@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="20" fill="#1a1030"/>
+  <circle cx="64" cy="58" r="34" fill="#7a4a22"/>
+  <circle cx="50" cy="52" r="7" fill="#fff"/>
+  <circle cx="78" cy="52" r="7" fill="#fff"/>
+  <circle cx="50" cy="53" r="3" fill="#000"/>
+  <circle cx="78" cy="53" r="3" fill="#000"/>
+  <path d="M44 70 q20 18 40 0 q-20 8 -40 0z" fill="#fff"/>
+  <text x="64" y="116" font-family="Arial" font-size="18" font-weight="bold" fill="#ffb000" text-anchor="middle">RUGGY</text>
+</svg>
