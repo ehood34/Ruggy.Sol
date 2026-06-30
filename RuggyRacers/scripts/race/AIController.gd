@@ -24,9 +24,9 @@ var personality: float = 0.0         # -0.15..0.15 steer/throttle jitter seed
 var leader_distance_ahead: float = 0.0 # metres the human leader is ahead of us
 var race_position: int = 1
 
-const LOOKAHEAD := 14.0              # metres ahead on the line to aim at
-const WP_REACH := 9.0                # how close counts as "reached" a waypoint
-const DRIFT_ANGLE := 0.55           # radians of upcoming turn that triggers drift
+const LOOKAHEAD := 10.0              # metres ahead on the line to aim at (tighter following)
+const WP_REACH := 7.0                # how close counts as "reached" a waypoint
+const CURVE_WINDOW := 6              # waypoints ahead to measure upcoming curvature
 const ITEM_MIN_DELAY := 1.5
 const ITEM_MAX_DELAY := 4.0
 
@@ -51,26 +51,33 @@ func get_kart_input(_k: KartController) -> Dictionary:
 	var to_aim := aim - kart.global_position
 	to_aim.y = 0.0
 
-	# Steering: signed angle between our forward and the aim direction.
+	# Steering: signed angle to the aim point, with a strong gain (full lock by
+	# ~40 degrees) so the AI actually commits to corners instead of wall-riding.
 	var fwd := -kart.global_transform.basis.z
 	fwd.y = 0.0
-	var steer := _signed_angle(fwd, to_aim) / (PI * 0.5) # normalize to ~-1..1
-	steer = clampf(steer + personality * 0.3, -1.0, 1.0)
+	# NOTE the minus: _signed_angle is positive when the target is to the LEFT,
+	# but KartController's steer convention is positive == turn RIGHT. Without
+	# this negation the AI steers away from every corner and drives off-track.
+	var ang := _signed_angle(fwd, to_aim)
+	var steer := clampf(-ang / deg_to_rad(40.0) + personality * 0.2, -1.0, 1.0)
 
-	# Decide whether to drift: look two waypoints ahead for a sharp bend.
-	var bend := _upcoming_bend()
-	var want_drift := bend > DRIFT_ANGLE and absf(steer) > 0.35
+	# Upcoming curvature over the next several waypoints (radians of total bend).
+	var curve := _path_curvature(CURVE_WINDOW)
 
-	# Throttle / target speed with rubber-banding.
-	var target_ratio := clampf(difficulty, 0.5, 1.4)
-	# Catch up if far behind the leader, ease off if way ahead.
-	target_ratio += clampf(leader_distance_ahead / 120.0, -0.15, 0.25)
-	# Slow slightly for very sharp corners so the AI doesn't wall-ride.
-	if bend > DRIFT_ANGLE * 1.6:
-		target_ratio *= 0.82
+	# Target speed: full on straights, scaled down for bends so the AI brakes
+	# BEFORE the corner rather than plowing into the outside wall.
+	var corner_factor := clampf(1.0 - maxf(0.0, curve - 0.5) * 0.55, 0.6, 1.0)
+	var target_ratio := clampf(difficulty, 0.6, 1.4) * corner_factor
+	target_ratio += clampf(leader_distance_ahead / 120.0, -0.15, 0.25) # rubber-band
+	var target_speed := kart.stats.max_speed * target_ratio
+	var cur_speed := kart.get_speed_kmh() / 3.6
+
 	var throttle := 1.0
-	if kart.get_speed_kmh() / 3.6 > kart.stats.max_speed * target_ratio:
-		throttle = 0.2 # coast down toward the rubber-banded target
+	if cur_speed > target_speed * 1.3:
+		throttle = -0.25                # well over: light brake into the corner
+	elif cur_speed > target_speed:
+		throttle = 0.15                 # slightly over: ease off
+	var want_drift := curve > 0.9 and absf(steer) > 0.4 and cur_speed > kart.stats.max_speed * 0.55
 
 	# Item use on a timer; the AI isn't tactical, just keeps the chaos flowing.
 	var use_item := false
@@ -112,16 +119,24 @@ func _lookahead_point() -> Vector3:
 		idx = (idx + 1) % waypoints.size()
 	return waypoints[wp_index]
 
-func _upcoming_bend() -> float:
-	# Angle between the segment we're on and the next segment.
-	var a := waypoints[wp_index]
-	var b := waypoints[(wp_index + 1) % waypoints.size()]
-	var c := waypoints[(wp_index + 2) % waypoints.size()]
-	var v1 := (b - a); v1.y = 0.0
-	var v2 := (c - b); v2.y = 0.0
-	if v1.length() < 0.01 or v2.length() < 0.01:
+## Total bend (radians) summed over the next `n` segments from wp_index — a
+## measure of how sharp the upcoming stretch is, used to set corner speed.
+func _path_curvature(n: int) -> float:
+	var w := waypoints.size()
+	if w < 3:
 		return 0.0
-	return absf(v1.normalized().angle_to(v2.normalized()))
+	var total := 0.0
+	var idx := wp_index
+	for _i in n:
+		var a := waypoints[idx]
+		var b := waypoints[(idx + 1) % w]
+		var c := waypoints[(idx + 2) % w]
+		var v1 := (b - a); v1.y = 0.0
+		var v2 := (c - b); v2.y = 0.0
+		if v1.length() > 0.01 and v2.length() > 0.01:
+			total += absf(v1.normalized().angle_to(v2.normalized()))
+		idx = (idx + 1) % w
+	return total
 
 func _nearest_waypoint(pos: Vector3) -> int:
 	if waypoints.is_empty():

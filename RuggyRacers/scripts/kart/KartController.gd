@@ -33,7 +33,7 @@ var stats: KartStats
 
 # --- Tunables shared by all karts (per-racer overrides live in KartStats) ---
 const GRAVITY := 26.0
-const FAST_FALL_MULT := 1.35       # heavier feel on the way down
+const FAST_FALL_MULT := 1.25       # extra fall speed; keeps jump arcs snappy, not floaty-far
 const GROUND_SNAP_LEN := 1.2       # how far below to stick to the track
 const ALIGN_LERP := 10.0           # how fast the mesh aligns to ground normal
 const HOP_VELOCITY := 5.5
@@ -353,10 +353,20 @@ func _compose_velocity() -> void:
 	var horizontal := fwd * forward_speed + right * lateral_speed
 
 	if grounded:
-		# Project movement onto the ground plane so we hug slopes/ramps and get
-		# launched naturally off their lips.
+		# Project movement onto the ground plane so we hug slopes/ramps.
 		horizontal = horizontal.slide(ground_normal)
-		vertical_speed = -2.0 # gentle stick-to-ground bias; snap handles the rest
+		var flatness := ground_normal.dot(Vector3.UP)
+		if flatness > 0.985:
+			# Near-flat ground: gentle downforce to stay glued (snap handles rest).
+			velocity = Vector3(horizontal.x, -2.0, horizontal.z)
+		else:
+			# Ramp/slope: keep the slope's vertical component for a launch, but
+			# CAP it so even the fastest karts get a controlled pop instead of
+			# rocketing off the map.
+			horizontal.y = clampf(horizontal.y, -10.0, 9.0)
+			velocity = horizontal
+		vertical_speed = velocity.y
+		return
 	else:
 		var g := GRAVITY * (FAST_FALL_MULT if vertical_speed < 0.0 else 1.0)
 		# Moon's low-gravity feel: the air master floats down more slowly.

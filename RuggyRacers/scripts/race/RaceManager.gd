@@ -167,7 +167,9 @@ func _make_racer_entry(kart: KartController, rid: String, is_human: bool, grid_i
 		"name": RacerDB.get_racer(rid)["name"],
 		"is_player": is_human,
 		"lap": 1,
-		"checkpoint": -1,          # last checkpoint index passed this lap
+		"checkpoint": -1,          # (legacy, unused by lap logic now)
+		"line_t": -1.0,            # current fraction 0..1 around the racing line
+		"passed_half": false,      # reached the far side this lap (anti false-lap)
 		"progress": 0.0,           # monotonic progress for sorting
 		"finished": false,
 		"finish_time_ms": 0,
@@ -177,6 +179,7 @@ func _make_racer_entry(kart: KartController, rid: String, is_human: bool, grid_i
 		"last_lap_ms": 0,
 		"lap_start_ms": 0,
 		"best_lap_ms": 0x7FFFFFFF,
+		"stuck_time": 0.0,         # seconds spent barely moving (for rescue)
 	}
 
 func _setup_player_camera_and_hud(kart: KartController, human_count: int, idx: int) -> void:
@@ -229,6 +232,7 @@ func _process(delta: float) -> void:
 		"racing":
 			race_time_ms += int(delta * 1000.0)
 			_update_positions()
+			_update_rescue(delta)
 			_record_ghost(delta)
 		_:
 			pass
@@ -245,23 +249,12 @@ func _begin_race() -> void:
 # Lap counting & positions
 # ---------------------------------------------------------------------------
 
-func _on_checkpoint_passed(body: Node, cp) -> void:
-	# Find the racer entry for this kart body.
-	var entry = _entry_for_kart(body)
-	if entry == null or entry["finished"]:
-		return
-	var idx: int = cp.checkpoint_index
-	var prev: int = entry["checkpoint"]
-	var expected := (prev + 1) % total_checkpoints
-	if idx != expected:
-		return # wrong-way / skipped checkpoint: ignore to prevent lap cheese
-	entry["checkpoint"] = idx
-
-	# A lap completes only when we wrap from the LAST checkpoint back to 0. This
-	# means the initial start-line crossing (prev == -1) is NOT counted, fixing
-	# the off-by-one where lap 1 would end the instant the race began.
-	if idx == 0 and prev == total_checkpoints - 1:
-		_complete_lap(entry)
+func _on_checkpoint_passed(_body: Node, _cp) -> void:
+	# Lap counting no longer relies on driving through Area3D gates in exact
+	# order — that stalled forever if a kart (or a rescue teleport) ever skipped
+	# one. Laps are now derived continuously from racing-line position in
+	# _update_positions(). Checkpoints remain only for the mini-map.
+	pass
 
 func _complete_lap(entry: Dictionary) -> void:
 	var lap_ms := race_time_ms - int(entry["lap_start_ms"])
@@ -294,21 +287,30 @@ func _finish_racer(entry: Dictionary) -> void:
 		_on_player_finished(entry)
 
 func _update_positions() -> void:
-	# Progress = laps*BIG + checkpoint*MED + distance-fraction to next checkpoint.
+	# Continuous progress from racing-line position. Robust to wall-bonks,
+	# rescues, and the chaotic start — no ordered-gate requirement to stall on.
 	for e in racers:
 		if e["finished"]:
 			continue
 		var kart: Node3D = e["kart"]
-		var cp_i: int = e["checkpoint"]
-		var lap: int = e["lap"]
-		var frac := 0.0
-		if total_checkpoints > 0 and cp_i >= 0:
-			var next_cp := checkpoints[(cp_i + 1) % total_checkpoints] as Node3D
-			var cur_cp := checkpoints[cp_i] as Node3D
-			var seg := cur_cp.global_position.distance_to(next_cp.global_position)
-			if seg > 0.01:
-				frac = clampf(1.0 - kart.global_position.distance_to(next_cp.global_position) / seg, 0.0, 1.0)
-		e["progress"] = lap * 100000.0 + cp_i * 1000.0 + frac * 999.0
+		var frac := _nearest_line_frac(kart.global_position)
+		var prev_t: float = e["line_t"]
+		if prev_t < 0.0:
+			prev_t = frac # first sample: seed without counting a lap
+		# Mark having reached the far half of the loop (so a lap can't be faked
+		# by jittering back and forth across the start line).
+		if frac > 0.4 and frac < 0.6:
+			e["passed_half"] = true
+		# Forward wrap (~0.9 -> ~0.05) past the start line == a completed lap.
+		if prev_t > 0.7 and frac < 0.3:
+			if e["passed_half"]:
+				e["passed_half"] = false
+				_complete_lap(e)
+		# Backward wrap: went the wrong way; just clear the half flag.
+		elif prev_t < 0.3 and frac > 0.7:
+			e["passed_half"] = false
+		e["line_t"] = frac
+		e["progress"] = e["lap"] * 10.0 + frac
 
 	# Sort: finished first (by finish time), then by progress descending.
 	var ordered := racers.duplicate()
@@ -333,6 +335,87 @@ func _compare_progress(a: Dictionary, b: Dictionary) -> bool:
 	if a["finished"] and b["finished"]:
 		return a["finish_time_ms"] < b["finish_time_ms"]
 	return a["progress"] > b["progress"]
+
+# ---------------------------------------------------------------------------
+# Stuck rescue ("Lakitu") — the safety net that keeps a race alive.
+#
+# Without this, karts that wedge against a wall or each other (very common at
+# the start) sit there flooring the throttle forever, so the player ends up
+# "with no one to race". Any kart that crawls below a speed threshold for a
+# couple of seconds is lifted back onto the racing line, facing forward.
+# ---------------------------------------------------------------------------
+
+const RESCUE_SPEED := 3.0      # m/s below which a kart counts as "stuck"
+const RESCUE_AFTER := 2.0      # seconds of being stuck before a rescue
+
+func _update_rescue(delta: float) -> void:
+	for e in racers:
+		if e["finished"]:
+			continue
+		var kart: KartController = e["kart"]
+		# Out of bounds: flew off a ramp over the walls, or fell through the world.
+		# Speed-based rescue never catches these (they're moving fast), so check
+		# position explicitly and rescue immediately.
+		var gp := kart.global_position
+		if gp.y < -8.0 or Vector2(gp.x, gp.z).length() > 95.0:
+			_rescue_kart(kart)
+			e["stuck_time"] = 0.0
+			continue
+		if kart.control_locked or kart.spinout_time > 0.0:
+			e["stuck_time"] = 0.0
+			continue
+		if absf(kart.forward_speed) < RESCUE_SPEED:
+			e["stuck_time"] += delta
+		else:
+			e["stuck_time"] = 0.0
+		if e["stuck_time"] >= RESCUE_AFTER:
+			_rescue_kart(kart)
+			e["stuck_time"] = 0.0
+
+## Teleport a kart to the nearest point on the racing line, upright and facing
+## the next waypoint, with momentum cleared so it can drive away cleanly.
+func _rescue_kart(kart: KartController) -> void:
+	if waypoints.is_empty():
+		return
+	var best_i := 0
+	var best_d := INF
+	for i in waypoints.size():
+		var d := kart.global_position.distance_to(waypoints[i])
+		if d < best_d:
+			best_d = d
+			best_i = i
+	var here: Vector3 = waypoints[best_i]
+	var nxt: Vector3 = waypoints[(best_i + 1) % waypoints.size()]
+	var dir := nxt - here
+	dir.y = 0.0
+	if dir.length() < 0.01:
+		dir = -kart.global_transform.basis.z
+	# Reset all motion state so it doesn't keep its stuck velocity.
+	kart.velocity = Vector3.ZERO
+	kart.forward_speed = 0.0
+	kart.lateral_speed = 0.0
+	kart.vertical_speed = 0.0
+	kart.is_drifting = false
+	kart.drift_charge = 0.0
+	kart.boost_time = 0.0
+	kart.boost_speed = 0.0
+	kart.global_position = here + Vector3.UP * 1.2
+	# look_at points -Z (our forward) at the target.
+	kart.look_at(kart.global_position + dir, Vector3.UP)
+
+## Fraction 0..1 around the racing line of the waypoint nearest to `pos`.
+func _nearest_line_frac(pos: Vector3) -> float:
+	var w := waypoints.size()
+	if w == 0:
+		return 0.0
+	var best_i := 0
+	var best_d := INF
+	for i in w:
+		var d := pos.distance_squared_to(waypoints[i])
+		if d < best_d:
+			best_d = d
+			best_i = i
+	return float(best_i) / float(w)
 
 func _leader_gap_for(entry: Dictionary, ordered: Array) -> float:
 	# Approximate metres the human leader is ahead of this AI (for rubber-band).

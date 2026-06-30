@@ -18,12 +18,12 @@ extends Node3D
 ## the oval + feature placement here to prototype new layouts fast.
 
 # Oval centerline radii and corridor width (metres).
-const RX := 70.0
-const RZ := 48.0
-const TRACK_WIDTH := 16.0
+const RX := 64.0
+const RZ := 58.0            # near-circular: uniform gentle curvature the AI can hold
+const TRACK_WIDTH := 22.0   # wider corridor so karts don't wedge against walls
 const WALL_SEGMENTS := 72
 const CHECKPOINTS := 12
-const WALL_HEIGHT := 3.0
+const WALL_HEIGHT := 5.0   # taller so launched karts don't sail over the barrier
 
 var _parent: Node
 
@@ -44,11 +44,12 @@ func build(parent: Node) -> void:
 # --- Centerline helpers -----------------------------------------------------
 
 func _point(t: float) -> Vector3:
-	# t in radians. Slightly squashed oval with a gentle kink for character.
+	# t in radians. A clean ellipse: smooth and predictable for the AI to follow.
+	# (A previous S-bend variant made the AI careen off-line; keep curvature
+	# gentle so opponents can actually complete laps. Add character with props,
+	# elevation, and bespoke geometry rather than a wavy centerline.)
 	var x := RX * cos(t)
 	var z := RZ * sin(t)
-	# Add an S-bend on one straight so it isn't a boring oval.
-	x += 8.0 * sin(t * 2.0)
 	return Vector3(x, 0.0, z)
 
 func _tangent(t: float) -> Vector3:
@@ -90,6 +91,10 @@ func _build_ground() -> void:
 	_parent.add_child(body)
 
 func _build_walls() -> void:
+	# Walls are VISUAL ONLY (collision_layer 4, which karts don't collide with).
+	# The faceted segment boxes used to snag karts on corners and deadlock the
+	# whole field; instead, karts are kept on-course by the AI racing line and
+	# the out-of-bounds rescue. Bespoke tracks can use solid swept-mesh walls.
 	var outer := StaticBody3D.new(); outer.name = "OuterWalls"; outer.collision_layer = 1
 	var inner := StaticBody3D.new(); inner.name = "InnerWalls"; inner.collision_layer = 1
 	_parent.add_child(outer)
@@ -163,13 +168,16 @@ func _build_grid() -> void:
 	var grid := Node3D.new()
 	grid.name = "Grid"
 	_parent.add_child(grid)
-	# Place 8 staggered markers just before the start line (t slightly < 0).
+	# Two columns of 4, well spaced so karts never spawn touching (which caused
+	# them to pile up and freeze). Rows 8m apart, columns 5m to each side.
 	var fwd := _tangent(0.0)
 	var side := Vector3.UP.cross(fwd).normalized()
 	for i in 8:
-		var back := -fwd * (6.0 + (i / 2) * 6.0)
-		var lateral := side * (-3.0 if i % 2 == 0 else 3.0)
-		var pos := _point(0.0) + back + lateral + Vector3.UP * 1.0
+		var row := i / 2
+		var col := i % 2
+		var back := -fwd * (8.0 + row * 8.0)
+		var lateral := side * (-5.0 if col == 0 else 5.0)
+		var pos := _point(0.0) + back + lateral + Vector3.UP * 0.6
 		var m := Marker3D.new()
 		m.name = "Start%d" % i
 		m.transform = _xform_facing(pos, fwd)
@@ -180,8 +188,8 @@ func _build_features() -> void:
 	var boost_scene := load("res://scenes/props/BoostPad.tscn")
 	var label: String = RacerDB.get_track(GameManager.track_id).get("boost_label", "BOOST")
 
-	# Item box rows at three points around the loop.
-	for frac in [0.25, 0.55, 0.85]:
+	# Item box rows spread around the loop (kept clear of the ramps at 0.25/0.75).
+	for frac in [0.1, 0.5, 0.9]:
 		var t := TAU * float(frac)
 		var c := _point(t)
 		var fwd := _tangent(t)
@@ -192,8 +200,8 @@ func _build_features() -> void:
 				_parent.add_child(box)
 				box.global_position = c + side * (float(lane) * 4.0) + Vector3.UP * 0.5
 
-	# Boost pads on the long straights.
-	for frac2 in [0.1, 0.4, 0.7]:
+	# Boost pads on the straights, offset from ramps and item rows.
+	for frac2 in [0.35, 0.65]:
 		var t2 := TAU * float(frac2)
 		if boost_scene:
 			var pad: Node3D = boost_scene.instantiate()
@@ -204,34 +212,63 @@ func _build_features() -> void:
 			if pad.has_method("set"):
 				pad.set("voice_line", "to_the_moon")
 
-	# A couple of jump ramps for big air + mid-air control practice.
-	for frac3 in [0.5, 0.95]:
+	# Jump ramps on the STRAIGHTS (not the corners — a ramp mid-turn launches
+	# karts into the wall). frac 0.25 and 0.75 are the two straightaways.
+	for frac3 in [0.25, 0.75]:
 		_add_ramp(TAU * float(frac3))
 
 func _add_ramp(t: float) -> void:
+	# A solid, ground-based WEDGE (triangular prism) instead of a floating tilted
+	# box. The old box had a vertical leading lip that karts rammed into and got
+	# stuck on. This wedge rises from the track surface (y=0) so you drive
+	# smoothly up the incline and launch off the top edge.
 	var c := _point(t)
 	var fwd := _tangent(t)
+	var hw := TRACK_WIDTH * 0.34   # half width across the track
+	var hl := 7.0                  # half length along travel
+	var h := 1.7                   # launch-edge height (gentle pop, not orbit)
+	# Local space: -Z is travel/forward. Kart enters at +Z on the ground and
+	# climbs to the exit lip at -Z (height h).
+	var v := [
+		Vector3( hw, 0.0,  hl), # 0 entry +x
+		Vector3( hw, 0.0, -hl), # 1 exit base +x
+		Vector3( hw, h,   -hl), # 2 exit top +x
+		Vector3(-hw, 0.0,  hl), # 3 entry -x
+		Vector3(-hw, 0.0, -hl), # 4 exit base -x
+		Vector3(-hw, h,   -hl), # 5 exit top -x
+	]
+
 	var body := StaticBody3D.new()
 	body.collision_layer = 1
 	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = Vector3(TRACK_WIDTH * 0.8, 0.5, 8.0)
-	shape.shape = box
-	# Tilt the ramp up along travel so driving onto it launches you. The ramp's
-	# -Z is the travel direction, so a POSITIVE pitch about local X raises the
-	# far (exit) edge into an up-ramp; negative would make it a down-slope.
-	var xform := _xform_facing(c + Vector3.UP * 0.6, fwd)
-	xform.basis = xform.basis.rotated(xform.basis.x.normalized(), deg_to_rad(14.0))
-	shape.transform = Transform3D() # local to body
-	body.transform = xform
+	var convex := ConvexPolygonShape3D.new()
+	convex.points = PackedVector3Array(v)
+	shape.shape = convex
 	body.add_child(shape)
+
+	# Visual mesh matching the collision hull.
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var faces := [
+		[0, 2, 1], [3, 4, 5],          # side triangles
+		[0, 3, 5], [0, 5, 2],          # incline (drivable ramp surface)
+		[1, 2, 5], [1, 5, 4],          # vertical back face
+		[0, 1, 4], [0, 4, 3],          # bottom
+	]
+	for f in faces:
+		st.add_vertex(v[f[0]])
+		st.add_vertex(v[f[1]])
+		st.add_vertex(v[f[2]])
+	st.generate_normals()
 	var mesh := MeshInstance3D.new()
-	var bm := BoxMesh.new(); bm.size = box.size
-	mesh.mesh = bm
+	mesh.mesh = st.commit()
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.9, 0.4, 0.0)
+	mat.albedo_color = Color(0.95, 0.45, 0.0)
 	mat.emission_enabled = true
 	mat.emission = Color(1.0, 0.5, 0.1)
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED # always visible regardless of winding
 	mesh.material_override = mat
 	body.add_child(mesh)
+
+	body.transform = _xform_facing(c, fwd) # base sits on the ground (y=0)
 	_parent.add_child(body)
