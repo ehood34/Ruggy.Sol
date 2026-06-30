@@ -217,9 +217,11 @@ func _add_ramp(t: float) -> void:
 	var box := BoxShape3D.new()
 	box.size = Vector3(TRACK_WIDTH * 0.8, 0.5, 8.0)
 	shape.shape = box
-	# Tilt the ramp up along travel so driving onto it launches you.
+	# Tilt the ramp up along travel so driving onto it launches you. The ramp's
+	# -Z is the travel direction, so a POSITIVE pitch about local X raises the
+	# far (exit) edge into an up-ramp; negative would make it a down-slope.
 	var xform := _xform_facing(c + Vector3.UP * 0.6, fwd)
-	xform.basis = xform.basis.rotated(xform.basis.x.normalized(), deg_to_rad(-14.0))
+	xform.basis = xform.basis.rotated(xform.basis.x.normalized(), deg_to_rad(14.0))
 	shape.transform = Transform3D() # local to body
 	body.transform = xform
 	body.add_child(shape)

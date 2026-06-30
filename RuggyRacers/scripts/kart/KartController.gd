@@ -253,7 +253,9 @@ func _drive(delta: float) -> void:
 	lateral_speed = move_toward(lateral_speed, 0.0, grip * delta)
 
 func _rotate_kart(yaw: float) -> void:
-	rotate_y(yaw)
+	# Negate: Godot's rotate_y(+angle) turns the -Z forward toward -X (left),
+	# but positive steer_input means "right". Negating maps right -> right turn.
+	rotate_y(-yaw)
 
 # --- Drifting ---------------------------------------------------------------
 
