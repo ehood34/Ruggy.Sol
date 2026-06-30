@@ -98,14 +98,14 @@ func _cycle(dir: int) -> void:
 	else:
 		# Only cycle through unlocked tracks.
 		var unlocked := _unlocked_tracks()
-		var cur := unlocked[_track_index % unlocked.size()]
+		var cur = unlocked[_track_index % unlocked.size()]
 		var pos := unlocked.find(cur)
 		_track_index = wrapi(pos + dir, 0, unlocked.size())
 	_refresh()
 
 func _refresh() -> void:
 	if _mode in ["grand_prix", "tournament"]:
-		var cup_id := RacerDB.CUPS.keys()[_cup_index]
+		var cup_id = RacerDB.CUPS.keys()[_cup_index]
 		var cup := RacerDB.get_cup(cup_id)
 		var lines := "[ %s ]\n\n" % cup["name"]
 		for i in cup["tracks"].size():
@@ -115,13 +115,13 @@ func _refresh() -> void:
 		_info_label.text = lines
 	else:
 		var unlocked := _unlocked_tracks()
-		var tid := unlocked[_track_index % unlocked.size()]
+		var tid = unlocked[_track_index % unlocked.size()]
 		var t := RacerDB.get_track(tid)
 		var best := SaveManager.get_time_trial(tid)
 		var lines := "[ %s ]\n\n%s\n\nBoost: %s pads\nHazards: %s\n" % [
 			t["name"], t["theme"], t["boost_label"], ", ".join(t["hazards"])]
 		if _mode == "speedrun":
-			var tg := t["targets"]
+			var tg = t["targets"]
 			lines += "\n— Target Times —\n🥇 %s   🥈 %s   🥉 %s\n" % [
 				_fmt(tg["gold"]), _fmt(tg["silver"]), _fmt(tg["bronze"])]
 			if best.has("best_total_ms"):
@@ -138,17 +138,17 @@ func _confirm() -> void:
 	var racer: String = GameManager.player_racers[0]
 	match _mode:
 		"speedrun":
-			var tid := _unlocked_tracks()[_track_index % _unlocked_tracks().size()]
+			var tid = _unlocked_tracks()[_track_index % _unlocked_tracks().size()]
 			GameManager.configure_speedrun(tid, racer, _practice, _use_ghost)
 		"grand_prix":
-			var cup_id := RacerDB.CUPS.keys()[_cup_index]
+			var cup_id = RacerDB.CUPS.keys()[_cup_index]
 			GameManager.start_grand_prix(cup_id, racer, _difficulty)
 		"tournament":
-			var cup_id2 := RacerDB.CUPS.keys()[_cup_index]
+			var cup_id2 = RacerDB.CUPS.keys()[_cup_index]
 			GameManager.start_grand_prix(cup_id2, racer, _difficulty) # tournament reuses GP flow
 			GameManager.mode = GameManager.GameMode.TOURNAMENT
 		_:
-			var tid2 := _unlocked_tracks()[_track_index % _unlocked_tracks().size()]
+			var tid2 = _unlocked_tracks()[_track_index % _unlocked_tracks().size()]
 			GameManager.configure_quick_race(tid2, racer, _ai_count, _laps, _difficulty)
 	GameManager.start_race()
 

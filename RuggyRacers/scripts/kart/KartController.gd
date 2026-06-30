@@ -406,7 +406,7 @@ func _update_visuals(delta: float) -> void:
 	if sparks and sparks is GPUParticles3D:
 		var tier := current_drift_tier()
 		sparks.emitting = is_drifting and tier > 0
-		var mat := sparks.process_material
+		var mat = sparks.process_material  # Variant (dynamic prop): plain '=' avoids := inference error
 		if mat and mat is ParticleProcessMaterial:
 			match tier:
 				1: mat.color = Color(0.3, 0.6, 1.0)   # blue
@@ -415,12 +415,21 @@ func _update_visuals(delta: float) -> void:
 				_: pass
 
 func _basis_aligned_to_normal(n: Vector3) -> Basis:
-	var fwd := -global_transform.basis.z
-	var right := n.cross(fwd).normalized()
-	if right.length() < 0.01:
-		right = global_transform.basis.x
-	var new_fwd := right.cross(n).normalized()
-	return Basis(right, n, -new_fwd).orthonormalized()
+	# Build a PROPER right-handed orthonormal basis aligned to ground normal `n`
+	# while preserving our facing. Godot basis columns are (X=right, Y=up,
+	# Z=back) with forward = -Z; a right-handed basis satisfies X x Y = Z.
+	# Constructing the columns from consistent cross products guarantees
+	# determinant +1, so Basis.slerp()'s internal Quaternion cast won't error.
+	var up := n.normalized()
+	var fwd := (-global_transform.basis.z)
+	# Flatten forward onto the surface so it's perpendicular to the normal.
+	fwd = (fwd - up * fwd.dot(up))
+	if fwd.length() < 0.01:
+		fwd = -global_transform.basis.z
+	fwd = fwd.normalized()
+	var right := fwd.cross(up).normalized()      # X
+	var back := right.cross(up).normalized()     # Z = X x Y (right-handed)
+	return Basis(right, up, back)
 
 # ---------------------------------------------------------------------------
 # External effects (called by ItemSystem, hazards, AI ramming)

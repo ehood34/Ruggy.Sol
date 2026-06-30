@@ -186,7 +186,7 @@ func _draw_minimap() -> void:
 		minz = min(minz, p.z); maxz = max(maxz, p.z)
 	var w := maxx - minx + 0.001
 	var h := maxz - minz + 0.001
-	var scale := 200.0 / max(w, h)
+	var scale := 200.0 / maxf(w, h)
 	var off := Vector2(10, 10)
 	# Track outline.
 	var prev := Vector2.ZERO

@@ -155,7 +155,7 @@ func use_held_item() -> void:
 # ---------------------------------------------------------------------------
 
 func _activate(id: String) -> void:
-	var rm := _race_manager()
+	var rm = _race_manager()
 	match id:
 		"hype_pump":
 			kart.apply_boost(9.0, 1.1)
@@ -206,7 +206,7 @@ func _jackpot(rm) -> void:
 					rm.fire_shell(kart, i)
 
 func _spawn_behind(id: String) -> void:
-	var rm := _race_manager()
+	var rm = _race_manager()
 	var path: String = SPAWN_SCENES.get(id, "")
 	if rm and rm.has_method("spawn_hazard"):
 		rm.spawn_hazard(path, kart, id)

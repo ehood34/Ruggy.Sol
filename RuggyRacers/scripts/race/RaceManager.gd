@@ -52,6 +52,11 @@ func _ready() -> void:
 	add_to_group("race_manager")
 	laps_required = GameManager.laps
 	is_speedrun = GameManager.mode == GameManager.GameMode.SPEEDRUN
+	# Procedural tracks build themselves here (adding to us, which is safe in our
+	# own _ready). Bespoke hand-built tracks simply have no TrackBuilder child.
+	var builder := get_node_or_null("TrackBuilder")
+	if builder and builder.has_method("build"):
+		builder.build(self)
 	_collect_track_nodes()
 	_spawn_field()
 	_start_countdown()
@@ -75,9 +80,9 @@ func _collect_track_nodes() -> void:
 	# Racing line for the AI.
 	var path := get_node_or_null("AIWaypoints")
 	if path is Path3D and path.curve:
-		var pts := path.curve.get_baked_points()
+		var pts: PackedVector3Array = path.curve.get_baked_points()
 		# Downsample so AI lookahead math stays cheap.
-		var step := max(1, int(pts.size() / 64.0))
+		var step: int = max(1, int(pts.size() / 64.0))
 		for i in range(0, pts.size(), step):
 			waypoints.append(path.to_global(pts[i]))
 	else:
@@ -112,7 +117,7 @@ func _spawn_field() -> void:
 
 	for i in total:
 		var entry := {}
-		var spawn_xform := spawns[i].global_transform if i < spawns.size() \
+		var spawn_xform: Transform3D = spawns[i].global_transform if i < spawns.size() \
 			else Transform3D(Basis(), Vector3(0, 1, -i * 4.0))
 		var kart: KartController = kart_packed.instantiate()
 		var is_human := i < human_count
@@ -242,7 +247,7 @@ func _begin_race() -> void:
 
 func _on_checkpoint_passed(body: Node, cp) -> void:
 	# Find the racer entry for this kart body.
-	var entry := _entry_for_kart(body)
+	var entry = _entry_for_kart(body)
 	if entry == null or entry["finished"]:
 		return
 	var idx: int = cp.checkpoint_index
@@ -404,8 +409,8 @@ func _record_ghost(delta: float) -> void:
 	})
 
 func _finalize_speedrun(entry: Dictionary) -> void:
-	var total := entry["finish_time_ms"]
-	var best_lap := entry["best_lap_ms"]
+	var total: int = entry["finish_time_ms"]
+	var best_lap: int = entry["best_lap_ms"]
 	var medal := RacerDB.medal_for_time(GameManager.track_id, total)
 	var is_record := SaveManager.record_time_trial(GameManager.track_id, total, best_lap, medal)
 	if is_record:
@@ -448,7 +453,7 @@ func fire_shell(source: KartController, spread_index: int = 0) -> void:
 
 ## Lightning: slow/squash every kart currently ahead of `source`.
 func lightning_strike(source: KartController) -> void:
-	var src_entry := _entry_for_kart(source)
+	var src_entry = _entry_for_kart(source)
 	if src_entry == null:
 		return
 	for e in racers:
@@ -480,7 +485,7 @@ func _entry_for_kart(kart: Node) -> Variant:
 	return null
 
 func _nearest_ahead(source: KartController) -> KartController:
-	var src_entry := _entry_for_kart(source)
+	var src_entry = _entry_for_kart(source)
 	if src_entry == null:
 		return null
 	var best: KartController = null

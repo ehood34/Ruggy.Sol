@@ -44,7 +44,7 @@ func _explode() -> void:
 	# Spin out every kart within the blast radius.
 	for k in get_tree().get_nodes_in_group("karts"):
 		if k is KartController and k.global_position.distance_to(global_position) <= blast_radius:
-			var dir := (k.global_position - global_position).normalized()
+			var dir = (k.global_position - global_position).normalized()
 			(k as KartController).spinout()
 			(k as KartController).apply_knockback(dir, 12.0)
 	# TODO: spawn explosion particles + camera shake here when FX scene exists.

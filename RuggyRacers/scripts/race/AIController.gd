@@ -124,6 +124,8 @@ func _upcoming_bend() -> float:
 	return absf(v1.normalized().angle_to(v2.normalized()))
 
 func _nearest_waypoint(pos: Vector3) -> int:
+	if waypoints.is_empty():
+		return 0
 	var best := 0
 	var best_d := INF
 	for i in waypoints.size():

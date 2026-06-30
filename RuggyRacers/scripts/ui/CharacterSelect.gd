@@ -120,7 +120,7 @@ func _move(dir: int) -> void:
 	_refresh()
 
 func _refresh() -> void:
-	var rid := RacerDB.RACER_ORDER[_index]
+	var rid: String = RacerDB.RACER_ORDER[_index]
 	var r := RacerDB.get_racer(rid)
 	var unlocked := SaveManager.is_racer_unlocked(rid)
 
@@ -156,7 +156,7 @@ func _input(event: InputEvent) -> void:
 		_confirm()
 
 func _confirm() -> void:
-	var rid := RacerDB.RACER_ORDER[_index]
+	var rid: String = RacerDB.RACER_ORDER[_index]
 	if not SaveManager.is_racer_unlocked(rid):
 		AudioManager.play_sfx("ui_back")
 		return

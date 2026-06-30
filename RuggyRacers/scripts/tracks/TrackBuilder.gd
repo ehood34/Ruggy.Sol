@@ -27,8 +27,13 @@ const WALL_HEIGHT := 3.0
 
 var _parent: Node
 
-func _ready() -> void:
-	_parent = get_parent()
+## Build the whole track as children of `parent`. This is called explicitly by
+## RaceManager from inside RaceManager._ready() — NOT from this node's own
+## _ready(). A child cannot add_child() to its parent while the parent is still
+## being set up ("Parent node is busy setting up children"), so the build must
+## be driven by the parent adding to itself.
+func build(parent: Node) -> void:
+	_parent = parent
 	_build_ground()
 	_build_walls()
 	_build_checkpoints()
@@ -177,7 +182,7 @@ func _build_features() -> void:
 
 	# Item box rows at three points around the loop.
 	for frac in [0.25, 0.55, 0.85]:
-		var t := TAU * frac
+		var t := TAU * float(frac)
 		var c := _point(t)
 		var fwd := _tangent(t)
 		var side := Vector3.UP.cross(fwd).normalized()
@@ -185,11 +190,11 @@ func _build_features() -> void:
 			if item_scene:
 				var box: Node3D = item_scene.instantiate()
 				_parent.add_child(box)
-				box.global_position = c + side * (lane * 4.0) + Vector3.UP * 0.5
+				box.global_position = c + side * (float(lane) * 4.0) + Vector3.UP * 0.5
 
 	# Boost pads on the long straights.
 	for frac2 in [0.1, 0.4, 0.7]:
-		var t2 := TAU * frac2
+		var t2 := TAU * float(frac2)
 		if boost_scene:
 			var pad: Node3D = boost_scene.instantiate()
 			_parent.add_child(pad)
@@ -201,7 +206,7 @@ func _build_features() -> void:
 
 	# A couple of jump ramps for big air + mid-air control practice.
 	for frac3 in [0.5, 0.95]:
-		_add_ramp(TAU * frac3)
+		_add_ramp(TAU * float(frac3))
 
 func _add_ramp(t: float) -> void:
 	var c := _point(t)
