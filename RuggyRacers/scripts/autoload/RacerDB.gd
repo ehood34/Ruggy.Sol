@@ -197,13 +197,16 @@ const GP_POINTS := [15, 12, 10, 8, 6, 4, 2, 1]
 # you should ever need. The character `offset` lifts/seats the driver.
 
 const MODELS := {
+	# rot_y turns the model to face forward (the kart drives toward -Z). If a
+	# model faces LEFT, 90 fixes it; if that makes it face RIGHT, use -90 (=270);
+	# 180 = full flip. Tweak per model until it points where the kart drives.
 	"lambo": {
-		"vehicle":   {"dir": "res://assets/models/lambo/vehicle",   "size": 3.0, "scale": 1.0, "rot_y": 0.0,   "offset": Vector3(0, 0, 0)},
-		"character": {"dir": "res://assets/models/lambo/character", "size": 1.3, "scale": 1.0, "rot_y": 180.0, "offset": Vector3(0, 0.5, -0.1)},
+		"vehicle":   {"dir": "res://assets/models/lambo/vehicle",   "size": 3.0, "scale": 1.0, "rot_y": 90.0,  "offset": Vector3(0, 0, 0)},
+		"character": {"dir": "res://assets/models/lambo/character", "size": 1.3, "scale": 1.0, "rot_y": 90.0,  "offset": Vector3(0, 0.5, -0.1)},
 	},
 	"trench": {
-		"vehicle":   {"dir": "res://assets/models/trench/vehicle",   "size": 3.0, "scale": 1.0, "rot_y": 0.0,   "offset": Vector3(0, 0, 0)},
-		"character": {"dir": "res://assets/models/trench/character", "size": 1.3, "scale": 1.0, "rot_y": 180.0, "offset": Vector3(0, 0.5, -0.1)},
+		"vehicle":   {"dir": "res://assets/models/trench/vehicle",   "size": 3.0, "scale": 1.0, "rot_y": 90.0,  "offset": Vector3(0, 0, 0)},
+		"character": {"dir": "res://assets/models/trench/character", "size": 1.3, "scale": 1.0, "rot_y": 90.0,  "offset": Vector3(0, 0.5, -0.1)},
 	},
 }
 

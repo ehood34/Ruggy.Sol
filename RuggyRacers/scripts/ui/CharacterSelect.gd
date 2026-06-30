@@ -18,6 +18,12 @@ var _trait_label: Label
 var _stat_bars: Dictionary = {}
 var _lock_label: Label
 
+# Live 3D preview (SubViewport renders the selected kart + Ruggy).
+var _preview_vp: SubViewport
+var _preview_cam: Camera3D
+var _preview_holder: Node3D     # spins; holds the instanced kart
+var _preview_kart: Node3D
+
 func _ready() -> void:
 	_intent = GameManager.get_meta("menu_intent", "quick_race")
 	UITheme.fullscreen_bg(self)
@@ -42,6 +48,8 @@ func _build_ui() -> void:
 	_preview_panel.custom_minimum_size = Vector2(560, 520)
 	_preview_panel.position = Vector2(90, 150)
 	add_child(_preview_panel)
+
+	_build_preview3d()
 
 	_name_label = Label.new()
 	_name_label.add_theme_font_size_override("font_size", 44)
@@ -146,6 +154,83 @@ func _refresh() -> void:
 		fill.bg_color = r["accent_color"]
 		fill.set_corner_radius_all(6)
 		(_stat_bars[stat] as ProgressBar).add_theme_stylebox_override("fill", fill)
+
+	_spawn_preview(rid)
+
+# ---------------------------------------------------------------------------
+# Live 3D preview
+# ---------------------------------------------------------------------------
+
+func _build_preview3d() -> void:
+	_preview_vp = SubViewport.new()
+	_preview_vp.size = Vector2i(540, 500)
+	_preview_vp.transparent_bg = true
+	_preview_vp.own_world_3d = true
+	_preview_vp.world_3d = World3D.new()
+	_preview_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(_preview_vp)
+
+	# Ambient + key light so the model reads well against the transparent bg.
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0, 0, 0, 0)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.6, 0.6, 0.72)
+	env.ambient_light_energy = 1.2
+	_preview_cam = Camera3D.new()
+	_preview_cam.environment = env
+	_preview_cam.fov = 40.0
+	_preview_vp.add_child(_preview_cam)
+	_preview_cam.current = true
+	var key := DirectionalLight3D.new()
+	key.rotation_degrees = Vector3(-35, 35, 0)
+	key.light_energy = 1.4
+	_preview_vp.add_child(key)
+
+	_preview_holder = Node3D.new()
+	_preview_vp.add_child(_preview_holder)
+
+	# Show the viewport's render inside the panel, behind the text labels.
+	var tr := TextureRect.new()
+	tr.texture = _preview_vp.get_texture()
+	tr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview_panel.add_child(tr)
+	_preview_panel.move_child(tr, 0) # behind the labels added later
+
+func _spawn_preview(rid: String) -> void:
+	if _preview_holder == null:
+		return
+	if _preview_kart and is_instance_valid(_preview_kart):
+		_preview_kart.queue_free()
+		_preview_kart = null
+	var packed := load("res://scenes/karts/Kart.tscn")
+	if packed == null:
+		return
+	var kart: Node3D = packed.instantiate()
+	# It's just a display dummy — no physics, no input, no active camera.
+	if kart is KartController:
+		(kart as KartController).is_player = false
+	kart.set_physics_process(false)
+	kart.set_process(false)
+	_preview_holder.add_child(kart)
+	# Mount this racer's models / tint (works exactly like in-race).
+	if kart.has_method("apply_theme"):
+		kart.call("apply_theme", rid)
+	var cam := kart.get_node_or_null("CameraRig/Camera3D")
+	if cam:
+		(cam as Camera3D).current = false
+	kart.position = Vector3.ZERO
+	_preview_kart = kart
+	_preview_holder.rotation = Vector3.ZERO
+	# Frame the kart from a front-3/4 angle.
+	_preview_cam.position = Vector3(2.6, 1.7, 3.6)
+	_preview_cam.look_at(Vector3(0, 0.7, 0), Vector3.UP)
+
+func _process(delta: float) -> void:
+	if _preview_holder:
+		_preview_holder.rotate_y(delta * 0.6) # slow turntable
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("steer_left"):

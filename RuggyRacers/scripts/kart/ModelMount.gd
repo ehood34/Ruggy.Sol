@@ -55,7 +55,43 @@ static func mount(parent: Node3D, cfg: Dictionary) -> Node3D:
 		float(cfg.get("rot_x", 0.0)),
 		float(cfg.get("rot_y", 0.0)),
 		float(cfg.get("rot_z", 0.0)))
+
+	# If the model ships with animations (e.g. a Meshy "driving"/"idle" rig),
+	# auto-play a looping one so the character isn't a rigid T-pose. Static
+	# meshes have no AnimationPlayer and this is a no-op.
+	_play_loop_animation(inst, cfg.get("anim", ""))
 	return inst
+
+static func _play_loop_animation(root: Node, preferred: String) -> void:
+	var ap := _find_animation_player(root)
+	if ap == null:
+		return
+	var names := ap.get_animation_list()
+	if names.is_empty():
+		return
+	var pick := String(names[0])
+	# Prefer an explicitly-named anim, else the first that looks driving/idle-ish.
+	var prefs := [preferred.to_lower(), "driv", "sit", "seat", "idle", "pose", "stand"]
+	for p in prefs:
+		if p == "":
+			continue
+		for n in names:
+			if p in String(n).to_lower():
+				pick = String(n)
+				break
+	var anim := ap.get_animation(pick)
+	if anim:
+		anim.loop_mode = Animation.LOOP_LINEAR
+	ap.play(pick)
+
+static func _find_animation_player(node: Node) -> AnimationPlayer:
+	if node is AnimationPlayer:
+		return node
+	for c in node.get_children():
+		var found := _find_animation_player(c)
+		if found:
+			return found
+	return null
 
 # ---------------------------------------------------------------------------
 
