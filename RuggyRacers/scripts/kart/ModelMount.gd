@@ -18,7 +18,7 @@ extends RefCounted
 
 const MODEL_EXTS := [".glb", ".gltf", ".fbx", ".obj", ".blend", ".tscn", ".escn"]
 
-static func mount(parent: Node3D, cfg: Dictionary) -> Node3D:
+static func mount(parent: Node3D, cfg: Dictionary, animate: bool = true) -> Node3D:
 	var dir_path: String = cfg.get("dir", "")
 	var path := _find_model_path(dir_path)
 	if path == "" or not ResourceLoader.exists(path):
@@ -56,10 +56,13 @@ static func mount(parent: Node3D, cfg: Dictionary) -> Node3D:
 		float(cfg.get("rot_y", 0.0)),
 		float(cfg.get("rot_z", 0.0)))
 
-	# If the model ships with animations (e.g. a Meshy "driving"/"idle" rig),
-	# auto-play a looping one so the character isn't a rigid T-pose. Static
-	# meshes have no AnimationPlayer and this is a no-op.
-	_play_loop_animation(inst, cfg.get("anim", ""))
+	# If the model ships with animations (e.g. a Mixamo driving rig), merge any
+	# extra "honk"-style clips and auto-play the looping drive clip. `animate` is
+	# false for the static menu preview so root motion can't drift it off-screen.
+	if animate:
+		_merge_extra_anims(inst, dir_path)
+		_anchor_root_motion(inst)
+		_play_loop_animation(inst, cfg.get("anim", ""))
 	return inst
 
 static func _play_loop_animation(root: Node, preferred: String) -> void:
@@ -84,6 +87,10 @@ static func _play_loop_animation(root: Node, preferred: String) -> void:
 		anim.loop_mode = Animation.LOOP_LINEAR
 	ap.play(pick)
 
+## Public: locate the AnimationPlayer inside a mounted model (or null).
+static func find_animation_player(node: Node) -> AnimationPlayer:
+	return _find_animation_player(node)
+
 static func _find_animation_player(node: Node) -> AnimationPlayer:
 	if node is AnimationPlayer:
 		return node
@@ -92,6 +99,73 @@ static func _find_animation_player(node: Node) -> AnimationPlayer:
 		if found:
 			return found
 	return null
+
+static func _find_skeleton(node: Node) -> Skeleton3D:
+	if node is Skeleton3D:
+		return node
+	for c in node.get_children():
+		var found := _find_skeleton(c)
+		if found:
+			return found
+	return null
+
+## Pull the animation out of any "...honk..." model file in the same folder and
+## add it to this model's AnimationPlayer under the name "honk", so it can be
+## triggered on a hit. Both clips come from the same Mixamo rig, so the bone
+## tracks line up. No-op if there's no honk file or no AnimationPlayer.
+static func _merge_extra_anims(inst: Node3D, dir_path: String) -> void:
+	var ap := _find_animation_player(inst)
+	if ap == null:
+		return
+	var d := DirAccess.open(dir_path)
+	if d == null:
+		return
+	d.list_dir_begin()
+	while true:
+		var f := d.get_next()
+		if f == "":
+			break
+		if d.current_is_dir() or f.to_lower().ends_with(".import"):
+			continue
+		if not ("honk" in f.to_lower()):
+			continue
+		var res := load(dir_path.path_join(f))
+		if not (res is PackedScene):
+			continue
+		var tmp: Node = (res as PackedScene).instantiate()
+		var tap := _find_animation_player(tmp)
+		if tap and tap.get_animation_list().size() > 0:
+			var anim := tap.get_animation(tap.get_animation_list()[0])
+			if anim:
+				var lib := ap.get_animation_library("")
+				if lib == null:
+					lib = AnimationLibrary.new()
+					ap.add_animation_library("", lib)
+				if lib.has_animation("honk"):
+					lib.remove_animation("honk")
+				lib.add_animation("honk", anim)
+		tmp.queue_free()
+
+## Stop a non-"in place" Mixamo clip from translating the character off its kart
+## by extracting the root bone's motion instead of applying it to the pose.
+static func _anchor_root_motion(inst: Node3D) -> void:
+	var ap := _find_animation_player(inst)
+	var skel := _find_skeleton(inst)
+	if ap == null or skel == null:
+		return
+	var root_bone := -1
+	for b in skel.get_bone_count():
+		if skel.get_bone_parent(b) == -1:
+			root_bone = b
+			break
+	if root_bone < 0:
+		return
+	var base := ap.get_node_or_null(ap.root_node)
+	if base == null:
+		base = ap.get_parent()
+	if base == null:
+		return
+	ap.root_motion_track = NodePath(str(base.get_path_to(skel)) + ":" + skel.get_bone_name(root_bone))
 
 # ---------------------------------------------------------------------------
 
@@ -110,6 +184,9 @@ static func _find_model_path(dir_path: String) -> String:
 		if f == "":
 			break
 		if d.current_is_dir() or f.to_lower().ends_with(".import"):
+			continue
+		# Files named like "...honk..." are extra animation clips, not the model.
+		if "honk" in f.to_lower():
 			continue
 		found.append(f)
 	for ext in MODEL_EXTS:

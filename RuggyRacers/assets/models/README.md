@@ -45,6 +45,22 @@ All knobs live in `scripts/autoload/RacerDB.gd` under `const MODELS`. Per model:
 Tell me what looks wrong ("car is sideways", "Ruggy floats above the seat") and
 I'll set the exact numbers — or tweak them yourself and re-run.
 
+## Animations (rigged characters, e.g. Mixamo)
+
+If a character model is a **rigged GLB/FBX with an animation** (like a Mixamo
+"driving" clip), it **auto-plays and loops** in-race — no setup needed.
+
+**Honk-on-hit:** export a second clip (e.g. a honk/wave/recoil) from Mixamo and
+put that file in the **same `character/` folder** with **`honk` in its filename**
+(e.g. `trench_honk.glb`). The game treats the non-honk file as the model and
+merges the honk file's animation in as `"honk"`, then plays it automatically
+when the kart is hit by an item or slams a wall, returning to the drive loop
+after. Both clips must be exports of the **same rig** so the bones line up.
+
+**Avoid drifting:** in Mixamo, tick **"In Place"** when downloading driving/idle
+clips. Otherwise the clip's root motion walks the character off its seat. (The
+game also tries to anchor root motion, but "In Place" is the clean fix.)
+
 ## Performance note
 
 These Meshy exports are high-poly with large textures. On a low-end machine they

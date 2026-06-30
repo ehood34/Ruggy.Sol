@@ -187,6 +187,31 @@ func _build_preview3d() -> void:
 	key.light_energy = 1.4
 	_preview_vp.add_child(key)
 
+	# A floor for the kart to rest on (so it can't fall out of frame), styled as
+	# a little showroom turntable platform.
+	var floor_body := StaticBody3D.new()
+	floor_body.collision_layer = 1
+	var fshape := CollisionShape3D.new()
+	var fbox := BoxShape3D.new()
+	fbox.size = Vector3(12, 1, 12)
+	fshape.shape = fbox
+	fshape.position = Vector3(0, -0.5, 0) # top surface at y=0
+	floor_body.add_child(fshape)
+	var fmesh := MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = 3.2
+	disc.bottom_radius = 3.2
+	disc.height = 0.3
+	fmesh.mesh = disc
+	fmesh.position = Vector3(0, -0.15, 0)
+	var fmat := StandardMaterial3D.new()
+	fmat.albedo_color = Color(0.14, 0.12, 0.22)
+	fmat.metallic = 0.3
+	fmat.roughness = 0.5
+	fmesh.material_override = fmat
+	floor_body.add_child(fmesh)
+	_preview_vp.add_child(floor_body)
+
 	_preview_holder = Node3D.new()
 	_preview_vp.add_child(_preview_holder)
 
@@ -209,28 +234,31 @@ func _spawn_preview(rid: String) -> void:
 	if packed == null:
 		return
 	var kart: Node3D = packed.instantiate()
-	# It's just a display dummy — no physics, no input, no active camera.
+	# Display dummy: keep physics ON so it settles onto the floor, but lock its
+	# controls so it just sits there (no input-driven driving in the menu).
 	if kart is KartController:
 		(kart as KartController).is_player = false
-	kart.set_physics_process(false)
-	kart.set_process(false)
+		(kart as KartController).control_locked = true
 	_preview_holder.add_child(kart)
-	# Mount this racer's models / tint (works exactly like in-race).
+	# Mount models/tint. animate=false: the menu shows a static pose so a future
+	# Mixamo clip's root motion can't drift the character out of frame here.
 	if kart.has_method("apply_theme"):
-		kart.call("apply_theme", rid)
+		kart.call("apply_theme", rid, false)
 	var cam := kart.get_node_or_null("CameraRig/Camera3D")
 	if cam:
 		(cam as Camera3D).current = false
-	kart.position = Vector3.ZERO
+	kart.position = Vector3(0, 0.6, 0) # drop in just above the floor and settle
 	_preview_kart = kart
-	_preview_holder.rotation = Vector3.ZERO
-	# Frame the kart from a front-3/4 angle.
-	_preview_cam.position = Vector3(2.6, 1.7, 3.6)
-	_preview_cam.look_at(Vector3(0, 0.7, 0), Vector3.UP)
+
+var _orbit_angle: float = 0.7
 
 func _process(delta: float) -> void:
-	if _preview_holder:
-		_preview_holder.rotate_y(delta * 0.6) # slow turntable
+	# Orbit the camera around the kart (turntable) — the kart itself stays put on
+	# the floor, so physics and the spin never fight.
+	_orbit_angle += delta * 0.5
+	var r := 4.2
+	_preview_cam.position = Vector3(sin(_orbit_angle) * r, 1.7, cos(_orbit_angle) * r)
+	_preview_cam.look_at(Vector3(0, 0.7, 0), Vector3.UP)
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("steer_left"):

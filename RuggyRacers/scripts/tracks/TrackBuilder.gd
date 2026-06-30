@@ -39,7 +39,33 @@ func build(parent: Node) -> void:
 	_build_checkpoints()
 	_build_ai_path()
 	_build_grid()
+	_build_finish_line()
 	_build_features()
+
+## A flat black-and-white checkered strip across the track at the start/finish.
+func _build_finish_line() -> void:
+	# Procedural checkerboard texture (sharp squares via nearest filtering).
+	var img := Image.create(8, 8, false, Image.FORMAT_RGB8)
+	for y in 8:
+		for x in 8:
+			img.set_pixel(x, y, Color.WHITE if (x + y) % 2 == 0 else Color.BLACK)
+	var tex := ImageTexture.create_from_image(img)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = tex
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	mat.uv1_scale = Vector3(TRACK_WIDTH / 2.5, 2.0, 1.0) # repeat squares across width
+	mat.roughness = 1.0
+
+	var c := _point(0.0)
+	var fwd := _tangent(0.0)
+	var mesh := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(TRACK_WIDTH, 4.0) # spans the corridor; 4m deep
+	mesh.mesh = plane
+	mesh.material_override = mat
+	# PlaneMesh lies in the XZ plane facing +Y; orient it across the track.
+	mesh.transform = _xform_facing(c + Vector3.UP * 0.05, fwd)
+	_parent.add_child(mesh)
 
 # --- Centerline helpers -----------------------------------------------------
 

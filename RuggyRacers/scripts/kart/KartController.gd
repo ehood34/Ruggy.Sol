@@ -71,6 +71,12 @@ var invincible_time: float = 0.0
 var slow_time: float = 0.0         # market crash lightning
 var control_locked: bool = false   # countdown / finish
 
+# Character animation (custom rigged models): drive loop + honk-on-hit
+var _char_anim: AnimationPlayer = null
+var _drive_clip: String = ""
+var _honk_cd: float = 0.0           # cooldown so honks don't spam
+var _pre_move_speed: float = 0.0    # speed before move_and_slide (impact detect)
+
 # Cached nodes
 @onready var model: Node3D = $Model if has_node("Model") else self
 @onready var camera_rig: Node3D = get_node_or_null("CameraRig")
@@ -88,13 +94,14 @@ func _ready() -> void:
 
 ## Tints the placeholder kart + Ruggy meshes from RacerDB colors, and mounts any
 ## custom 3D models the racer has (see RacerDB.MODELS / ModelMount.gd).
-func apply_theme(rid: String) -> void:
-	_mount_models(rid)
+func apply_theme(rid: String, animate: bool = true) -> void:
+	_mount_models(rid, animate)
 	_apply_tint(rid)
 
 ## Loads custom vehicle/character models if present and hides the placeholders
 ## they replace. Falls back silently to the tinted boxes when no files exist.
-func _mount_models(rid: String) -> void:
+## `animate` plays the model's looping drive clip in-race; the menu passes false.
+func _mount_models(rid: String, animate: bool = true) -> void:
 	if model == null:
 		return
 	var cfg: Dictionary = RacerDB.get_models(rid)
@@ -103,9 +110,16 @@ func _mount_models(rid: String) -> void:
 	var got_vehicle := false
 	var got_char := false
 	if cfg.has("vehicle"):
-		got_vehicle = ModelMount.mount(model, cfg["vehicle"]) != null
+		got_vehicle = ModelMount.mount(model, cfg["vehicle"], animate) != null
 	if cfg.has("character"):
-		got_char = ModelMount.mount(model, cfg["character"]) != null
+		var cnode := ModelMount.mount(model, cfg["character"], animate)
+		got_char = cnode != null
+		# Remember the character's AnimationPlayer + its looping drive clip so we
+		# can punch in the "honk" clip on a hit and return to driving after.
+		if got_char and animate:
+			_char_anim = ModelMount.find_animation_player(cnode)
+			if _char_anim:
+				_drive_clip = _char_anim.current_animation
 	if got_vehicle:
 		for n in ["BodyMesh", "WheelFL", "WheelFR", "WheelRL", "WheelRR"]:
 			var m := model.get_node_or_null(n)
@@ -205,14 +219,19 @@ func _physics_process(delta: float) -> void:
 
 	_apply_boost(delta)
 	_compose_velocity()
+	_pre_move_speed = absf(forward_speed)
 	move_and_slide()
 	_post_move()
+	# Honk on a real collision: was moving fast, hit a wall, lost speed.
+	if is_on_wall() and _pre_move_speed > 12.0 and absf(forward_speed) < _pre_move_speed * 0.7:
+		play_honk()
 	_update_visuals(delta)
 
 func _update_timers(delta: float) -> void:
 	spinout_time = max(0.0, spinout_time - delta)
 	invincible_time = max(0.0, invincible_time - delta)
 	slow_time = max(0.0, slow_time - delta)
+	_honk_cd = max(0.0, _honk_cd - delta)
 	if boost_time > 0.0:
 		boost_time -= delta
 		if boost_time <= 0.0:
@@ -487,6 +506,7 @@ func spinout(duration: float = 1.4) -> void:
 	drift_charge = 0.0
 	emit_signal("hit_by_item", spinout_time)
 	AudioManager.play_sfx("hit")
+	play_honk() # angry honk when hit by an item
 
 ## Squash flat (lightning / honeypot). Brief, with a movement-speed penalty.
 func squash(duration: float = 2.5) -> void:
@@ -494,6 +514,22 @@ func squash(duration: float = 2.5) -> void:
 		return
 	slow_time = duration
 	spinout(0.5)
+
+## Punch in the "honk" animation clip (if the model has one), then return to the
+## looping drive clip when it finishes. Cooled down so it can't spam.
+func play_honk() -> void:
+	if _char_anim == null or _honk_cd > 0.0:
+		return
+	if not _char_anim.has_animation("honk"):
+		return
+	_honk_cd = 1.6
+	_char_anim.play("honk")
+	if not _char_anim.animation_finished.is_connected(_on_honk_finished):
+		_char_anim.animation_finished.connect(_on_honk_finished)
+
+func _on_honk_finished(anim_name: StringName) -> void:
+	if String(anim_name) == "honk" and _char_anim and _drive_clip != "":
+		_char_anim.play(_drive_clip)
 
 func make_invincible(duration: float) -> void:
 	invincible_time = duration
