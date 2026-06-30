@@ -9,7 +9,7 @@ config_version=5
 config/name="Ruggy Racers"
 config/description="A chaotic memecoin-culture Mario Kart-style 3D arcade racer starring Ruggy."
 run/main_scene="res://scenes/ui/Boot.tscn"
-config/features=PackedStringArray("4.3", "Forward Plus")
+config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
@@ -107,6 +107,9 @@ common/physics_ticks_per_second=60
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
+; Compatibility (OpenGL) renderer — runs on old/low-end GPUs like Intel HD
+; integrated graphics where the Forward+/Vulkan(MoltenVK) renderer crashes on
+; startup. Switch back to "forward_plus" on a modern GPU for nicer lighting/glow.
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
 environment/defaults/default_clear_color=Color(0.05, 0.04, 0.1, 1)
-anti_aliasing/quality/msaa_3d=2
