@@ -65,18 +65,20 @@ static func _find_model_path(dir_path: String) -> String:
 	var d := DirAccess.open(dir_path)
 	if d == null:
 		return "" # folder doesn't exist yet -> caller keeps the placeholder
+	# Collect all model files, then pick by MODEL_EXTS priority (GLB/GLTF before
+	# FBX — they're Godot-native, import more reliably, and are usually lighter).
+	var found: Array[String] = []
 	d.list_dir_begin()
 	while true:
 		var f := d.get_next()
 		if f == "":
 			break
-		if d.current_is_dir():
+		if d.current_is_dir() or f.to_lower().ends_with(".import"):
 			continue
-		var lf := f.to_lower()
-		if lf.ends_with(".import"):
-			continue
-		for ext in MODEL_EXTS:
-			if lf.ends_with(ext):
+		found.append(f)
+	for ext in MODEL_EXTS:
+		for f in found:
+			if f.to_lower().ends_with(ext):
 				return dir_path.path_join(f)
 	return ""
 
