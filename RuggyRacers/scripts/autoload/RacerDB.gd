@@ -209,7 +209,7 @@ const MODELS := {
 		# Rigged Mixamo character: use fixed_scale (native size) instead of auto-
 		# fit, which mis-measures skinned meshes. If still too big/small, change
 		# fixed_scale (try 0.6 / 1.4); use offset.y to seat him in the jeep.
-		"character": {"dir": "res://assets/models/trench/character", "fixed_scale": 1.0, "rot_y": 90.0, "offset": Vector3(0, 0.5, -0.1)},
+		"character": {"dir": "res://assets/models/trench/character", "fixed_scale": 1.0, "rot_y": 0.0, "offset": Vector3(0, 0.5, -0.1)},
 	},
 }
 

@@ -240,10 +240,10 @@ func _spawn_preview(rid: String) -> void:
 		(kart as KartController).is_player = false
 		(kart as KartController).control_locked = true
 	_preview_holder.add_child(kart)
-	# Mount models/tint. animate=false: the menu shows a static pose so a future
-	# Mixamo clip's root motion can't drift the character out of frame here.
+	# Mount models/tint. animate=true so rigged characters play their driving
+	# clip in the menu (root motion is anchored so they don't drift off-screen).
 	if kart.has_method("apply_theme"):
-		kart.call("apply_theme", rid, false)
+		kart.call("apply_theme", rid, true)
 	var cam := kart.get_node_or_null("CameraRig/Camera3D")
 	if cam:
 		(cam as Camera3D).current = false

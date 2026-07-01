@@ -146,8 +146,8 @@ func _build_podium_3d() -> void:
 	cam.fov = 42.0
 	vp.add_child(cam)
 	cam.current = true
-	cam.position = Vector3(0, 2.6, 8.0)
-	cam.look_at(Vector3(0, 0.7, 0), Vector3.UP)
+	cam.position = Vector3(0, 3.2, 11.0)
+	cam.look_at(Vector3(0, 1.0, 0), Vector3.UP)
 	var key := DirectionalLight3D.new()
 	key.rotation_degrees = Vector3(-35, 18, 0)
 	key.light_energy = 1.5
@@ -174,7 +174,7 @@ func _build_podium_3d() -> void:
 			(kart as KartController).control_locked = true
 		vp.add_child(kart)
 		if kart.has_method("apply_theme"):
-			kart.call("apply_theme", rid, false)
+			kart.call("apply_theme", rid, true)
 		var c := kart.get_node_or_null("CameraRig/Camera3D")
 		if c:
 			(c as Camera3D).current = false
@@ -182,14 +182,14 @@ func _build_podium_3d() -> void:
 		kart.rotation.y = PI # face the camera
 		_podium_karts.append(kart)
 
+	# Fixed position/size in the 1600x900 design space (default top-left anchors)
+	# so the podium always sits centered near the top, never off-screen.
 	var tr := TextureRect.new()
 	tr.texture = vp.get_texture()
-	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tr.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	tr.position = Vector2(0, 110)
-	tr.custom_minimum_size = Vector2(1600, 370)
-	tr.size = Vector2(1600, 370)
+	tr.position = Vector2(320, 120)
+	tr.size = Vector2(960, 380)
 	add_child(tr)
 
 func _process(_delta: float) -> void:
