@@ -56,7 +56,7 @@ func _add_drifting_particles() -> void:
 	var p := CPUParticles2D.new()
 	p.amount = 60
 	p.lifetime = 6.0
-	p.position = Vector2(800, 1000)
+	p.position = Vector2(800, 900)
 	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
 	p.emission_rect_extents = Vector2(900, 20)
 	p.direction = Vector2(0, -1)

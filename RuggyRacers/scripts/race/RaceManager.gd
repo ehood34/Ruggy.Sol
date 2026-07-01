@@ -450,10 +450,20 @@ func _finish_race() -> void:
 
 	var results: Array = []
 	for e in standing:
+		var t_ms: int
+		if e["finished"]:
+			t_ms = e["finish_time_ms"]
+		else:
+			# Racer didn't cross the line before the race ended — estimate their
+			# total from how far around they got, so everyone has a distinct,
+			# progress-ordered time instead of all showing the finish clock.
+			var frac: float = maxf(0.0, float(e["line_t"]))
+			var completion := clampf((float(e["lap"]) - 1.0 + frac) / float(laps_required), 0.05, 0.999)
+			t_ms = int(float(race_time_ms) / completion)
 		results.append({
 			"racer_id": e["racer_id"],
 			"name": e["name"],
-			"time_ms": e["finish_time_ms"] if e["finished"] else race_time_ms,
+			"time_ms": t_ms,
 			"best_lap_ms": e["best_lap_ms"] if e["best_lap_ms"] < 0x7FFFFFFF else 0,
 			"placement": e["placement"],
 			"is_player": e["is_player"],

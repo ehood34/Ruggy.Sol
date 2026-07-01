@@ -54,7 +54,7 @@ func _ready() -> void:
 		list.add_child(row)
 
 	var back := UITheme.make_button("Back", func(): GameManager.goto_scene("main_menu"))
-	back.position = Vector2(40, 980)
+	back.position = Vector2(40, 820)
 	add_child(back)
 
 func _racer_card(rid: String) -> Control:

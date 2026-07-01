@@ -66,7 +66,7 @@ func _build_ui() -> void:
 	var back := UITheme.make_button("Back", func():
 		AudioManager.play_sfx("ui_back")
 		GameManager.goto_scene("character_select"))
-	back.position = Vector2(40, 980)
+	back.position = Vector2(40, 820)
 	add_child(back)
 
 func _build_options() -> void:

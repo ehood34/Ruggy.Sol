@@ -33,7 +33,7 @@ func _ready() -> void:
 
 	var back := UITheme.make_button("Back", func():
 		GameManager.goto_scene("main_menu"))
-	back.position = Vector2(40, 980)
+	back.position = Vector2(40, 820)
 	add_child(back)
 
 func _slider(label: String, key: String) -> Control:
