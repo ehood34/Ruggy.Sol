@@ -75,9 +75,17 @@ static func _play_loop_animation(root: Node, preferred: String) -> void:
 	var ap := _find_animation_player(root)
 	if ap == null:
 		return
-	var names := ap.get_animation_list()
-	if names.is_empty():
+	var all := ap.get_animation_list()
+	if all.is_empty():
 		return
+	# NEVER loop the honk clip — it's the hit reaction, not the idle. Build the
+	# candidate list from everything except honk so the driving clip is the loop.
+	var names: Array = []
+	for n in all:
+		if not ("honk" in String(n).to_lower()):
+			names.append(String(n))
+	if names.is_empty():
+		names = [String(all[0])]
 	var pick := String(names[0])
 	# Prefer an explicitly-named anim, else the first that looks driving/idle-ish.
 	var prefs := [preferred.to_lower(), "driv", "sit", "seat", "idle", "pose", "stand"]

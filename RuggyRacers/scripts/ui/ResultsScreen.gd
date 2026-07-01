@@ -142,8 +142,8 @@ func _make_racer_view(rid: String, px: int) -> SubViewport:
 	cam.fov = 42.0
 	vp.add_child(cam)
 	cam.current = true
-	cam.position = Vector3(0.7, 2.1, 5.4)
-	cam.look_at(Vector3(0, 0.85, 0), Vector3.UP)
+	cam.position = Vector3(0, 1.25, 3.7)          # centered + close so the model fills the frame
+	cam.look_at(Vector3(0, 0.95, 0), Vector3.UP)
 	var key := DirectionalLight3D.new()
 	key.rotation_degrees = Vector3(-35, 25, 0)
 	key.light_energy = 1.5
@@ -178,20 +178,22 @@ func _podium_card(r: Dictionary, place: int) -> Control:
 	v.alignment = BoxContainer.ALIGNMENT_END
 	var col: Color = RacerDB.get_racer(r["racer_id"])["accent_color"]
 
-	# 3D model of this racer, sitting directly above their card (1st is biggest).
-	var view_px: int = {1: 300, 2: 240, 3: 210}.get(place, 210)
+	# Card + its 3D model share the SAME width so the model sits squarely above
+	# the name card (mismatched widths made it drift to the side before).
+	var card_w := 240
+	var view_px: int = {1: 260, 2: 230, 3: 210}.get(place, 210)
 	var vp := _make_racer_view(r["racer_id"], view_px)
 	add_child(vp) # SubViewport must be in the tree to render
 	var view_tr := TextureRect.new()
 	view_tr.texture = vp.get_texture()
 	view_tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	view_tr.custom_minimum_size = Vector2(view_px, view_px)
+	view_tr.custom_minimum_size = Vector2(card_w, view_px)
 	view_tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(view_tr)
 
 	var panel := Panel.new()
-	var heights := {1: 260, 2: 200, 3: 160}
-	panel.custom_minimum_size = Vector2(200, heights.get(place, 160))
+	var heights := {1: 200, 2: 170, 3: 150}
+	panel.custom_minimum_size = Vector2(card_w, heights.get(place, 150))
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = col.darkened(0.1)
 	sb.set_corner_radius_all(12)
