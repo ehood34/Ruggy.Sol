@@ -37,6 +37,9 @@ All knobs live in `scripts/autoload/RacerDB.gd` under `const MODELS`. Per model:
 
 - `size`  — target size in metres (largest dimension). Bigger = larger kart.
 - `scale` — extra multiplier on top of `size` (fine adjust).
+- `fixed_scale` — if set (>0), bypasses auto-fit and uses this exact scale.
+  **Use this for rigged/animated characters** (Mixamo): auto-fit misreads
+  skinned meshes, so set `fixed_scale` (start ~1.0) and adjust up/down.
 - `rot_y` — spin to face forward. The kart drives toward **−Z**; if your model
   faces backward/sideways, set `rot_y` to 90 / 180 / 270.
 - `offset`— `Vector3(x, y, z)` nudge in metres. Use the character `y` to seat

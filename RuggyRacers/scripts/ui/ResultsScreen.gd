@@ -42,12 +42,15 @@ func _build_race_results() -> void:
 	title.position.y = 30
 	add_child(title)
 
-	# Podium for top 3.
+	# Live 3D models of the top 3 (rendered above their name cards).
+	_build_podium_3d()
+
+	# Podium name/medal cards (below the 3D models).
 	var podium := HBoxContainer.new()
 	podium.alignment = BoxContainer.ALIGNMENT_CENTER
 	podium.add_theme_constant_override("separation", 30)
 	podium.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	podium.position = Vector2(-360, 150)
+	podium.position = Vector2(-360, 470)
 	add_child(podium)
 	var order := [1, 0, 2] # 2nd, 1st, 3rd visual arrangement
 	for slot in order:
@@ -119,6 +122,81 @@ func _build_buttons() -> void:
 	nav.add_child(UITheme.make_button("MAIN MENU", func(): GameManager.goto_scene("main_menu"), true))
 
 # ---------------------------------------------------------------------------
+
+var _podium_karts: Array = []
+
+## Renders the top-3 racers' karts+models on a little podium via a SubViewport.
+func _build_podium_3d() -> void:
+	var vp := SubViewport.new()
+	vp.size = Vector2i(960, 380)
+	vp.transparent_bg = true
+	vp.own_world_3d = true
+	vp.world_3d = World3D.new()
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(vp)
+
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0, 0, 0, 0)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.62, 0.62, 0.72)
+	env.ambient_light_energy = 1.2
+	var cam := Camera3D.new()
+	cam.environment = env
+	cam.fov = 42.0
+	vp.add_child(cam)
+	cam.current = true
+	cam.position = Vector3(0, 2.6, 8.0)
+	cam.look_at(Vector3(0, 0.7, 0), Vector3.UP)
+	var key := DirectionalLight3D.new()
+	key.rotation_degrees = Vector3(-35, 18, 0)
+	key.light_energy = 1.5
+	vp.add_child(key)
+
+	# Shared floor so the karts rest instead of falling.
+	var fb := StaticBody3D.new()
+	fb.collision_layer = 1
+	var fs := CollisionShape3D.new()
+	var fbox := BoxShape3D.new()
+	fbox.size = Vector3(30, 1, 16)
+	fs.shape = fbox
+	fs.position = Vector3(0, -0.5, 0)
+	fb.add_child(fs)
+	vp.add_child(fb)
+
+	# 1st centre-front, 2nd left, 3rd right.
+	var slots := [Vector3(0, 0.6, 1.0), Vector3(-3.4, 0.6, -0.4), Vector3(3.4, 0.6, -0.4)]
+	for i in mini(3, _results.size()):
+		var rid: String = _results[i]["racer_id"]
+		var kart: Node3D = load("res://scenes/karts/Kart.tscn").instantiate()
+		if kart is KartController:
+			(kart as KartController).is_player = false
+			(kart as KartController).control_locked = true
+		vp.add_child(kart)
+		if kart.has_method("apply_theme"):
+			kart.call("apply_theme", rid, false)
+		var c := kart.get_node_or_null("CameraRig/Camera3D")
+		if c:
+			(c as Camera3D).current = false
+		kart.position = slots[i]
+		kart.rotation.y = PI # face the camera
+		_podium_karts.append(kart)
+
+	var tr := TextureRect.new()
+	tr.texture = vp.get_texture()
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	tr.position = Vector2(0, 110)
+	tr.custom_minimum_size = Vector2(1600, 370)
+	tr.size = Vector2(1600, 370)
+	add_child(tr)
+
+func _process(_delta: float) -> void:
+	# Gentle victory sway.
+	for k in _podium_karts:
+		if is_instance_valid(k):
+			k.rotation.y = PI + sin(Time.get_ticks_msec() / 900.0) * 0.25
 
 func _podium_card(r: Dictionary, place: int) -> Control:
 	var v := VBoxContainer.new()

@@ -35,13 +35,19 @@ static func mount(parent: Node3D, cfg: Dictionary, animate: bool = true) -> Node
 		return null
 	parent.add_child(inst)
 
-	# --- Auto-fit by bounding box ---
 	var aabb := _local_aabb(inst, parent)
-	var dim := maxf(aabb.size.x, maxf(aabb.size.y, aabb.size.z))
-	var target: float = cfg.get("size", 1.6)
 	var s := 1.0
-	if dim > 0.0001:
-		s = (target / dim) * float(cfg.get("scale", 1.0))
+	if cfg.has("fixed_scale") and float(cfg["fixed_scale"]) > 0.0:
+		# Bypass auto-fit and use an exact scale. Best for rigged/skinned models
+		# (Mixamo/Meshy) whose bind-pose bounding box fools the auto-fit — those
+		# already import at real-world scale, so ~1.0 is usually right.
+		s = float(cfg["fixed_scale"])
+	else:
+		# Auto-fit: scale so the largest dimension matches `size`.
+		var dim := maxf(aabb.size.x, maxf(aabb.size.y, aabb.size.z))
+		var target: float = cfg.get("size", 1.6)
+		if dim > 0.0001:
+			s = (target / dim) * float(cfg.get("scale", 1.0))
 	inst.scale = Vector3(s, s, s)
 	# Sit the base on y=0 and centre x/z (in the scaled frame).
 	inst.position = Vector3(
