@@ -18,9 +18,20 @@ extends RefCounted
 
 const MODEL_EXTS := [".glb", ".gltf", ".fbx", ".obj", ".blend", ".tscn", ".escn"]
 
+# Cache of dir -> resolved model file path, so we scan each folder only once.
+static var _path_cache: Dictionary = {}
+
+## Public + cached lookup of the model file in a folder (used by the preloader).
+static func find_model_path(dir_path: String) -> String:
+	if _path_cache.has(dir_path):
+		return _path_cache[dir_path]
+	var p := _find_model_path(dir_path)
+	_path_cache[dir_path] = p
+	return p
+
 static func mount(parent: Node3D, cfg: Dictionary, animate: bool = true) -> Node3D:
 	var dir_path: String = cfg.get("dir", "")
-	var path := _find_model_path(dir_path)
+	var path := find_model_path(dir_path)
 	if path == "" or not ResourceLoader.exists(path):
 		return null
 	var res := load(path)

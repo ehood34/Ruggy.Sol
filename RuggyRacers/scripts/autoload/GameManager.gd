@@ -38,6 +38,42 @@ var speedrun_use_ghost: bool = true
 func _ready() -> void:
 	# Apply saved display/audio settings on boot.
 	_apply_window_settings()
+	# Warm the resource cache: start loading the (large) racer models in the
+	# background while the player is in menus, so entering a race/results screen
+	# doesn't stall waiting on them. Deferred so it never blocks the boot frame.
+	call_deferred("_preload_models")
+
+## Kicks off threaded background loads of every custom model + honk clip. When a
+## kart later calls load() on the same path, it returns the already-cached
+## resource instantly instead of reading the big file mid-transition.
+func _preload_models() -> void:
+	for rid in RacerDB.MODELS:
+		var cfg: Dictionary = RacerDB.MODELS[rid]
+		for part in cfg:
+			var d: String = cfg[part].get("dir", "")
+			if d == "":
+				continue
+			var p := ModelMount.find_model_path(d)
+			if p != "" and ResourceLoader.exists(p):
+				ResourceLoader.load_threaded_request(p)
+			# Also warm any honk/extra clip files in the same folder.
+			_preload_extra_files(d)
+
+func _preload_extra_files(dir_path: String) -> void:
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return
+	dir.list_dir_begin()
+	while true:
+		var f := dir.get_next()
+		if f == "":
+			break
+		if dir.current_is_dir() or f.to_lower().ends_with(".import"):
+			continue
+		if "honk" in f.to_lower():
+			var hp := dir_path.path_join(f)
+			if ResourceLoader.exists(hp):
+				ResourceLoader.load_threaded_request(hp)
 
 func _apply_window_settings() -> void:
 	var fs: bool = bool(SaveManager.get_setting("fullscreen", false))
