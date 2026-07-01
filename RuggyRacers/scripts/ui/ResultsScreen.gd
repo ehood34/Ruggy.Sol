@@ -130,6 +130,10 @@ func _make_racer_view(rid: String, px: int) -> SubViewport:
 	vp.own_world_3d = true
 	vp.world_3d = World3D.new()
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	# Add to the tree NOW, before the kart, so the kart's _ready runs and its
+	# `model` node exists when apply_theme mounts the custom models. Otherwise the
+	# mount bails and you get the placeholder box.
+	add_child(vp)
 
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
@@ -182,8 +186,7 @@ func _podium_card(r: Dictionary, place: int) -> Control:
 	# the name card (mismatched widths made it drift to the side before).
 	var card_w := 240
 	var view_px: int = {1: 260, 2: 230, 3: 210}.get(place, 210)
-	var vp := _make_racer_view(r["racer_id"], view_px)
-	add_child(vp) # SubViewport must be in the tree to render
+	var vp := _make_racer_view(r["racer_id"], view_px) # already added to the tree
 	var view_tr := TextureRect.new()
 	view_tr.texture = vp.get_texture()
 	view_tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
